@@ -2,5 +2,8 @@
 
 ## 2D offsetting for arc polylines
 
+![Build](https://github.com/radevgit/offroad/actions/workflows/rust.yml/badge.svg)
 
-[![codecov](https://codecov.io/gh/radevgit/offroad/graph/badge.svg?token=34N49FRU78)](https://codecov.io/gh/radevgit/offroad)
+## Status
+
+In implementation 
