@@ -2,10 +2,6 @@
 
 use crate::interval::Interval;
 
-// The possible 'configuration' in Result are listed as an
-// enumeration.
-// https://github.com/davideberly/GeometricTools/blob/master/GTE/Mathematics/IntrIntervals.h
-// https://github.com/davideberly/GeometricTools/blob/4f47cd85ae2711612dc9c166a87fe16a8cb368cf/GTE/Mathematics/IntrIntervals.h#L177
 #[derive(Debug, PartialEq)]
 pub enum IntervalConfig {
     NoOverlap(),
@@ -33,15 +29,12 @@ pub fn intersect_interval_interval(interval0: Interval, interval1: Interval) -> 
             if overlap0 < overlap1 {
                 return IntervalConfig::Overlap(overlap0, overlap1);
             } else {
-                // case with degenerate intervals
                 return IntervalConfig::Overlap(overlap0, overlap0);
             }
         } else {
-            // interval0[0] == interval1[1]
             return IntervalConfig::Touching(interval0.0);
         }
     } else {
-        // interval0[1] == interval1[0]
         return IntervalConfig::Touching(interval0.1);
     }
 }
