@@ -7,15 +7,12 @@ use crate::{
     Arc, Point,
 };
 
-
-
 #[derive(Debug, PartialEq)]
 pub enum SegmentArcConfig {
     NoIntersection(),
     OnePoint(Point, f64),
     TwoPoints(Point, Point, f64, f64),
 }
-
 
 pub fn intersect_segment_arc(segment: Segment, arc: &Arc) -> SegmentArcConfig {
     const EPS_CONTAINS: f64 = 1E-10;
@@ -49,7 +46,6 @@ pub fn intersect_segment_arc(segment: Segment, arc: &Arc) -> SegmentArcConfig {
     }
 }
 
-
 pub fn is_touching_segment_arc(s: Segment, a: &Arc) -> bool {
     if s.p0 == a.a || s.p0 == a.b || s.p1 == a.a || s.p1 == a.b {
         true
@@ -70,7 +66,7 @@ mod test_intersect_segment_arc {
     #[ignore = "svg output"]
     fn test_intersect_segment_arc() {
         let mut svg = svg(300.0, 350.0);
-        
+
         let v0 = point(100.0, 100.0);
         let v1 = point(150.0, 150.0);
         let v2 = point(130.0, 200.0);
@@ -90,10 +86,8 @@ mod test_intersect_segment_arc {
         svg.circle(&circle(pc, 1.0), "black");
         svg.circle(&circle(pd, 1.0), "black");
         svg.write();
-        
     }
 }
-
 
 #[cfg(test)]
 mod tests_segment_arc {
@@ -127,7 +121,6 @@ mod tests_segment_arc {
 
     #[test]
     fn test_no_intersection3() {
-        
         let s0 = segment(point(-1.0, 0.5), point(1.0, 0.5));
         let arc0 = arc(point(-1.0, 0.0), point(1.0, 0.0), point(0.0, 0.0), 1.0);
         let res = intersect_segment_arc(s0, &arc0);
@@ -136,7 +129,6 @@ mod tests_segment_arc {
 
     #[test]
     fn test_no_intersection4() {
-        
         let s0 = segment(point(-1.0, 1.0), point(-0.0, 1.0));
         let arc0 = arc(point(-1.0, 0.0), point(1.0, 0.0), point(0.0, 0.0), 1.0);
         let res = intersect_segment_arc(s0, &arc0);
@@ -159,7 +151,6 @@ mod tests_segment_arc {
 
     #[test]
     fn test_one_point() {
-        
         let s0 = segment(point(-0.5, 1.0), point(0.5, 1.0));
         let arc0 = arc(point(1.0, 0.0), point(-1.0, 0.0), point(0.0, 0.0), 1.0);
         let res = intersect_segment_arc(s0, &arc0);
@@ -168,7 +159,6 @@ mod tests_segment_arc {
 
     #[test]
     fn test_one_point2() {
-        
         let s0 = segment(point(-1.0, 0.0), point(1.0, 0.0));
         let arc0 = arc(point(0.0, -1.0), point(0.0, 1.0), point(0.0, 0.0), 1.0);
         let res = intersect_segment_arc(s0, &arc0);
@@ -177,7 +167,6 @@ mod tests_segment_arc {
 
     #[test]
     fn test_one_point3() {
-        
         let s0 = segment(point(-2.0, 0.0), point(2.0, 0.0));
         let arc0 = arc(point(0.0, 1.0), point(0.0, -1.0), point(0.0, 0.0), 1.0);
         let res = intersect_segment_arc(s0, &arc0);
@@ -186,7 +175,6 @@ mod tests_segment_arc {
 
     #[test]
     fn test_one_point4() {
-        
         let s0 = segment(point(-1.0, 1.0), point(-0.0, 1.0));
         let arc0 = arc(point(0.0, 1.0), point(0.0, -1.0), point(0.0, 0.0), 1.0);
         let res = intersect_segment_arc(s0, &arc0);

@@ -1,21 +1,9 @@
 #![allow(dead_code)]
 
-use crate::circle::Circle;
 use crate::segment::Segment;
 use crate::Point;
 
-
-
-
-
-
-
-
-
-
 pub fn distance_point_segment(point: Point, segment: Segment) -> (Point, f64) {
-    
-    
     let closest;
     const ZERO: f64 = 0f64;
     const ONE: f64 = 1f64;
@@ -40,12 +28,11 @@ pub fn distance_point_segment(point: Point, segment: Segment) -> (Point, f64) {
         }
     }
 
-    (closest, (point - closest).norm_imp())
+    (closest, (point - closest).norm())
 }
 
 #[cfg(test)]
 mod tests_distance_point_segment {
-    use super::*;
 
     #[test]
     fn test_distance_point_segment() {}

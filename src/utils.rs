@@ -5,15 +5,6 @@ use std::mem::transmute;
 const ALMOST_EQUAL_C: u64 = 0x8000_0000_0000_0000 as u64;
 const ALMOST_EQUAL_CI: i64 = unsafe { std::mem::transmute::<u64, i64>(ALMOST_EQUAL_C) };
 
-
-
-
-
-
-
-
-
-
 #[inline]
 pub fn almost_equal_as_int(a: f64, b: f64, ulps: i64) -> bool {
     debug_assert!(a.is_finite());
@@ -23,14 +14,14 @@ pub fn almost_equal_as_int(a: f64, b: f64, ulps: i64) -> bool {
     }
     let mut a_i: i64 = unsafe { std::mem::transmute::<f64, i64>(a) };
     let mut b_i: i64 = unsafe { std::mem::transmute::<f64, i64>(b) };
-    
+
     if a_i < 0i64 {
         a_i = ALMOST_EQUAL_CI - a_i;
     }
     if b_i < 0i64 {
         b_i = ALMOST_EQUAL_CI - b_i;
     }
-    
+
     if (a_i - b_i).abs() <= ulps {
         return true;
     }
@@ -38,10 +29,8 @@ pub fn almost_equal_as_int(a: f64, b: f64, ulps: i64) -> bool {
 }
 
 pub fn close_enough(a: f64, b: f64, eps: f64) -> bool {
-    return (a - b).abs() < eps
+    return (a - b).abs() < eps;
 }
-
-
 
 pub fn perturbed_ulps_as_int(f: f64, c: i64) -> f64 {
     debug_assert!(!(f == 0.0 && c == -1));
@@ -50,7 +39,6 @@ pub fn perturbed_ulps_as_int(f: f64, c: i64) -> f64 {
     unsafe { transmute::<i64, f64>(f_i) }
 }
 
-
 #[inline]
 pub fn next(ind: usize, size: usize) -> usize {
     if (ind + 1) < size {
@@ -58,7 +46,6 @@ pub fn next(ind: usize, size: usize) -> usize {
     }
     0
 }
-
 
 #[inline]
 pub fn prev(ind: usize, size: usize) -> usize {
@@ -95,19 +82,16 @@ mod test_almost_equal_as_int {
 
     #[test]
     fn test_almost_equal_as_int_nearby() {
-        
         let result: bool = almost_equal_as_int(2.0, 1.999999999999999, 10);
         assert_eq!(result, true);
         let result: bool = almost_equal_as_int(-2.0, -1.999999999999999, 10);
         assert_eq!(result, true);
 
-        
         let result: bool = almost_equal_as_int(2.0, 1.999999999999998, 10);
         assert_eq!(result, true);
         let result: bool = almost_equal_as_int(-2.0, -1.999999999999998, 10);
         assert_eq!(result, true);
 
-        
         let result: bool = almost_equal_as_int(1.999999999999998, 2.0, 10);
         assert_eq!(result, true);
         let result: bool = almost_equal_as_int(-1.999999999999998, -2.0, 10);
@@ -116,13 +100,11 @@ mod test_almost_equal_as_int {
 
     #[test]
     fn test_almost_equal_as_int_distant() {
-        
         let result: bool = almost_equal_as_int(2.0, 1.999999999999997, 10);
         assert_eq!(result, false);
         let result: bool = almost_equal_as_int(-2.0, -1.999999999999997, 10);
         assert_eq!(result, false);
 
-        
         let result: bool = almost_equal_as_int(1.999999999999997, 2.0, 10);
         assert_eq!(result, false);
         let result: bool = almost_equal_as_int(-1.999999999999997, -2.0, 10);
@@ -131,28 +113,24 @@ mod test_almost_equal_as_int {
 
     #[test]
     fn test_almost_equal_as_int_limits() {
-        
         let mut f_u: u64 = f64::MAX.to_bits();
         f_u -= 2;
         let f_f = f64::from_bits(f_u);
         let result: bool = almost_equal_as_int(f64::MAX, f_f, 3);
         assert_eq!(result, true);
 
-        
         let mut f_u: u64 = f64::MAX.to_bits();
         f_u -= 4;
         let f_f = f64::from_bits(f_u);
         let result: bool = almost_equal_as_int(f64::MAX, f_f, 3);
         assert_eq!(result, false);
 
-        
         let mut f_u: u64 = f64::MIN.to_bits();
         f_u -= 2;
         let f_f = f64::from_bits(f_u);
         let result: bool = almost_equal_as_int(f64::MIN, f_f, 3);
         assert_eq!(result, true);
 
-        
         let mut f_u: u64 = f64::MIN.to_bits();
         f_u -= 4;
         let f_f = f64::from_bits(f_u);
@@ -172,7 +150,6 @@ mod test_almost_equal_as_int {
         assert!(true);
     }
 
-    
     fn print_number(f: f64, o: i64) {
         let mut f_i: i64 = unsafe { transmute::<f64, i64>(f) };
         f_i += o;
@@ -212,7 +189,7 @@ mod test_almost_equal_as_int {
         let t = 1.0;
         let tt = perturbed_ulps_as_int(t, -1);
         let res = almost_equal_as_int(t, tt, 1);
-        
+
         assert_eq!(res, true);
 
         let t = 1.0;
@@ -224,42 +201,21 @@ mod test_almost_equal_as_int {
         let tt = perturbed_ulps_as_int(t, -1000);
         let res = almost_equal_as_int(t, tt, 1000);
         assert_eq!(res, true);
-        
 
         let t = f64::MAX;
         let tt = perturbed_ulps_as_int(t, -1000000000);
         let res = almost_equal_as_int(t, tt, 1000000000);
         assert_eq!(res, true);
-        
     }
 
     #[test]
     fn test_positive_negative_zero() {
-        
         assert!(almost_equal_as_int(-0f64, 0f64, 0));
     }
 }
 
-
-#[derive(Debug, PartialEq)]
-pub enum Roots {
-    
-    No([f64; 0]),
-    
-    One([f64; 1]),
-    
-    Two([f64; 2]),
-}
-
-
-
 #[cfg(test)]
-mod test_root {
-   
-}
-
-
-
+mod test_root {}
 
 #[inline]
 pub fn diff_of_prod(a: f64, b: f64, c: f64, d: f64) -> f64 {
@@ -297,44 +253,10 @@ mod test_diff_of_prod {
 
     #[test]
     fn test_diff_of_prod1() {
-        let p0 = point(33962.035, 41563.4);
-        let p1 = point(-24871.969, -30438.8);
+        let p0 = point(100000.0, 100000.0);
+        let p1 = point(-100001.0, -100000.0);
         let res0 = p0.perp(p1);
         let res1 = diff_of_prod(p0.x, p1.y, p0.y, p1.x);
-        
-        
-        assert_eq!(res0, 5.3766000270843506);
-        assert_eq!(res1, 5.3765999945164165);
-        assert_ne!(res0, res1); 
+        assert_eq!(res0, res1);
     }
-}
-
-
-
-
-
-pub fn khan_discriminant(a: f64, b: f64, c: f64) -> f64 {
-    let p = b * b;
-    let q = a * c;
-    let d = if p + q <= 3.0 * (p - q).abs() {
-        p - q
-    } else {
-        let dp = exactmult(b, b, p);
-        let dq = exactmult(a, c, q);
-        
-        
-        (p - q) + (dp - dq)
-    };
-    return d;
-}
-
-pub fn exactmult(x: f64, y: f64, xy: f64) -> f64 {
-    let c = (27.0f64).exp2() + 1.0;
-    let px = x * c;
-    let hx = (x - px) + px;
-    let tx = x - hx;
-    let py = y * c;
-    let hy = (y - py) + py;
-    let ty = y - hy;
-    return -((((xy - hx * hy) - hx * ty) - hy * tx) - tx * ty);
 }

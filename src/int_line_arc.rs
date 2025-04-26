@@ -4,8 +4,6 @@ use crate::{
     arc::Arc, circle::circle, int_line_circle::intersect_line_circle, line::Line, point::Point,
 };
 
-
-
 #[derive(Debug, PartialEq)]
 pub enum LineArcConfig {
     NoIntersection(),
@@ -28,7 +26,7 @@ pub fn intersect_line_arc(line: Line, arc: &Arc) -> LineArcConfig {
             }
         }
         crate::int_line_circle::LineCircleConfig::TwoPoints(p0, p1, t0, t1) => {
-            let b0 = arc.contains(p0); 
+            let b0 = arc.contains(p0);
             let b1 = arc.contains(p1);
             if b0 && b1 {
                 return LineArcConfig::TwoPoints(p0, p1, t0, t1);
@@ -43,7 +41,6 @@ pub fn intersect_line_arc(line: Line, arc: &Arc) -> LineArcConfig {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests_line_arc {
@@ -77,7 +74,6 @@ mod tests_line_arc {
 
     #[test]
     fn test_no_intersection3() {
-        
         let l0 = Line::new(point(-1.0, 0.5), point(1.0, 0.0));
         let arc0 = arc(point(-1.0, 0.0), point(1.0, 0.0), point(0.0, 0.0), 1.0);
         let res = intersect_line_arc(l0, &arc0);
@@ -109,7 +105,6 @@ mod tests_line_arc {
 
     #[test]
     fn test_one_point2() {
-        
         let l0 = Line::new(point(-1.0, 0.0), point(1.0, 0.0));
         let arc0 = arc(point(0.0, -1.0), point(0.0, 1.0), point(0.0, 0.0), 1.0);
         let res = intersect_line_arc(l0, &arc0);
@@ -118,7 +113,6 @@ mod tests_line_arc {
 
     #[test]
     fn test_one_point3() {
-        
         let l0 = Line::new(point(-2.0, 0.0), point(1.0, 0.0));
         let arc0 = arc(point(0.0, 1.0), point(0.0, -1.0), point(0.0, 0.0), 1.0);
         let res = intersect_line_arc(l0, &arc0);

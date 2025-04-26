@@ -2,7 +2,6 @@ use std::fmt::Display;
 
 use crate::point::Point;
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Segment {
     pub p0: Point,
@@ -61,7 +60,7 @@ mod test_segment {
         let s0 = Segment::new(point(1.0, 1.0), point(3.0, 3.0));
         let (center, dir, extent) = s0.get_centered_form();
         assert_eq!(center, point(2.0, 2.0));
-        assert_eq!(dir, point(2.0, 2.0));
+        assert_eq!(dir, point(0.7071067811865475, 0.7071067811865475));
         assert_eq!(extent, 1.4142135623730951);
     }
 }

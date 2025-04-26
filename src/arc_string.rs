@@ -1,13 +1,12 @@
 #![allow(dead_code)]
 
-use std::fmt::Display;
 
 use crate::Arc;
 
-
+// A series of contiguous arc segments.
 pub struct ArcString(pub Vec<Arc>);
 
-
+// https://github.com/georust/geo/blob/main/geo-types/src/geometry/line_string.rs
 pub struct ArcsIter<'a>(::core::slice::Iter<'a, Arc>);
 
 impl<'a> Iterator for ArcsIter<'a> {
@@ -35,12 +34,12 @@ impl<'a> DoubleEndedIterator for ArcsIter<'a> {
 }
 
 impl ArcString {
-    
+    /// Instantiate Self from the raw content value
     pub fn new(value: Vec<Arc>) -> Self {
         Self(value)
     }
 
-    
+    /// Return an iterator yielding the arcs
     pub fn arcs(&self) -> ArcsIter {
         ArcsIter(self.0.iter())
     }
@@ -53,8 +52,6 @@ impl ArcString {
 
 #[cfg(test)]
 mod test_arc_string {
-    use super::*;
-    use crate::point::point;
 
     #[test]
     fn test_new() {}

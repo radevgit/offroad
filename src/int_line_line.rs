@@ -2,45 +2,29 @@
 
 use crate::{line::Line, point::Point};
 
-
-
-
 #[derive(Debug, PartialEq)]
 pub enum LineConfig {
     ParallelDistinct(),
     ParallelTheSame(),
-    OnePoint(Point, f64, f64), 
+    OnePoint(Point, f64, f64),
 }
 
 const ZERO: f64 = 0f64;
 pub fn intersect_line_line(line0: Line, line1: Line) -> LineConfig {
-    
-    
-    
-    
-    
-    
-    
-    
-
     let q = line1.origin - line0.origin;
-    let dot_d0_perp_d1 = line0.dir.perp_imp(line1.dir);
+    let dot_d0_perp_d1 = line0.dir.perp(line1.dir);
     if dot_d0_perp_d1 != ZERO {
-        
-        let dot_qperp_d0 = q.perp_imp(line0.dir);
-        let dot_qperp_d1 = q.perp_imp(line1.dir);
+        let dot_qperp_d0 = q.perp(line0.dir);
+        let dot_qperp_d1 = q.perp(line1.dir);
         let s0 = dot_qperp_d1 / dot_d0_perp_d1;
         let s1 = dot_qperp_d0 / dot_d0_perp_d1;
         let p = line0.origin + line0.dir * s0;
         return LineConfig::OnePoint(p, s0, s1);
     } else {
-        
-        let dot_qperp_d1 = q.perp_imp(line1.dir);
+        let dot_qperp_d1 = q.perp(line1.dir);
         if dot_qperp_d1.abs() != ZERO {
-            
             return LineConfig::ParallelDistinct();
         } else {
-            
             return LineConfig::ParallelTheSame();
         }
     }
@@ -84,5 +68,4 @@ mod test_intersect_line_line {
             _ => assert!(false),
         }
     }
-
 }

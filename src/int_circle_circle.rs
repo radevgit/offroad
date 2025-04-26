@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
 use crate::point::point;
+use crate::utils::diff_of_prod;
 use crate::{circle::Circle, point::Point};
 
 #[derive(Debug, PartialEq)]
 pub enum CircleConfig {
     NoIntersection(),
-    NoncocircularOnePoint(Point),         
+    NoncocircularOnePoint(Point),
     NoncocircularTwoPoints(Point, Point),
     SameCircles(),
 }
@@ -39,11 +40,12 @@ pub fn intersect_circle_circle(circle0: Circle, circle1: Circle) -> CircleConfig
 
     if usqr_len < r0_p_r1_sqr {
         if r0_m_r1_sqr < usqr_len {
-            let inv_usqr_len = 1.0 / usqr_len;
-            let s = 0.5 * ((r0 * r0 - r1 * r1) * inv_usqr_len + 1.0);
-            let mut discr = r0 * r0 * inv_usqr_len - s * s;
-            if discr < 0f64 {
-                discr = 0f64;
+            let s = 0.5 * (diff_of_prod(r0, r0, r1, r1) / usqr_len + 1.0);
+
+            let mut discr = diff_of_prod(r0 / usqr_len, r0, s, s);
+
+            if discr < ZERO {
+                discr = ZERO;
             }
             let t = discr.sqrt();
             let v = point(u.y, -u.x);
@@ -53,7 +55,6 @@ pub fn intersect_circle_circle(circle0: Circle, circle1: Circle) -> CircleConfig
             if t > 0f64 {
                 return CircleConfig::NoncocircularTwoPoints(p0, p1);
             } else {
-                // t==0.0
                 return CircleConfig::NoncocircularOnePoint(p0);
             }
         } else {
@@ -66,12 +67,93 @@ pub fn intersect_circle_circle(circle0: Circle, circle1: Circle) -> CircleConfig
     }
 }
 
-
 #[cfg(test)]
 mod tests_circle {
     use super::*;
     use crate::circle::circle;
-    use crate::utils::perturbed_ulps_as_int;
+
+    fn ff(circle0: Circle, circle1: Circle) -> CircleConfig {
+        intersect_circle_circle(circle0, circle1)
+    }
+
+    #[test]
+    fn test_same_circles_01() {
+        let circle0 = circle(point(100.0, -100.0), 1.0);
+        let circle1 = circle(point(100.0, -100.0), 1.0);
+        assert_eq!(ff(circle0, circle1), CircleConfig::SameCircles());
+    }
+
+    #[test]
+    fn test_same_non_intersection_01() {
+        let circle0 = circle(point(1000.0, -1000.0), 1.01);
+        let circle1 = circle(point(1000.0, -1000.0), 1.0);
+        assert_eq!(ff(circle0, circle1), CircleConfig::NoIntersection());
+    }
+
+    #[test]
+    fn test_same_non_intersection_02() {
+        let circle0 = circle(point(1000.0, -1000.0), 1.0);
+        let circle1 = circle(point(1002.0, -1002.0), 1.0);
+        assert_eq!(ff(circle0, circle1), CircleConfig::NoIntersection());
+    }
+
+    #[test]
+    fn test_noncircular_two_points() {
+        let eps = f64::EPSILON * 10.0;
+        let circle0 = circle(point(10.0, -10.0), 1.0);
+        let circle1 = circle(point(10.0, -12.0 + eps), 1.0);
+        let point0 = point(10.000000042146848, -11.0);
+        let point1 = point(9.999999957853152, -11.0);
+        let res = ff(circle0, circle1);
+        assert_eq!(res, CircleConfig::NoncocircularTwoPoints(point0, point1));
+    }
+
+    #[test]
+    fn test_noncircular_one_point_01() {
+        let eps = f64::EPSILON * 2.0;
+        let circle0 = circle(point(10.0, -10.0), 1.0);
+        let circle1 = circle(point(10.0, -12.0 + eps), 1.0);
+        let point0 = point(10.0, -11.0);
+        let res = ff(circle0, circle1);
+        assert_eq!(res, CircleConfig::NoncocircularOnePoint(point0));
+    }
+
+    #[test]
+    fn test_noncircular_one_point_02() {
+        let circle0 = circle(point(10.0, -10.0), 1.0);
+        let circle1 = circle(point(10.0, -10.5), 0.5);
+        let point0 = point(10.0, -11.0);
+        let res = ff(circle0, circle1);
+        assert_eq!(res, CircleConfig::NoncocircularOnePoint(point0));
+    }
+
+    #[test]
+    fn test_noncircular_two_points_1() {
+        let eps = f64::EPSILON * 5.0;
+        let circle0 = circle(point(10.0, -10.0), 1.0);
+        let circle1 = circle(point(10.0, -10.5 - eps), 0.5);
+        let point0 = point(10.000000059604645, -10.999999999999998);
+        let point1 = point(9.999999940395355, -10.999999999999998);
+        let res = ff(circle0, circle1);
+        assert_eq!(res, CircleConfig::NoncocircularTwoPoints(point0, point1));
+    }
+
+    #[test]
+    fn test_noncircular_one_point_03() {
+        let eps = f64::EPSILON * 2.0;
+        let circle0 = circle(point(1000.0, -1000.0), 100.0);
+        let circle1 = circle(point(1000.0, -1200.0 + eps), 100.0);
+        let point0 = point(1000.0, -1100.0);
+        let res = ff(circle0, circle1);
+        assert_eq!(res, CircleConfig::NoncocircularOnePoint(point0));
+    }
+}
+
+#[cfg(test)]
+mod tests_circle_old {
+
+    use super::*;
+    use crate::{circle::circle, utils::perturbed_ulps_as_int};
 
     fn ff(circle0: Circle, circle1: Circle) -> CircleConfig {
         intersect_circle_circle(circle0, circle1)

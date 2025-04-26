@@ -3,17 +3,19 @@
 use std::fmt::Display;
 
 use crate::{
-    arc::{arc, arc_circle_parametrization, arc_is_collapsed_ends, arc_is_collapsed_radius, arcline},
+    arc::{
+        arc, arc_circle_parametrization, arc_is_collapsed_ends, arc_is_collapsed_radius, arcline,
+    },
     point::point,
     Arc, PVertex, Point, Polyline,
-}; 
+};
 
 const ZERO: f64 = 0f64;
 
 #[derive(Debug, PartialEq)]
 pub struct OffsetRaw {
     pub arc: Arc,
-    pub orig: Point, 
+    pub orig: Point,
     pub g: f64,
 }
 
@@ -42,7 +44,7 @@ pub fn offset_polyline_raw(pline: &Polyline, off: f64) -> Vec<OffsetRaw> {
         let offset = offset_segment(pline[i], pline[i + 1], off);
         result.push(offset);
     }
-    
+
     let offset = offset_segment(*pline.last().unwrap(), pline[0], off);
     result.push(offset);
     result
@@ -56,10 +58,7 @@ fn offset_segment(vertex0: PVertex, vertex1: PVertex, off: f64) -> OffsetRaw {
     }
 }
 
-
-
 fn line_offset(v0: PVertex, v1: PVertex, off: f64) -> OffsetRaw {
-    
     let perp = v1.p - v0.p;
     let (perp, _) = point(perp.y, -perp.x).normalize();
     let offset_vec = perp * off;
@@ -71,13 +70,11 @@ fn line_offset(v0: PVertex, v1: PVertex, off: f64) -> OffsetRaw {
     };
 }
 
-const EPS_COLLAPSED: f64 = 1E-10; 
-                                  
-                                  
-                                  
+const EPS_COLLAPSED: f64 = 1E-10;
+
 fn arc_offset(v0: PVertex, v1: PVertex, offset: f64) -> OffsetRaw {
     let bulge = v0.g;
-    
+
     let param = arc_circle_parametrization(v0.p, v1.p, bulge);
     let (v0_to_center, _) = (v0.p - param.c).normalize();
     let (v1_to_center, _) = (v1.p - param.c).normalize();
@@ -87,7 +84,6 @@ fn arc_offset(v0: PVertex, v1: PVertex, offset: f64) -> OffsetRaw {
     let a = v0.p + v0_to_center * off;
     let b = v1.p + v1_to_center * off;
     if arc_is_collapsed_radius(offset_radius) || arc_is_collapsed_ends(a, b) {
-        
         return OffsetRaw {
             arc: arcline(a, b),
             orig: v1.p,
@@ -129,7 +125,6 @@ mod test_offset_polyline_raw {
 
     #[test]
     fn test_line_offset_vertical() {
-        
         let v0 = pvertex(point(2.0, 1.0), ZERO);
         let v1 = pvertex(point(2.0, 11.0), ZERO);
         let res = offsetraw(
@@ -141,7 +136,6 @@ mod test_offset_polyline_raw {
     }
     #[test]
     fn test_line_offset_horizontal() {
-        
         let v0 = pvertex(point(-2.0, 1.0), ZERO);
         let v1 = pvertex(point(3.0, 1.0), ZERO);
         let res = offsetraw(
@@ -153,7 +147,6 @@ mod test_offset_polyline_raw {
     }
     #[test]
     fn test_line_offset_diagonal() {
-        
         let v0 = pvertex(point(-1.0, 1.0), ZERO);
         let v1 = pvertex(point(-2.0, 2.0), ZERO);
         let res = offsetraw(
@@ -165,7 +158,7 @@ mod test_offset_polyline_raw {
     }
 
     #[test]
-    
+
     fn test_offset_polyline_raw02() {
         let pline = vec![
             pvertex(point(100.0, 100.0), 0.5),
@@ -174,10 +167,9 @@ mod test_offset_polyline_raw {
             pvertex(point(100.0, 200.0), -0.5),
         ];
         let mut svg = svg(400.0, 600.0);
-        
+
         svg.polyline(&pline, "red");
 
-        
         let off: f64 = 52.25;
         let offset_raw = offset_polyline_raw(&pline, off);
         svg.offset_raws(&offset_raw, "blue");
@@ -185,14 +177,13 @@ mod test_offset_polyline_raw {
     }
 
     #[test]
-    
+
     fn test_offset_polyline_raw03() {
         let pline = pline_01();
         let mut svg = svg(400.0, 600.0);
         let pline = polyline_translate(&pline, point(100.0, 200.0));
         svg.polyline(&pline, "red");
 
-        
         let off: f64 = 52.25;
         let offset_raw = offset_polyline_raw(&pline, off);
         svg.offset_raws(&offset_raw, "blue");

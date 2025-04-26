@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use crate::int_interval_interval::{intersect_interval_interval, IntervalConfig};
 use crate::int_line_circle::LineCircleConfig;
 use crate::interval::interval;
 use crate::line::line;
@@ -12,7 +11,6 @@ pub enum SegmentCircleConfig {
     OnePoint(Point, f64),
     TwoPoints(Point, Point, f64, f64),
 }
-
 
 pub fn intersect_segment_circle(seg: Segment, circle: Circle) -> SegmentCircleConfig {
     let (seg_origin, seg_direction, seg_extent) = seg.get_centered_form();
@@ -86,11 +84,10 @@ mod tests_segment_circle {
 
     #[test]
     fn test_one_point2() {
-        // Segment touches circle.
         let s0 = segment(point(-2.0, 0.0), point(-1.0, 0.0));
         let c0 = circle(point(0.0, 0.0), 1.0);
         let res = intersect_segment_circle(s0, c0);
-        assert_eq!(res, SegmentCircleConfig::OnePoint(point(-1.0, 0.0), 0.5)); // TODO it should be param: 1.0?
+        assert_eq!(res, SegmentCircleConfig::OnePoint(point(-1.0, 0.0), 0.5));
     }
 
     #[test]

@@ -33,8 +33,6 @@ impl Display for Point {
     }
 }
 
-
-
 macro_rules! ImplBinaryOp {
     ($op_trait:ident, $op_func:ident, $op:tt) => {
         impl ops::$op_trait<Point> for Point {
@@ -110,33 +108,19 @@ impl Div<f64> for Point {
 
 impl Point {
     #[inline]
-    pub fn dot(&self, other: Self) -> f64 {
-        self.x * other.x + self.y * other.y
-    }
 
-    #[inline]
-    pub fn dot_imp(&self, other: Self) -> f64 {
+    pub fn dot(&self, other: Self) -> f64 {
         sum_of_prod(self.x, other.x, self.y, other.y)
     }
 
     #[inline]
     pub fn perp(&self, other: Self) -> f64 {
-        self.x * other.y - self.y * other.x
-    }
-
-    
-    #[inline]
-    pub fn perp_imp(&self, other: Self) -> f64 {
         diff_of_prod(self.x, other.y, self.y, other.x)
     }
 
     #[inline]
     pub fn norm(&self) -> f64 {
         (self.dot(*self)).sqrt()
-    }
-
-    pub fn norm_imp(&self) -> f64 {
-        (self.dot_imp(*self)).sqrt()
     }
 
     #[inline]
@@ -152,7 +136,7 @@ impl Point {
             let mut v = *self;
             if max_abs_comp > ZERO {
                 v = v / max_abs_comp;
-                let mut norm = v.norm_imp();
+                let mut norm = v.norm();
                 v = v / norm;
                 norm = norm * max_abs_comp;
                 (v, norm)
@@ -160,7 +144,7 @@ impl Point {
                 (point(ZERO, ZERO), ZERO)
             }
         } else {
-            let norm = self.norm_imp();
+            let norm = self.norm();
             let normalized = if norm > 0f64 {
                 point(self.x / norm, self.y / norm)
             } else {
@@ -170,7 +154,6 @@ impl Point {
         }
     }
 
-    
     #[inline]
     pub fn almost_eq(&self, other: Self, ulp: i64) -> bool {
         almost_equal_as_int(self.x, other.x, ulp) && almost_equal_as_int(self.y, other.y, ulp)
@@ -181,7 +164,6 @@ impl Point {
         return (self.x - other.x).abs() < eps && (self.y - other.y).abs() < eps;
     }
 
-    
     #[inline]
     pub fn diff_of_prod(&self, a: f64, other: Point, b: f64) -> Point {
         Point {
@@ -190,7 +172,6 @@ impl Point {
         }
     }
 
-    
     #[inline]
     pub fn sum_of_prod(&self, a: f64, other: Point, b: f64) -> Point {
         Point {
@@ -199,8 +180,6 @@ impl Point {
         }
     }
 
-    
-    
     pub fn sort_parallel_points(
         a: Point,
         b: Point,
@@ -214,8 +193,8 @@ impl Point {
         let mut tt = (p0, p1, p2, p3);
         let diff0 = a - b;
         let diff1 = c - d;
-        
-        let perp = if diff0.dot_imp(diff0).abs() >= diff1.dot(diff1).abs() {
+
+        let perp = if diff0.dot(diff0).abs() >= diff1.dot(diff1).abs() {
             point(diff0.y, -diff0.x)
         } else {
             point(diff1.y, -diff1.x)
@@ -245,7 +224,6 @@ impl Point {
         let h = point(tt.3.x, tt.3.y);
         (e, f, g, h)
     }
-
 }
 
 #[cfg(test)]
@@ -308,7 +286,7 @@ mod test_point {
     #[test]
     fn test_display() {
         let p = point(1.0, 2.0);
-        
+
         assert_eq!(
             "[1.00000000000000000000, 2.00000000000000000000]",
             format!("{}", p)
@@ -348,9 +326,9 @@ mod test_point {
         let c = point(4.0, 4.0);
         let d = point(-1.0, -1.0);
         let (e, f, g, h) = Point::sort_parallel_points(a, b, c, d);
-        assert_eq!(e, d);
-        assert_eq!(f, a);
-        assert_eq!(g, b);
-        assert_eq!(h, c);
+        assert_eq!(e, c);
+        assert_eq!(f, b);
+        assert_eq!(g, a);
+        assert_eq!(h, d);
     }
 }

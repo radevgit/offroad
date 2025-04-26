@@ -1,16 +1,9 @@
 #![allow(dead_code)]
 
 use crate::{
-    circle::{circle, Circle},
-    dist_point_arc::distance_point_arc,
-    dist_point_circle::distance_point_circle,
-    dist_point_segment::distance_point_segment,
-    int_segment_arc::intersect_segment_arc,
-    point::point,
-    segment::Segment,
-    Arc, Point,
+    dist_point_arc::distance_point_arc, dist_point_segment::distance_point_segment,
+    int_segment_arc::intersect_segment_arc, point::point, segment::Segment, Arc, Point,
 };
-
 
 pub fn distance_segment_arc(seg: Segment, arc: &Arc) -> (Point, f64) {
     let inter = intersect_segment_arc(seg, arc);
@@ -39,7 +32,6 @@ pub fn distance_segment_arc(seg: Segment, arc: &Arc) -> (Point, f64) {
 
 #[cfg(test)]
 mod tests_distance_segment_arc {
-    use super::*;
 
     #[test]
     fn test_distance_segment_arc() {}

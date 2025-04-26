@@ -13,9 +13,11 @@ const ZERO: f64 = 0f64;
 
 pub fn intersect_line_circle(line: Line, circle: Circle) -> LineCircleConfig {
     let diff = line.origin - circle.c;
-    let a0 = diff.dot_imp(diff) - circle.r * circle.r;
-    let a1 = line.dir.dot_imp(diff);
+    let a0 = diff.dot(diff) - circle.r * circle.r;
+    let a1 = line.dir.dot(diff);
+
     let discr = a1.mul_add(a1, -a0);
+
     if discr > ZERO {
         let root = discr.sqrt();
         let parameter0 = -a1 - root;

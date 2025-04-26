@@ -2,9 +2,9 @@
 
 use std::fmt::Write as _;
 
-
-
 use std::{fs::File, io::Write};
+
+use robust::{orient2d, Coord};
 
 use crate::arc::{arc, arc_circle_parametrization};
 use crate::circle::{circle, Circle};
@@ -84,9 +84,11 @@ impl SVG {
 
     pub fn arc(&mut self, arc: &Arc, color: &str) {
         let mut s = String::new();
-        let diff_pa = arc.c - arc.a;
-        let diff_ba = arc.b - arc.a;
-        let perp = diff_pa.perp(diff_ba);
+        let pa = Coord { x: arc.a.x, y: arc.a.y };
+        let pb = Coord { x: arc.b.x, y: arc.b.y };
+        let pc = Coord { x: arc.c.x, y: arc.c.y };
+        let perp = orient2d(pa, pb, pc);
+
         let large_arc_flag = if perp >= 0.0 { 1 } else { 0 };
         write!(
             &mut s,
@@ -97,7 +99,7 @@ impl SVG {
             arc.r,
             0,
             large_arc_flag,
-            0, 
+            0,
             arc.b.x,
             self.ysize - arc.b.y,
             color
@@ -109,14 +111,12 @@ impl SVG {
 
     pub fn pvertex(&mut self, p0: Point, p1: Point, g: f64, color: &str) {
         if g == 0f64 {
-          
             let seg = segment(p0, p1);
             self.line(&seg, color);
         } else {
             let arc = arc_circle_parametrization(p0, p1, g);
             self.arc(&arc, color);
         }
- 
     }
 
     pub fn polyline(&mut self, pline: &Polyline, color: &str) {
@@ -126,20 +126,19 @@ impl SVG {
             let p1 = pline[i + 1];
             self.pvertex(p0.p, p1.p, p0.g, color);
         }
-
+        // close pline
         let p0 = pline.last().unwrap();
         self.pvertex(p0.p, pline[0].p, p0.g, color);
     }
 
     pub fn offset_segment(&mut self, off: &Arc, color: &str) {
         if off.is_line() {
-
+            // line segment
             let seg = segment(off.a, off.b);
             self.line(&seg, color);
         } else {
             self.arc(off, color);
         }
-
     }
 
     pub fn offset_segments(&mut self, offs: &Vec<Arc>, color: &str) {
@@ -150,12 +149,10 @@ impl SVG {
 
     pub fn segment_raw(&mut self, raw: &OffsetRaw, color: &str) {
         if raw.arc.is_line() {
-
             let seg = segment(raw.arc.a, raw.arc.b);
             self.line(&seg, color);
             self.circle(&circle(raw.arc.a, 0.8), "blue");
         } else {
-
             if raw.g > 0f64 {
                 self.arc(&raw.arc, color);
                 self.circle(&circle(raw.arc.a, 0.8), "blue");
