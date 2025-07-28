@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![deny(unused_results)]
 
 use robust::{orient2d, Coord};
 
@@ -178,6 +179,11 @@ impl Point {
             x: sum_of_prod(self.x, a, other.x, b),
             y: sum_of_prod(self.y, a, other.y, b),
         }
+    }
+
+    #[inline]
+    pub fn lerp(self, other: Point, t: f64) -> Point {
+        self + (other - self) * t
     }
 
     pub fn sort_parallel_points(

@@ -3,7 +3,6 @@
 use crate::point::Point;
 use std::fmt::Display;
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Line {
     pub origin: Point,
@@ -20,6 +19,15 @@ impl Line {
     #[inline]
     pub fn new(origin: Point, dir: Point) -> Self {
         Line { origin, dir }
+    }
+
+    #[inline]
+    pub fn unitdir(&self) -> Self {
+        let (dir, _) = self.dir.normalize();
+        Line {
+            origin: self.origin,
+            dir,
+        }
     }
 }
 

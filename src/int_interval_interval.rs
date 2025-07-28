@@ -9,7 +9,7 @@ pub enum IntervalConfig {
     Touching(f64),
 }
 
-pub fn intersect_interval_interval(interval0: Interval, interval1: Interval) -> IntervalConfig {
+pub fn int_interval_interval(interval0: Interval, interval1: Interval) -> IntervalConfig {
     assert!(interval0.0 <= interval0.1);
     assert!(interval1.0 <= interval1.1);
     if interval0.1 < interval1.0 || interval0.0 > interval1.1 {
@@ -49,30 +49,21 @@ mod tests_intersect_interval_interval {
     fn test_no_overlap() {
         let i0 = interval(1.0, 2.0);
         let i1 = interval(3.0, 4.0);
-        assert_eq!(
-            intersect_interval_interval(i0, i1),
-            IntervalConfig::NoOverlap()
-        );
+        assert_eq!(int_interval_interval(i0, i1), IntervalConfig::NoOverlap());
     }
 
     #[test]
     fn test_one_point() {
         let i0 = interval(1.0, 2.0);
         let i1 = interval(2.0, 4.0);
-        assert_eq!(
-            intersect_interval_interval(i0, i1),
-            IntervalConfig::Touching(2.0)
-        );
+        assert_eq!(int_interval_interval(i0, i1), IntervalConfig::Touching(2.0));
     }
 
     #[test]
     fn test_one_point2() {
         let i0 = interval(1.0, 2.0);
         let i1 = interval(2.0 + f64::EPSILON, 4.0);
-        assert_eq!(
-            intersect_interval_interval(i0, i1),
-            IntervalConfig::Touching(2.0)
-        );
+        assert_eq!(int_interval_interval(i0, i1), IntervalConfig::Touching(2.0));
     }
 
     #[test]
@@ -80,7 +71,7 @@ mod tests_intersect_interval_interval {
         let i0 = interval(-0.0, -0.0);
         let i1 = interval(-1.0, 1.0);
         assert_eq!(
-            intersect_interval_interval(i0, i1),
+            int_interval_interval(i0, i1),
             IntervalConfig::Overlap(0.0, 0.0)
         );
     }
@@ -90,7 +81,7 @@ mod tests_intersect_interval_interval {
         let i0 = interval(1.0, 2.0);
         let i1 = interval(2.0 - f64::EPSILON, 4.0);
         assert_eq!(
-            intersect_interval_interval(i0, i1),
+            int_interval_interval(i0, i1),
             IntervalConfig::Overlap(1.9999999999999998, 2.0)
         );
     }
@@ -100,7 +91,7 @@ mod tests_intersect_interval_interval {
         let i0 = interval(1.0, 2.0);
         let i1 = interval(1.5, 1.5);
         assert_eq!(
-            intersect_interval_interval(i0, i1),
+            int_interval_interval(i0, i1),
             IntervalConfig::Overlap(1.5, 1.5)
         );
     }
@@ -109,9 +100,6 @@ mod tests_intersect_interval_interval {
     fn test_touching_degenerate() {
         let i0 = interval(1.0, 2.0);
         let i1 = interval(2.0, 2.0);
-        assert_eq!(
-            intersect_interval_interval(i0, i1),
-            IntervalConfig::Touching(2.0)
-        );
+        assert_eq!(int_interval_interval(i0, i1), IntervalConfig::Touching(2.0));
     }
 }

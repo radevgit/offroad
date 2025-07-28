@@ -12,7 +12,7 @@ pub enum CircleConfig {
     SameCircles(),
 }
 
-pub fn intersect_circle_circle(circle0: Circle, circle1: Circle) -> CircleConfig {
+pub fn int_circle_circle(circle0: Circle, circle1: Circle) -> CircleConfig {
     const ZERO: f64 = 0f64;
     debug_assert!(circle0.r.is_finite());
     debug_assert!(circle1.r.is_finite());
@@ -73,7 +73,7 @@ mod tests_circle {
     use crate::circle::circle;
 
     fn ff(circle0: Circle, circle1: Circle) -> CircleConfig {
-        intersect_circle_circle(circle0, circle1)
+        int_circle_circle(circle0, circle1)
     }
 
     #[test]
@@ -139,6 +139,7 @@ mod tests_circle {
     }
 
     #[test]
+
     fn test_noncircular_one_point_03() {
         let eps = f64::EPSILON * 2.0;
         let circle0 = circle(point(1000.0, -1000.0), 100.0);
@@ -151,12 +152,13 @@ mod tests_circle {
 
 #[cfg(test)]
 mod tests_circle_old {
+    use rand::rand_core::le;
 
     use super::*;
     use crate::{circle::circle, utils::perturbed_ulps_as_int};
 
     fn ff(circle0: Circle, circle1: Circle) -> CircleConfig {
-        intersect_circle_circle(circle0, circle1)
+        int_circle_circle(circle0, circle1)
     }
 
     #[test]
@@ -214,7 +216,7 @@ mod tests_circle_old {
     fn test_tangent02() {
         let circle0 = circle(point(1.0, 0.0), 1.0);
         let circle1 = circle(point(1.0 + f64::EPSILON, 0.0), 1.0);
-        let res = intersect_circle_circle(circle0, circle1);
+        let res = int_circle_circle(circle0, circle1);
         assert_eq!(
             res,
             CircleConfig::NoncocircularTwoPoints(point(1.0, 1.0), point(1.0, -1.0))
@@ -272,5 +274,22 @@ mod tests_circle_old {
         let c1 = circle(point(-1.0, 0.0), 1.0);
         let res = ff(c0, c1);
         assert_eq!(res, CircleConfig::NoncocircularOnePoint(point(0.0, 0.0)));
+    }
+
+    use crate::svg::svg;
+    #[test]
+    fn test_intersection_issue_01() {
+        let mut svg = svg(150.0, 200.0);
+        let c0 = circle(point(100.0, 130.0), 20.0);
+        let c1 = circle(point(75.0, 40.0), 85.0);
+        svg.circle(&c0, "red");
+        svg.circle(&c1, "blue");
+        let p0 = point(113.87064429562277, 115.59148769566033);
+        let p1 = point(80.68522962987866, 124.80965843614482);
+
+        svg.circle(&circle(p0, 1.0), "red");
+        svg.write();
+        let res = ff(c0, c1);
+        assert_eq!(res, CircleConfig::NoncocircularTwoPoints(p0, p1));
     }
 }

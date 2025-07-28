@@ -10,7 +10,7 @@ pub enum LineConfig {
 }
 
 const ZERO: f64 = 0f64;
-pub fn intersect_line_line(line0: Line, line1: Line) -> LineConfig {
+pub fn int_line_line(line0: &Line, line1: &Line) -> LineConfig {
     let q = line1.origin - line0.origin;
     let dot_d0_perp_d1 = line0.dir.perp(line1.dir);
     if dot_d0_perp_d1 != ZERO {
@@ -41,7 +41,7 @@ mod test_intersect_line_line {
         let sgrt_2_2 = std::f64::consts::SQRT_2 / 2.0;
         let l0 = line(point(0.0, 0.0), point(sgrt_2_2, sgrt_2_2));
         let l1 = line(point(f64::EPSILON, 0.0), point(sgrt_2_2, sgrt_2_2));
-        assert_eq!(intersect_line_line(l0, l1), LineConfig::ParallelDistinct());
+        assert_eq!(int_line_line(&l0, &l1), LineConfig::ParallelDistinct());
     }
 
     #[test]
@@ -49,7 +49,7 @@ mod test_intersect_line_line {
         let sgrt_2_2 = std::f64::consts::SQRT_2 / 2.0;
         let l0 = line(point(0.0, 0.0), point(sgrt_2_2, sgrt_2_2));
         let l1 = line(point(1.0, 1.0), point(sgrt_2_2, sgrt_2_2));
-        assert_eq!(intersect_line_line(l0, l1), LineConfig::ParallelTheSame());
+        assert_eq!(int_line_line(&l0, &l1), LineConfig::ParallelTheSame());
     }
 
     #[test]
@@ -58,7 +58,7 @@ mod test_intersect_line_line {
         let sgrt_2 = std::f64::consts::SQRT_2;
         let l0 = line(point(0.0, 0.0), point(sgrt_2_2, sgrt_2_2));
         let l1 = line(point(0.0, 2.0), point(sgrt_2_2, -sgrt_2_2));
-        let res = intersect_line_line(l0, l1);
+        let res = int_line_line(&l0, &l1);
         match res {
             LineConfig::OnePoint(p, s0, s1) => {
                 assert_eq!(p, point(1.0, 1.0));

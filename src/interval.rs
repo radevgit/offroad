@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Interval(pub f64, pub f64);
 

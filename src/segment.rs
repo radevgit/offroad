@@ -4,20 +4,20 @@ use crate::point::Point;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Segment {
-    pub p0: Point,
-    pub p1: Point,
+    pub a: Point,
+    pub b: Point,
 }
 
 impl Display for Segment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}, {}]", self.p0, self.p1)
+        write!(f, "[{}, {}]", self.a, self.b)
     }
 }
 
 impl Segment {
     #[inline]
-    pub fn new(p0: Point, p1: Point) -> Self {
-        Segment { p0, p1 }
+    pub fn new(a: Point, b: Point) -> Self {
+        Segment { a, b }
     }
 }
 
@@ -28,8 +28,8 @@ pub fn segment(p0: Point, p1: Point) -> Segment {
 
 impl Segment {
     pub fn get_centered_form(&self) -> (Point, Point, f64) {
-        let center = (self.p0 + self.p1) * 0.5;
-        let dir = self.p1 - self.p0;
+        let center = (self.a + self.b) * 0.5;
+        let dir = self.b - self.a;
         let (dirn, norm) = dir.normalize();
         let extent = norm * 0.5;
         (center, dirn, extent)

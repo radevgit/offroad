@@ -1,9 +1,13 @@
 #![allow(dead_code)]
 
-use std::mem::transmute;
+use rand::distr::{Distribution, Uniform};
+use rand::rngs::StdRng;
+
+use crate::segment::{segment, Segment};
+use crate::{arc::arc_circle_parametrization, point::point, Arc};
 
 const ALMOST_EQUAL_C: u64 = 0x8000_0000_0000_0000 as u64;
-const ALMOST_EQUAL_CI: i64 = unsafe { std::mem::transmute::<u64, i64>(ALMOST_EQUAL_C) };
+const ALMOST_EQUAL_CI: i64 = ALMOST_EQUAL_C as i64;
 
 #[inline]
 pub fn almost_equal_as_int(a: f64, b: f64, ulps: i64) -> bool {
@@ -12,8 +16,8 @@ pub fn almost_equal_as_int(a: f64, b: f64, ulps: i64) -> bool {
     if a.signum() != b.signum() {
         return a == b;
     }
-    let mut a_i: i64 = unsafe { std::mem::transmute::<f64, i64>(a) };
-    let mut b_i: i64 = unsafe { std::mem::transmute::<f64, i64>(b) };
+    let mut a_i: i64 = a.to_bits() as i64;
+    let mut b_i: i64 = b.to_bits() as i64;
 
     if a_i < 0i64 {
         a_i = ALMOST_EQUAL_CI - a_i;
@@ -34,9 +38,9 @@ pub fn close_enough(a: f64, b: f64, eps: f64) -> bool {
 
 pub fn perturbed_ulps_as_int(f: f64, c: i64) -> f64 {
     debug_assert!(!(f == 0.0 && c == -1));
-    let mut f_i: i64 = unsafe { transmute::<f64, i64>(f) };
+    let mut f_i: i64 = f.to_bits() as i64;
     f_i += c;
-    unsafe { transmute::<i64, f64>(f_i) }
+    f64::from_bits(f_i as u64)
 }
 
 #[inline]
@@ -78,7 +82,6 @@ mod test_next_prev {
 #[cfg(test)]
 mod test_almost_equal_as_int {
     use super::*;
-    use std::mem::transmute;
 
     #[test]
     fn test_almost_equal_as_int_nearby() {
@@ -151,7 +154,7 @@ mod test_almost_equal_as_int {
     }
 
     fn print_number(f: f64, o: i64) {
-        let mut f_i: i64 = unsafe { transmute::<f64, i64>(f) };
+        let mut f_i: i64 = f.to_bits() as i64;
         f_i += o;
         println!("{:.20} Ox{:X} {:.}", f, f_i, f_i);
     }
@@ -168,7 +171,7 @@ mod test_almost_equal_as_int {
 
         let f: f64 = 0.0;
         print_number(f, 0 as i64);
-        let o: i64 = unsafe { transmute::<u64, i64>(0x8000_0000_0000_0000 as u64) };
+        let o: i64 = i64::from_ne_bytes(0x8000_0000_0000_0000u64.to_ne_bytes());
         print_number(f, o);
         println!("");
 
@@ -177,7 +180,7 @@ mod test_almost_equal_as_int {
         }
         println!("");
 
-        let c_i: i64 = unsafe { transmute::<u64, i64>(0x8000_0000_0000_0000 as u64) };
+        let c_i: i64 = i64::from_ne_bytes(0x8000_0000_0000_0000u64.to_ne_bytes());
         for i in 0..=3i64 {
             print_number(f, i + c_i);
         }
@@ -230,6 +233,47 @@ pub fn sum_of_prod(a: f64, b: f64, c: f64, d: f64) -> f64 {
     let err = c.mul_add(d, -cd);
     let sop = a.mul_add(b, cd);
     return sop + err;
+}
+
+#[inline]
+pub fn min_5(a: f64, b: f64, c: f64, d: f64, e: f64) -> f64 {
+    return a.min(b).min(c).min(d).min(e);
+}
+
+#[inline]
+pub fn min_4(a: f64, b: f64, c: f64, d: f64) -> f64 {
+    return a.min(b).min(c).min(d);
+}
+
+#[inline]
+pub fn min_3(a: f64, b: f64, c: f64) -> f64 {
+    return a.min(b).min(c);
+}
+
+pub fn random_arc(wa: f64, wb: f64, ha: f64, hb: f64, b: f64, rng: &mut StdRng) -> Arc {
+    let range_w = Uniform::new(wa, wb).unwrap();
+    let range_h = Uniform::new(ha, hb).unwrap();
+    let bulge = if b != 0.0 {
+        let range_b = Uniform::new(-b, b).unwrap();
+        range_b.sample(rng)
+    } else {
+        0.0
+    };
+    let x0 = range_w.sample(rng);
+    let y0 = range_h.sample(rng);
+    let x1 = range_w.sample(rng);
+    let y1 = range_h.sample(rng);
+    arc_circle_parametrization(point(x0, y0), point(x1, y1), bulge)
+}
+
+pub fn random_segment(wa: f64, wb: f64, ha: f64, hb: f64, rng: &mut StdRng) -> Segment {
+    let range_w = Uniform::new(wa, wb).unwrap();
+    let range_h = Uniform::new(ha, hb).unwrap();
+    let x0 = range_w.sample(rng);
+    let y0 = range_h.sample(rng);
+    let x1 = range_w.sample(rng);
+    let y1 = range_h.sample(rng);
+    segment(point(x0, y0), point(x1, y1))
 }
 
 #[cfg(test)]

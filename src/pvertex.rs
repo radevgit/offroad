@@ -4,8 +4,6 @@ use std::fmt::Display;
 
 use crate::Point;
 
-
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PVertex {
     pub p: Point,
@@ -47,6 +45,14 @@ pub fn polyline_reverse(poly: &Polyline) -> Polyline {
     res
 }
 
+pub fn polylines_reverse(poly: &Vec<Polyline>) -> Vec<Polyline> {
+    let mut res: Vec<Polyline> = Vec::with_capacity(poly.len());
+    for p in poly.iter() {
+        res.push(polyline_reverse(p));
+    }
+    res
+}
+
 pub fn polyline_scale(poly: &Polyline, scale: f64) -> Polyline {
     let mut res: Polyline = Vec::with_capacity(poly.len());
     for e in poly.iter() {
@@ -80,7 +86,7 @@ mod test_pvertex {
     #[test]
     fn test_display() {
         let p = pvertex(point(1.0, 2.0), 5.5);
-        
+
         assert_eq!(
             "[[1.00000000000000000000, 2.00000000000000000000], 5.5]",
             format!("{}", p)

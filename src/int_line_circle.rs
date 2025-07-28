@@ -11,7 +11,8 @@ pub enum LineCircleConfig {
 
 const ZERO: f64 = 0f64;
 
-pub fn intersect_line_circle(line: Line, circle: Circle) -> LineCircleConfig {
+pub fn int_line_circle(line_orig: &Line, circle: &Circle) -> LineCircleConfig {
+    let line = line_orig.unitdir();
     let diff = line.origin - circle.c;
     let a0 = diff.dot(diff) - circle.r * circle.r;
     let a1 = line.dir.dot(diff);
@@ -46,7 +47,7 @@ mod test_intersect_line_circle {
         let l0 = Line::new(point(0.0, 0.0), point(sgrt_2_2, sgrt_2_2));
         let c0 = circle(point(3.0, 1.0), 1.0);
         assert_eq!(
-            intersect_line_circle(l0, c0),
+            int_line_circle(&l0, &c0),
             LineCircleConfig::NoIntersection()
         );
     }
@@ -56,7 +57,7 @@ mod test_intersect_line_circle {
         let l0 = Line::new(point(0.0, 1.0), point(1.0, 0.0));
         let c0 = circle(point(0.0, 0.0), 1.0);
         assert_eq!(
-            intersect_line_circle(l0, c0),
+            int_line_circle(&l0, &c0),
             LineCircleConfig::OnePoint(point(0.0, 1.0), 0.0)
         );
     }
@@ -66,7 +67,7 @@ mod test_intersect_line_circle {
         let _1_eps = perturbed_ulps_as_int(1.0, -1);
         let l0 = Line::new(point(0.0, _1_eps), point(1.0, 0.0));
         let c0 = circle(point(0.0, 0.0), 1.0);
-        let res = intersect_line_circle(l0, c0);
+        let res = int_line_circle(&l0, &c0);
         match res {
             LineCircleConfig::TwoPoints(p0, p1, t0, t1) => {
                 assert_eq!(p0.y, _1_eps);
@@ -76,5 +77,16 @@ mod test_intersect_line_circle {
             }
             _ => assert!(false),
         }
+    }
+
+    #[test]
+    fn test_one_point_dir_notunit_length() {
+        let l0 = Line::new(point(1.5, 0.0), point(-3.0, 0.0));
+        let c0 = circle(point(-1.5, 0.0), 1.0);
+        let res = int_line_circle(&l0, &c0);
+        assert_eq!(
+            res,
+            LineCircleConfig::TwoPoints(point(-0.5, 0.0), point(-2.5, 0.0), 2.0, 4.0)
+        );
     }
 }

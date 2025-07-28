@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
-use crate::{
-    arc::Arc, circle::circle, int_line_circle::intersect_line_circle, line::Line, point::Point,
-};
+use crate::{arc::Arc, circle::circle, int_line_circle::int_line_circle, line::Line, point::Point};
 
 #[derive(Debug, PartialEq)]
 pub enum LineArcConfig {
@@ -11,9 +9,9 @@ pub enum LineArcConfig {
     TwoPoints(Point, Point, f64, f64),
 }
 
-pub fn intersect_line_arc(line: Line, arc: &Arc) -> LineArcConfig {
+pub fn int_line_arc(line: &Line, arc: &Arc) -> LineArcConfig {
     let circle = circle(arc.c, arc.r);
-    let lc_result = intersect_line_circle(line, circle);
+    let lc_result = int_line_circle(line, &circle);
     match lc_result {
         crate::int_line_circle::LineCircleConfig::NoIntersection() => {
             return LineArcConfig::NoIntersection()
@@ -58,17 +56,14 @@ mod tests_line_arc {
         let l0 = line(point(0.0, 0.0), point(sgrt_2_2, sgrt_2_2));
         let arc0 =
             arc_circle_parametrization(point(1.0, 0.0), point(2.0, 1.0), -1.0 + f64::EPSILON);
-        assert_eq!(
-            intersect_line_arc(l0, &arc0),
-            LineArcConfig::NoIntersection()
-        );
+        assert_eq!(int_line_arc(&l0, &arc0), LineArcConfig::NoIntersection());
     }
 
     #[test]
     fn test_no_intersection2() {
         let l0 = Line::new(point(-0.5, 1.0), point(1.0, 0.0));
         let arc0 = arc(point(-1.0, 0.0), point(1.0, 0.0), point(0.0, 0.0), 1.0);
-        let res = intersect_line_arc(l0, &arc0);
+        let res = int_line_arc(&l0, &arc0);
         assert_eq!(res, LineArcConfig::NoIntersection());
     }
 
@@ -76,7 +71,7 @@ mod tests_line_arc {
     fn test_no_intersection3() {
         let l0 = Line::new(point(-1.0, 0.5), point(1.0, 0.0));
         let arc0 = arc(point(-1.0, 0.0), point(1.0, 0.0), point(0.0, 0.0), 1.0);
-        let res = intersect_line_arc(l0, &arc0);
+        let res = int_line_arc(&l0, &arc0);
         assert_eq!(res, LineArcConfig::NoIntersection());
     }
 
@@ -85,7 +80,7 @@ mod tests_line_arc {
         let sgrt_2_2 = std::f64::consts::SQRT_2 / 2.0;
         let l0 = line(point(-1.0, 0.0), point(sgrt_2_2, sgrt_2_2));
         let arc1 = arc(point(1.0, 1.0), point(0.0, 0.0), point(0.5, 0.5), sgrt_2_2);
-        let res = intersect_line_arc(l0, &arc1);
+        let res = int_line_arc(&l0, &arc1);
         match res {
             LineArcConfig::TwoPoints(p0, p1, _, _) => {
                 assert!(p0.close_enough(point(0.0, 1.0), 1E-7));
@@ -99,7 +94,7 @@ mod tests_line_arc {
     fn test_one_point() {
         let l0 = Line::new(point(-0.5, 1.0), point(1.0, 0.0));
         let arc0 = arc(point(1.0, 0.0), point(-1.0, 0.0), point(0.0, 0.0), 1.0);
-        let res = intersect_line_arc(l0, &arc0);
+        let res = int_line_arc(&l0, &arc0);
         assert_eq!(res, LineArcConfig::OnePoint(point(0.0, 1.0), 0.5));
     }
 
@@ -107,7 +102,7 @@ mod tests_line_arc {
     fn test_one_point2() {
         let l0 = Line::new(point(-1.0, 0.0), point(1.0, 0.0));
         let arc0 = arc(point(0.0, -1.0), point(0.0, 1.0), point(0.0, 0.0), 1.0);
-        let res = intersect_line_arc(l0, &arc0);
+        let res = int_line_arc(&l0, &arc0);
         assert_eq!(res, LineArcConfig::OnePoint(point(1.0, 0.0), 2.0));
     }
 
@@ -115,7 +110,7 @@ mod tests_line_arc {
     fn test_one_point3() {
         let l0 = Line::new(point(-2.0, 0.0), point(1.0, 0.0));
         let arc0 = arc(point(0.0, 1.0), point(0.0, -1.0), point(0.0, 0.0), 1.0);
-        let res = intersect_line_arc(l0, &arc0);
+        let res = int_line_arc(&l0, &arc0);
         assert_eq!(res, LineArcConfig::OnePoint(point(-1.0, 0.0), 1.0));
     }
 }

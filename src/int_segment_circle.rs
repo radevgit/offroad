@@ -3,7 +3,7 @@
 use crate::int_line_circle::LineCircleConfig;
 use crate::interval::interval;
 use crate::line::line;
-use crate::{circle::Circle, int_line_circle::intersect_line_circle, segment::Segment, Point};
+use crate::{circle::Circle, int_line_circle::int_line_circle, segment::Segment, Point};
 
 #[derive(Debug, PartialEq)]
 pub enum SegmentCircleConfig {
@@ -12,9 +12,9 @@ pub enum SegmentCircleConfig {
     TwoPoints(Point, Point, f64, f64),
 }
 
-pub fn intersect_segment_circle(seg: Segment, circle: Circle) -> SegmentCircleConfig {
+pub fn int_segment_circle(seg: &Segment, circle: &Circle) -> SegmentCircleConfig {
     let (seg_origin, seg_direction, seg_extent) = seg.get_centered_form();
-    let lc_res = intersect_line_circle(line(seg_origin, seg_direction), circle);
+    let lc_res = int_line_circle(&line(seg_origin, seg_direction), circle);
     match lc_res {
         LineCircleConfig::NoIntersection() => return SegmentCircleConfig::NoIntersection(),
 
@@ -57,7 +57,7 @@ mod tests_segment_circle {
         let s0 = segment(point(0.0, 0.0), point(sgrt_2_2, sgrt_2_2));
         let c0 = circle(point(3.0, 1.0), 1.0);
         assert_eq!(
-            intersect_segment_circle(s0, c0),
+            int_segment_circle(&s0, &c0),
             SegmentCircleConfig::NoIntersection()
         );
     }
@@ -67,7 +67,7 @@ mod tests_segment_circle {
         let s0 = segment(point(-1.0, 1.0), point(1.0, 1.0));
         let c0 = circle(point(0.0, 0.0), 1.0);
         assert_eq!(
-            intersect_segment_circle(s0, c0),
+            int_segment_circle(&s0, &c0),
             SegmentCircleConfig::OnePoint(point(0.0, 1.0), 0.0)
         );
     }
@@ -77,7 +77,7 @@ mod tests_segment_circle {
         let s0 = segment(point(-1.0, 1.0), point(-0.0, 1.0));
         let c0 = circle(point(0.0, 0.0), 1.0);
         assert_eq!(
-            intersect_segment_circle(s0, c0),
+            int_segment_circle(&s0, &c0),
             SegmentCircleConfig::OnePoint(point(0.0, 1.0), 0.5)
         );
     }
@@ -86,7 +86,7 @@ mod tests_segment_circle {
     fn test_one_point2() {
         let s0 = segment(point(-2.0, 0.0), point(-1.0, 0.0));
         let c0 = circle(point(0.0, 0.0), 1.0);
-        let res = intersect_segment_circle(s0, c0);
+        let res = int_segment_circle(&s0, &c0);
         assert_eq!(res, SegmentCircleConfig::OnePoint(point(-1.0, 0.0), 0.5));
     }
 
@@ -95,7 +95,7 @@ mod tests_segment_circle {
         let _1_eps = perturbed_ulps_as_int(1.0, -1);
         let s0 = segment(point(-1.0, _1_eps), point(1.0, _1_eps));
         let c0 = circle(point(0.0, 0.0), 1.0);
-        let res = intersect_segment_circle(s0, c0);
+        let res = int_segment_circle(&s0, &c0);
         if let SegmentCircleConfig::TwoPoints(p0, p1, t0, t1) = res {
             assert_eq!(p0.y, _1_eps);
             assert_eq!(p1.y, _1_eps);
@@ -110,7 +110,7 @@ mod tests_segment_circle {
     fn test_two_points_issue() {
         let s0 = segment(point(144.0, 192.0), point(144.0, 205.0));
         let c0 = circle(point(136.0, 197.0), 16.0);
-        let res = intersect_segment_circle(s0, c0);
+        let res = int_segment_circle(&s0, &c0);
         assert_eq!(res, SegmentCircleConfig::NoIntersection());
     }
 }

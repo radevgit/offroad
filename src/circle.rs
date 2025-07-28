@@ -3,8 +3,6 @@
 use crate::point::Point;
 use std::fmt::Display;
 
-
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Circle {
     pub c: Point,

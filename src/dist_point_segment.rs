@@ -3,37 +3,125 @@
 use crate::segment::Segment;
 use crate::Point;
 
-pub fn distance_point_segment(point: Point, segment: Segment) -> (Point, f64) {
+pub fn dist_point_segment(point: &Point, segment: &Segment) -> (f64, Point) {
     let closest;
     const ZERO: f64 = 0f64;
     const ONE: f64 = 1f64;
-    let direction = segment.p1 - segment.p0;
-    let mut diff = point - segment.p1;
+    let direction = segment.b - segment.a;
+    let mut diff = point - segment.b;
     let mut t = direction.dot(diff);
     if t >= ZERO {
-        closest = segment.p1;
+        closest = segment.b;
     } else {
-        diff = point - segment.p0;
+        diff = point - segment.a;
         t = direction.dot(diff);
         if t <= ZERO {
-            closest = segment.p0;
+            closest = segment.a;
         } else {
             let sqr_length = direction.dot(direction);
             if sqr_length > ZERO {
                 t = t / sqr_length;
-                closest = segment.p0 + direction * t;
+                closest = segment.a + direction * t;
             } else {
-                closest = segment.p0;
+                closest = segment.a;
             }
         }
     }
 
-    (closest, (point - closest).norm())
+    ((point - closest).norm(), closest)
 }
 
 #[cfg(test)]
-mod tests_distance_point_segment {
+mod test_dist_point_segment {
+    use crate::{point::point, segment::segment};
 
     #[test]
-    fn test_distance_point_segment() {}
+    fn test_point_at_end_01() {
+        let p = point(0.0, 0.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 0.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, 0.0);
+        assert_eq!(closest, point(0.0, 0.0));
+    }
+
+    #[test]
+    fn test_point_at_end_02() {
+        let p = point(1.0, 0.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 0.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, 0.0);
+        assert_eq!(closest, point(1.0, 0.0));
+    }
+
+    #[test]
+    fn test_point_inside_segment() {
+        let p = point(0.5, 0.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 0.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, 0.0);
+        assert_eq!(closest, point(0.5, 0.0));
+    }
+
+    #[test]
+    fn test_point_segment_01() {
+        let p = point(0.0, 1.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 1.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, std::f64::consts::SQRT_2 / 2.0);
+        assert_eq!(closest, point(0.5, 0.5));
+    }
+
+    #[test]
+    fn test_point_close_to_a_01() {
+        let p = point(-1.0, 1.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 1.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, std::f64::consts::SQRT_2);
+        assert_eq!(closest, point(0.0, 0.0));
+    }
+
+    #[test]
+    fn test_point_close_to_a_02() {
+        let p = point(1.0, -1.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 1.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, std::f64::consts::SQRT_2);
+        assert_eq!(closest, point(0.0, 0.0));
+    }
+
+    #[test]
+    fn test_point_close_to_a_03() {
+        let p = point(-1.0, -1.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 1.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, std::f64::consts::SQRT_2);
+        assert_eq!(closest, point(0.0, 0.0));
+    }
+
+    #[test]
+    fn test_point_close_to_b_01() {
+        let p = point(0.0, 2.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 1.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, std::f64::consts::SQRT_2);
+        assert_eq!(closest, point(1.0, 1.0));
+    }
+
+    #[test]
+    fn test_point_close_to_b_02() {
+        let p = point(2.0, 0.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 1.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, std::f64::consts::SQRT_2);
+        assert_eq!(closest, point(1.0, 1.0));
+    }
+
+    #[test]
+    fn test_point_close_to_b_03() {
+        let p = point(2.0, 2.0);
+        let seg = segment(point(0.0, 0.0), point(1.0, 1.0));
+        let (dist, closest) = super::dist_point_segment(&p, &seg);
+        assert_eq!(dist, std::f64::consts::SQRT_2);
+        assert_eq!(closest, point(1.0, 1.0));
+    }
 }
