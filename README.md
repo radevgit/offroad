@@ -4,7 +4,7 @@
 
 ![Build](https://github.com/radevgit/offroad/actions/workflows/rust.yml/badge.svg)
 
-![arc-line poligon offsets](https://github.com/radevgit/offroad/img/offsets.svg "arc-line poligon offsets"
+![](https://raw.githubusercontent.com/radevgit/offroad/refs/heads/main/img/offsets.svg "arc-line poligon offsets")
 
 
 ## Status
