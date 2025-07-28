@@ -2,7 +2,7 @@
 name = "offroad"
 edition = "2021"
 categories = ["algorithms", "data-structures", "graphics", "mathematics"]
-keywords = ["offset", "offseting", "2d", "cad", "geometry", "cnc", "polygon"]
+keywords = ["offset", "2d", "cad", "cnc", "polygon"]
 license = "MIT"
 repository = "https://github.com/radevgit/offroad"
 version = "0.0.1-alpha"
