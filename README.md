@@ -1,15 +1,21 @@
 # Offroad
+![Build](https://github.com/radevgit/offroad/actions/workflows/rust.yml/badge.svg)
 
 ## 2D offsetting for arc polylines
 
-![Build](https://github.com/radevgit/offroad/actions/workflows/rust.yml/badge.svg)
+
 
 ![](https://raw.githubusercontent.com/radevgit/offroad/refs/heads/main/img/offsets.svg "arc-line poligon offsets")
 
 
 ## Status
 
-In implementation.
+Currently, the library is in active development and may not yet be feature-complete.
 
-You can run one of the tests inside offset.rs like: test_offset_multiple_complex_polyline().
-The test will create SVG file: /tmp/out.svg
+It is already useful to produce "soup of arcs" when polyline is provided.
+The arcs are not ordered however.
+
+## Examples
+
+Check the examples directory for usage.
+

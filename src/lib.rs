@@ -1,83 +1,36 @@
+#![doc(html_no_source)]
 
-mod arc_string;
+//! 2D offsetting for arc polylines/polygons.
+//!
+//! # Examples
+//!
+//! Check "examples" directory for usage examples.
 
-mod arc;
-pub use crate::arc::Arc;
 
-
-mod circle;
-pub use crate::circle::Circle;
-
-mod dist_arc_arc;
-mod dist_line_circle;
-mod dist_point_arc;
-mod dist_point_circle;
-mod dist_point_segment;
-mod dist_segment_arc;
-mod dist_segment_circle;
-mod dist_segment_segment;
-
-mod int_arc_arc;
-mod int_circle_circle;
-mod int_interval_interval;
-mod int_line_arc;
-mod int_line_circle;
-mod int_line_line;
-
-mod int_segment_point;
-mod int_segment_arc;
-mod int_segment_circle;
-mod int_segment_segment;
-mod intersect;
-
-mod interval;
-mod line;
-
-mod offset;
-pub use crate::offset::pline_01;
-
-mod offset_connect_raw;
-pub use crate::offset_connect_raw::offset_connect_raw;
-
+// Offsetting algorithm components
+pub mod offset;
+// raw offsetting components (lines, arcs)
 mod offset_polyline_raw;
-pub use crate::offset_polyline_raw::OffsetRaw;
-pub use crate::offset_polyline_raw::offset_polyline_raw;
-pub use crate::offset_polyline_raw::offsetraw;
-
+// connect raw offsets with arcs
+mod offset_connect_raw;
+// split raw offsets into segments in intersection points
 mod offset_split_arcs;
+// prune invalid offsets that are close to original polylines
+mod offset_prune_invalid;
+// resulting soup of arcs is ordered and reconnected
+mod offset_reconnect_arcs;
+
+
+// Re-export main offsetting functions
+// For public API
+pub use crate::offset::{offset_polyline, offset_polyline_multiple, OffsetCfg};
+pub use crate::offset::{pline_01, pline_02, pline_03, pline_04};
+// For internal use
+pub use crate::offset_polyline_raw::{offset_polyline_raw, poly_to_raws};
+pub use crate::offset_connect_raw::offset_connect_raw;
 pub use crate::offset_split_arcs::offset_split_arcs;
-
-
-mod offset_prune_invalid_offsets;
-
-mod point;
-pub use crate::point::Point;
-
-mod pvertex;
-pub use crate::pvertex::PVertex;
-pub use crate::pvertex::Polyline;
-
-mod segment;
-
-mod svg;
-mod utils;
+pub use crate::offset_prune_invalid::offset_prune_invalid;
+pub use crate::offset_reconnect_arcs::offset_reconnect_arcs;
 
 #[cfg(test)]
 mod tests;
-
-
-#[macro_export]
-macro_rules! expect_float_absolute_eq {
-    
-    ($a:expr, $b:expr, $epsilon:expr) => {{
-        let (a, b, eps) = ($a, $b, $epsilon);
-        let r = $crate::afe_is_absolute_eq!(a, b, eps);
-        let e = $crate::AbsoluteEqError::new(a, b, eps);
-        $crate::bool_to_result(r, e)
-    }};
-    
-    ($a:expr, $b:expr) => {
-        $crate::expect_float_absolute_eq!($a, $b, 1.0e-6)
-    };
-}
-

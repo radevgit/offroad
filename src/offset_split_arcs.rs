@@ -1,46 +1,46 @@
 #![allow(dead_code)]
 #![deny(unused_results)]
 
-use crate::{
-    arc::{arc, arc_check, arcline},
-    int_arc_arc::{int_arc_arc, ArcArcConfig},
-    int_segment_arc::{int_segment_arc, SegmentArcConfig},
-    int_segment_segment::{int_segment_segment, SegmentSegmentConfig},
-    offset_connect_raw::ID_PADDING,
-    segment::segment,
-    Arc, OffsetRaw,
-};
+use geom::prelude::*;
 
 static ZERO: f64 = 0.0;
-
+const EPSILON: f64 = 1e-10;
 pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
+    // Merge offsets and offset connections, filter singular arcs
     let mut parts: Vec<Arc> = row
         .iter()
         .flatten()
         .map(|offset_raw| offset_raw.arc.clone())
         .chain(connect.iter().flatten().cloned())
-        .filter(arc_check)
+        .filter(|arc| arc_check(arc, EPSILON))
         .collect();
 
     let mut parts_final = Vec::new();
-
-    let steps = 100000;
+    //let mut parts_final = Vec::new();
+    let steps = 100000; // TODO: make this configurable
+    //let mut splits_count = 0;
 
     let mut kk = 0;
-    'k_loop: for k in 0..steps {
+    for k in 0..steps {
         let mut j_current = usize::MAX;
 
         while parts.len() > 0 {
             let part0 = parts.pop().unwrap();
             if parts.len() == 0 {
+                // No more parts to check against
                 parts_final.push(part0);
                 break;
             }
             for j in (0..parts.len()).rev() {
                 j_current = usize::MAX;
                 if part0.id == parts[j].id {
+                    // Skip parts comming from the same original arc
                     continue;
                 }
+                // if part0.id == parts[j].id || part0.id == parts[j].id + ID_PADDING {
+                //     // Skip parts comming from the same original arc
+                //     continue;
+                // }
 
                 let part1 = parts[j].clone();
 
@@ -62,21 +62,17 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
                     break;
                 }
             }
-
+            // this part parts[i] does not intersect with any other part
             if j_current == usize::MAX {
                 parts_final.push(part0);
             } else {
+                // remove the part1 from the parts
                 _ = parts.remove(j_current);
-            }
-
-            if parts_final.len() > 200 {
-                let a = parts_final.len();
-
-                break 'k_loop;
             }
         }
 
         if parts.is_empty() {
+            // No more splits, we are done
             kk = k;
             break;
         }
@@ -86,6 +82,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
     parts_final
 }
 
+// Split two lines at intersection point
 pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     let mut res = Vec::new();
     let seg0 = segment(arc0.a, arc0.b);
@@ -94,8 +91,13 @@ pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     match intersection {
         SegmentSegmentConfig::NoIntersection()
         | SegmentSegmentConfig::OnePointTouching(_, _, _)
-        | SegmentSegmentConfig::TwoPointsTouching(_, _, _, _) => (res, 0),
+        | SegmentSegmentConfig::TwoPointsTouching(_, _, _, _) => {
+            // should not enter here, but just in case
+            // the checks are done in the caller
+            (res, 0)
+        }
         SegmentSegmentConfig::OnePoint(sp, _, _) => {
+            // split at one point
             let mut line00 = arcline(sp, arc0.a);
             let mut line01 = arcline(sp, arc0.b);
             let mut line10 = arcline(sp, arc1.a);
@@ -111,6 +113,7 @@ pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             (res, 4)
         }
         SegmentSegmentConfig::TwoPoints(p0, p1, p2, p3) => {
+            // split at two points
             let mut line00 = arcline(p0, p1);
             let mut line01 = arcline(p1, p2);
             let mut line10 = arcline(p2, p3);
@@ -132,9 +135,13 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
         ArcArcConfig::NoIntersection()
         | ArcArcConfig::CocircularOnePoint0(_)
         | ArcArcConfig::CocircularOnePoint1(_)
-        | ArcArcConfig::CocircularTwoPoints(_, _)
+        | ArcArcConfig::CocircularTwoPoints(_, _) // The arcs shared endpoints, so theunion is a circle.
         | ArcArcConfig::NonCocircularOnePointTouching(_)
-        | ArcArcConfig::NonCocircularTwoPointsTouching(_, _) => (res, 0),
+        | ArcArcConfig::NonCocircularTwoPointsTouching(_, _) => {
+            // should not enter here, but just in case
+            // the checks are done in the caller
+            (res, 0)
+        }
         ArcArcConfig::NonCocircularOnePoint(p) => {
             let mut arc00 = arc(arc0.a, p, arc0.c, arc0.r);
             let mut arc01 = arc(p, arc0.b, arc0.c, arc0.r);
@@ -153,7 +160,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
         ArcArcConfig::NonCocircularTwoPoints(point0, point1) => {
             let mut p0 = point0;
             let mut p1 = point1;
-            if Arc::contains_order2d(arc0.a, p0, p1) < ZERO {
+            if points_order(arc0.a, p0, p1) < ZERO {
                 (p1, p0) = (p0, p1);
             }
             let mut arc00 = arc(arc0.a, p0, arc0.c, arc0.r);
@@ -163,7 +170,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             arc01.id(arc0.id);
             arc02.id(arc0.id);
 
-            if Arc::contains_order2d(arc1.a, p0, p1) < ZERO {
+            if points_order(arc1.a, p0, p1) < ZERO {
                 (p1, p0) = (p0, p1);
             }
             let mut arc10 = arc(arc1.a, p0, arc1.c, arc1.r);
@@ -212,6 +219,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             (res, 1)
         }
         ArcArcConfig::CocircularOneArc1(_) => {
+            // Arc0 inside Arc1
             let mut arc00 = arc(arc1.a, arc0.a, arc0.c, arc0.r);
             let mut arc01 = arc(arc0.a, arc0.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc0.b, arc1.b, arc0.c, arc0.r);
@@ -224,6 +232,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             (res, 3)
         }
         ArcArcConfig::CocircularOneArc2(_) => {
+            // Arc0 and Arc1 overlap, <B0,A0,B1,A1>.
             let mut arc00 = arc(arc1.a, arc0.a, arc0.c, arc0.r);
             let mut arc01 = arc(arc0.a, arc1.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc1.b, arc0.b, arc0.c, arc0.r);
@@ -236,6 +245,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             (res, 3)
         }
         ArcArcConfig::CocircularOneArc3(_) => {
+            // Arc0 and arc1 overlap in a single arc <A0,B0,A1,B1>.
             let mut arc00 = arc(arc0.a, arc1.a, arc0.c, arc0.r);
             let mut arc01 = arc(arc1.a, arc0.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc0.b, arc1.b, arc0.c, arc0.r);
@@ -248,6 +258,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             (res, 3)
         }
         ArcArcConfig::CocircularOneArc4(_) => {
+            // Arc1 inside Arc0, <A0,B0,B1,A1>
             let mut arc00 = arc(arc0.a, arc1.a, arc0.c, arc0.r);
             let mut arc01 = arc(arc1.a, arc1.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc1.b, arc0.b, arc0.c, arc0.r);
@@ -260,6 +271,8 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             (res, 3)
         }
         ArcArcConfig::CocircularTwoArcs(_, _) => {
+            // The arcs overlap in two disjoint subarcs, each of positive subtended
+            // <A0,B1>, <A1,B0>
             let mut arc00 = arc(arc0.a, arc1.b, arc0.c, arc0.r);
             let mut arc01 = arc(arc1.a, arc0.b, arc0.c, arc0.r);
             arc00.id(arc0.id);
@@ -271,6 +284,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     }
 }
 
+// Split two lines at intersection point
 pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     debug_assert!(line0.is_line());
     debug_assert!(arc1.is_arc());
@@ -280,7 +294,11 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     match inter {
         SegmentArcConfig::NoIntersection()
         | SegmentArcConfig::OnePointTouching(_, _)
-        | SegmentArcConfig::TwoPointsTouching(_, _, _, _) => (res, 0),
+        | SegmentArcConfig::TwoPointsTouching(_, _, _, _) => {
+            // should not enter here, but just in case
+            // the checks are done in the caller
+            (res, 0)
+        }
         SegmentArcConfig::OnePoint(point, _) => {
             let mut line00 = arcline(line0.a, point);
             let mut line01 = arcline(point, line0.b);
@@ -302,7 +320,7 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut line00 = arcline(line0.a, p0);
             let mut line01 = arcline(p0, p1);
             let mut line02 = arcline(p1, line0.b);
-            if Arc::contains_order2d(arc1.a, p0, p1) < ZERO {
+            if points_order(arc1.a, p0, p1) < ZERO {
                 (p1, p0) = (p0, p1);
             }
             let mut arc10 = arc(arc1.a, p0, arc1.c, arc1.r);
@@ -325,8 +343,10 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     }
 }
 
+// Check if the line-arc segments have 0.0 length
 fn check_and_push(res: &mut Vec<Arc>, seg: &Arc) {
-    if arc_check(seg) {
+    let eps = 1e-10;
+    if arc_check(seg, eps) {
         res.push(seg.clone())
     }
 }
@@ -336,18 +356,12 @@ mod test_offset_split_arcs {
 
     use std::vec;
 
-    use rand::{rngs::StdRng, SeedableRng};
-
-    use crate::{
-        circle::circle,
-        point::point,
-        svg::{self, svg},
-        utils::random_arc,
-    };
-
+    use geom::prelude::*;
     use super::*;
 
-    fn show(arc0: &Arc, arc1: &Arc, arcs: &Vec<Arc>, svg: &mut svg::SVG) {
+    fn show(arc0: &Arc, arc1: &Arc, arcs: &Vec<Arc>, svg: &mut SVG) {
+        svg.offset_segment(&arc0, "grey");
+        svg.offset_segment(&arc1, "grey");
         for arc in arcs.iter() {
             svg.offset_segment(&arc, "blue");
             svg.circle(&circle(arc.a, 1.1), "red");
@@ -358,13 +372,13 @@ mod test_offset_split_arcs {
 
     #[test]
     fn test_arc_arc_01() {
-        let mut svg = svg(4.0, 6.0);
+        // let mut svg = svg(4.0, 6.0);
         let arc0 = arc(point(1.0, 1.0), point(0.0, 0.0), point(1.0, 0.0), 1.0);
         let arc1 = arc(point(1.0, 0.0), point(0.0, 1.0), point(0.0, 0.0), 1.0);
         let (res, count) = split_arc_arc(&arc0, &arc1);
-
+        //show(&arc0, &arc1, &res, &mut svg);
         assert_eq!(count, 4);
-        let p = 0.8660254037844386;
+        let p = 0.8660254037844386; // cos(30 degrees)
         assert_eq!(
             res,
             vec![
@@ -378,11 +392,11 @@ mod test_offset_split_arcs {
 
     #[test]
     fn test_arc_arc_02() {
-        let mut svg = svg(4.0, 6.0);
+        // let mut svg = svg(4.0, 6.0);
         let arc0 = arc(point(0.0, 0.0), point(1.0, 1.0), point(0.0, 1.0), 1.0);
         let arc1 = arc(point(0.0, 1.0), point(1.0, 0.0), point(1.0, 1.0), 1.0);
         let (res, count) = split_arc_arc(&arc0, &arc1);
-
+        //show(&arc0, &arc1, &res, &mut svg);
         assert_eq!(count, 4);
         let p = 1.0 - 0.8660254037844386;
         assert_eq!(
@@ -398,11 +412,11 @@ mod test_offset_split_arcs {
 
     #[test]
     fn test_arc_arc_03() {
-        let mut svg = svg(4.0, 6.0);
+        //let mut svg = svg(4.0, 6.0);
         let arc0 = arc(point(1.2, 2.2), point(2.2, 1.2), point(1.2, 1.2), 1.0);
         let arc1 = arc(point(-1.0, 0.0), point(0.0, 1.0), point(0.0, 0.0), 1.0);
-        let (res, count) = split_arc_arc(&arc0, &arc1);
-
+        let (_, count) = split_arc_arc(&arc0, &arc1);
+        //show(&arc0, &arc1, &res, &mut svg);
         assert_eq!(count, 6);
     }
 
@@ -416,147 +430,154 @@ mod test_offset_split_arcs {
         assert_eq!(count, 3);
     }
 
-    #[test]
-    #[ignore]
-    fn test_random_arc_arc_split() {
-        let mut rng = StdRng::seed_from_u64(1234);
-        let mut input: Vec<OffsetRaw> = Vec::new();
-        for _ in 0..50 {
-            let arc0 = random_arc(100.0, 500.0, 100.0, 300.0, 2.0, &mut rng);
-            let raw = OffsetRaw {
-                arc: arc0.clone(),
-                orig: point(0.0, 0.0),
-                g: 2.0,
-            };
-            input.push(raw);
-        }
-        let v: Vec<Vec<OffsetRaw>> = vec![input.clone()];
-        let result = offset_split_arcs(&v, &Vec::new());
+    // #[test]
+    // #[ignore]
+    // fn test_random_arc_arc_split() {
+    //     let mut rng = StdRng::seed_from_u64(1234);
+    //     let mut input: Vec<OffsetRaw> = Vec::new();
+    //     for _ in 0..50 {
+    //         let arc0 = random_arc(100.0, 500.0, 100.0, 300.0, 2.0, &mut rng);
+    //         let raw = OffsetRaw {
+    //             arc: arc0.clone(),
+    //             orig: point(0.0, 0.0),
+    //             g: 2.0,
+    //         };
+    //         input.push(raw);
+    //     }
+    //     let v: Vec<Vec<OffsetRaw>> = vec![input.clone()];
+    //     let result = offset_split_arcs(&v, &Vec::new());
 
-        let mut svg = svg(600.0, 400.0);
-        let mut c = 0;
-        for raw in input.iter() {
-            svg.offset_segment(&raw.arc, "blue");
+    //     let mut svg = svg(600.0, 400.0);
+    //     let mut c = 0;
+    //     for raw in input.iter() {
+    //         svg.offset_segment(&raw.arc, "blue");
+    //         //svg.text(arc.a.x, arc.a.y, &c.to_string(), "blue");
+    //         c = c + 1;
+    //     }
+    //     for arc in result.iter() {
+    //         //svg.arc(&arc, "blue");
+    //         svg.circle(&circle(arc.a, 0.3), "red");
+    //         svg.circle(&circle(arc.b, 0.3), "red");
+    //     }
 
-            c = c + 1;
-        }
-        for arc in result.iter() {
-            svg.circle(&circle(arc.a, 0.3), "red");
-            svg.circle(&circle(arc.b, 0.3), "red");
-        }
+    //     svg.write();
+    //     assert_eq!(result.len(), 732);
+    // }
 
-        svg.write();
-        assert_eq!(result.len(), 732);
-    }
+    // #[test]
+    // #[ignore]
+    // fn test_random_line_line_split() {
+    //     let mut rng = StdRng::seed_from_u64(1234);
+    //     let mut input: Vec<OffsetRaw> = Vec::new();
+    //     for _ in 0..50 {
+    //         let seg = random_arc(10.0, 590.0, 10.0, 390.0, 0.0, &mut rng);
+    //         let raw = OffsetRaw {
+    //             arc: seg.clone(),
+    //             orig: point(0.0, 0.0),
+    //             g: 2.0,
+    //         };
+    //         input.push(raw);
+    //     }
+    //     let v: Vec<Vec<OffsetRaw>> = vec![input.clone()];
+    //     let result = offset_split_arcs(&v, &Vec::new());
 
-    #[test]
-    #[ignore]
-    fn test_random_line_line_split() {
-        let mut rng = StdRng::seed_from_u64(1234);
-        let mut input: Vec<OffsetRaw> = Vec::new();
-        for _ in 0..50 {
-            let seg = random_arc(10.0, 590.0, 10.0, 390.0, 0.0, &mut rng);
-            let raw = OffsetRaw {
-                arc: seg.clone(),
-                orig: point(0.0, 0.0),
-                g: 2.0,
-            };
-            input.push(raw);
-        }
-        let v: Vec<Vec<OffsetRaw>> = vec![input.clone()];
-        let result = offset_split_arcs(&v, &Vec::new());
+    //     let mut svg = svg(600.0, 400.0);
+    //     let mut c = 0;
+    //     for raw in input.iter() {
+    //         svg.offset_segment(&raw.arc, "blue");
+    //         //svg.text(arc.a.x, arc.a.y, &c.to_string(), "blue");
+    //         c = c + 1;
+    //     }
+    //     for arc in result.iter() {
+    //         //svg.arc(&arc, "blue");
+    //         svg.circle(&circle(arc.a, 0.3), "red");
+    //         svg.circle(&circle(arc.b, 0.3), "red");
+    //     }
 
-        let mut svg = svg(600.0, 400.0);
-        let mut c = 0;
-        for raw in input.iter() {
-            svg.offset_segment(&raw.arc, "blue");
+    //     svg.write();
+    //     assert_eq!(result.len(), 646);
+    // }
 
-            c = c + 1;
-        }
-        for arc in result.iter() {
-            svg.circle(&circle(arc.a, 0.3), "red");
-            svg.circle(&circle(arc.b, 0.3), "red");
-        }
+    // #[test]
+    // #[ignore]
+    // fn test_random_line_arc_split() {
+    //     let mut rng = StdRng::seed_from_u64(1234);
+    //     let mut input: Vec<OffsetRaw> = Vec::new();
+    //     for _ in 0..25 {
+    //         let seg = random_arc(10.0, 590.0, 10.0, 390.0, 0.0, &mut rng);
+    //         let raw = OffsetRaw {
+    //             arc: seg.clone(),
+    //             orig: point(0.0, 0.0),
+    //             g: 2.0,
+    //         };
+    //         input.push(raw);
+    //     }
+    //     for _ in 0..25 {
+    //         let seg = random_arc(100.0, 500.0, 100.0, 300.0, 2.0, &mut rng);
+    //         let raw = OffsetRaw {
+    //             arc: seg.clone(),
+    //             orig: point(0.0, 0.0),
+    //             g: 2.0,
+    //         };
+    //         input.push(raw);
+    //     }
+    //     let v: Vec<Vec<OffsetRaw>> = vec![input.clone()];
+    //     let result = offset_split_arcs(&v, &Vec::new());
 
-        svg.write();
-        assert_eq!(result.len(), 646);
-    }
+    //     let mut svg = svg(600.0, 400.0);
+    //     let mut c = 0;
+    //     for raw in input.iter() {
+    //         svg.offset_segment(&raw.arc, "blue");
+    //         //svg.text(arc.a.x, arc.a.y, &c.to_string(), "blue");
+    //         c = c + 1;
+    //     }
+    //     for arc in result.iter() {
+    //         //svg.arc(&arc, "blue");
+    //         svg.circle(&circle(arc.a, 0.3), "red");
+    //         svg.circle(&circle(arc.b, 0.3), "red");
+    //     }
 
-    #[test]
-    #[ignore]
-    fn test_random_line_arc_split() {
-        let mut rng = StdRng::seed_from_u64(1234);
-        let mut input: Vec<OffsetRaw> = Vec::new();
-        for _ in 0..25 {
-            let seg = random_arc(10.0, 590.0, 10.0, 390.0, 0.0, &mut rng);
-            let raw = OffsetRaw {
-                arc: seg.clone(),
-                orig: point(0.0, 0.0),
-                g: 2.0,
-            };
-            input.push(raw);
-        }
-        for _ in 0..25 {
-            let seg = random_arc(100.0, 500.0, 100.0, 300.0, 2.0, &mut rng);
-            let raw = OffsetRaw {
-                arc: seg.clone(),
-                orig: point(0.0, 0.0),
-                g: 2.0,
-            };
-            input.push(raw);
-        }
-        let v: Vec<Vec<OffsetRaw>> = vec![input.clone()];
-        let result = offset_split_arcs(&v, &Vec::new());
-
-        let mut svg = svg(600.0, 400.0);
-        let mut c = 0;
-        for raw in input.iter() {
-            svg.offset_segment(&raw.arc, "blue");
-
-            c = c + 1;
-        }
-        for arc in result.iter() {
-            svg.circle(&circle(arc.a, 0.3), "red");
-            svg.circle(&circle(arc.b, 0.3), "red");
-        }
-
-        svg.write();
-        assert_eq!(result.len(), 890);
-    }
+    //     svg.write();
+    //     assert_eq!(result.len(), 890);
+    // }
 
     #[test]
     fn test_cocircular_issue_91() {
         let mut svg = svg(200.0, 300.0);
-        let arc0 = arc(
-            point(29.177446878757827, 250.0),
-            point(-65.145657857171898, 211.46278163768008),
-            point(15.0, 150.0),
-            101.0,
-        );
-        let arc1 = arc(
-            point(0.82255312124217461, 250.0),
-            point(29.177446878757827, 250.0),
-            point(15.0, 150.0),
-            101.0,
-        );
-        let (res, count) = split_arc_arc(&arc0, &arc1);
+        let arc0 = arc(point(29.177446878757827, 250.0), point(-65.145657857171898, 211.46278163768008), point(15.0, 150.0), 101.0);
+        let arc1 = arc(point(0.82255312124217461, 250.0), point(29.177446878757827, 250.0), point(15.0, 150.0), 101.0);
+        let (res, _) = split_arc_arc(&arc0, &arc1);
         show(&arc0, &arc1, &res, &mut svg);
+        // assert_eq!(count, 4);
+        // let p = 0.8660254037844386; // cos(30 degrees)
+        // assert_eq!(
+        //     res,
+        //     vec![
+        //         arc(point(1.0, 1.0), point(0.5, p), point(1.0, 0.0), 1.0),
+        //         arc(point(0.5, p), point(0.0, 0.0), point(1.0, 0.0), 1.0),
+        //         arc(point(1.0, 0.0), point(0.5, p), point(0.0, 0.0), 1.0),
+        //         arc(point(0.5, p), point(0.0, 1.0), point(0.0, 0.0), 1.0),
+        //     ]
+        // );
     }
 
     #[test]
     fn test_split_segment_arc_issue_01() {
         let mut svg = svg(200.0, 300.0);
-        let arc0 = arc(
-            point(51.538461538461533, 246.30769230769232),
-            point(-23.494939167562663, 105.0),
-            point(100.0, 130.0),
-            126.0,
-        );
-        let seg1 = arcline(
-            point(-25.599999999999994, -0.80000000000001137),
-            point(-25.599999999999994, 150.80000000000001),
-        );
-        let (res, count) = split_segment_arc(&seg1, &arc0);
+        let arc0 = arc(point(51.538461538461533, 246.30769230769232), point(-23.494939167562663, 105.0), point(100.0, 130.0), 126.0);
+        let seg1 = arcline(point(-25.599999999999994, -0.80000000000001137), point(-25.599999999999994, 150.80000000000001));
+        let (res, _) = split_segment_arc(&seg1, &arc0);
         show(&arc0, &seg1, &res, &mut svg);
+        // assert_eq!(count, 4);
+        // let p = 0.8660254037844386; // cos(30 degrees)
+        // assert_eq!(
+        //     res,
+        //     vec![
+        //         arc(point(1.0, 1.0), point(0.5, p), point(1.0, 0.0), 1.0),
+        //         arc(point(0.5, p), point(0.0, 0.0), point(1.0, 0.0), 1.0),
+        //         arc(point(1.0, 0.0), point(0.5, p), point(0.0, 0.0), 1.0),
+        //         arc(point(0.5, p), point(0.0, 1.0), point(0.0, 0.0), 1.0),
+        //     ]
+        // );
     }
 }
