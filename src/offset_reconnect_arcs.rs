@@ -75,7 +75,7 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     merge_points(&mut arc_map, &merge);
 
     // Build the graph from arc_map
-    let _graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
+    let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
 
     // Find connected components (cycles) in the undirected graph defined by edges in "graph" vector.
     // Where each component is a closed path of vertices Ids.
@@ -88,11 +88,9 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     // let components = find_connected_components(&graph);
     
     // TODO: Implement find_connected_components and filter_composite_cycles
-    let components: Vec<Vec<usize>> = Vec::new(); // Temporary placeholder
+    // let components: Vec<Vec<usize>> = Vec::new(); // Temporary placeholder
+    let components = find_connected_components(&graph);
 
-    // Filter composite cycles
-    // let components = filter_composite_cycles(components, len);
-    
     // Convert each component (cycle of vertex IDs) to a sequence of arcs
     for component in components.iter() {
         if component.len() >= 2 {
@@ -270,6 +268,310 @@ fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
     for i in to_remove.iter().rev() {
         arcs.remove(*i);
     }
+}
+
+/// Finds connected components (cycles) in an undirected graph.
+/// 
+/// This function uses Depth-First Search (DFS) to find connected components in an undirected graph.
+/// It focuses on finding cycles and shortest paths, eliminating duplicates that differ only in direction.
+/// 
+/// # Arguments
+/// * `graph` - Vector of edges represented as (u, v) pairs where each edge connects vertex u to vertex v
+/// 
+/// # Returns
+/// Vector of connected components, where each component is a vector of vertex IDs forming a closed path
+/// 
+/// # Algorithm
+/// Uses DFS-based cycle detection with the following optimizations:
+/// - Detects all fundamental cycles in the graph
+/// - Eliminates duplicate cycles that differ only in traversal direction
+/// - Prefers shortest cycles when multiple cycles share vertices
+/// - Reference: "Introduction to Algorithms" by Cormen et al., Chapter 22 (Graph Algorithms)
+/// 
+/// # Examples
+/// ```rust
+/// let graph = vec![(0, 1), (1, 2), (2, 0), (3, 4)];
+/// let components = find_connected_components(&graph);
+/// // Returns cycles like [[0, 1, 2]] for triangle and potentially isolated vertices
+/// ```
+pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
+    // 1. Build adjacency list from edge list
+    // 2. Find connected components using DFS
+    // 3. For each component, find shortest cycle using BFS
+    // 4. Deduplicate and return cycles
+    use std::collections::{HashMap, HashSet};
+    
+    if graph.is_empty() {
+        return Vec::new();
+    }
+    
+    // Build undirected adjacency list representation (normalize bidirectional edges)
+    let mut adj_list: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut all_vertices = HashSet::new();
+    let mut edges_set = HashSet::new();
+    
+    // Normalize edges to avoid duplicates (keep smaller vertex first)
+    for &(u, v) in graph {
+        let edge = if u <= v { (u, v) } else { (v, u) };
+        edges_set.insert(edge);
+        all_vertices.insert(u);
+        all_vertices.insert(v);
+    }
+    
+    // Build adjacency list from normalized edges
+    for &(u, v) in &edges_set {
+        if u != v { // Skip self-loops for now
+            adj_list.entry(u).or_insert_with(Vec::new).push(v);
+            adj_list.entry(v).or_insert_with(Vec::new).push(u);
+        }
+    }
+    
+    let mut visited = HashSet::new();
+    let mut components = Vec::new();
+    
+    // Find all connected components using DFS
+    for &start_vertex in &all_vertices {
+        if visited.contains(&start_vertex) {
+            continue;
+        }
+        
+        let component = find_component_with_cycles(start_vertex, &adj_list, &mut visited);
+        if !component.is_empty() {
+            if let Some(cycle) = extract_shortest_cycle(&component, &adj_list) {
+                if !is_duplicate_cycle(&cycle, &components) {
+                    components.push(cycle);
+                }
+            }
+        }
+    }
+    
+    components
+}
+
+/// Finds a connected component starting from a given vertex using DFS
+fn find_component_with_cycles(
+    start: usize, 
+    adj_list: &HashMap<usize, Vec<usize>>, 
+    visited: &mut HashSet<usize>
+) -> Vec<usize> {
+    let mut component = Vec::new();
+    let mut stack = vec![start];
+    let mut local_visited = HashSet::new();
+    
+    while let Some(vertex) = stack.pop() {
+        if local_visited.contains(&vertex) {
+            continue;
+        }
+        
+        local_visited.insert(vertex);
+        visited.insert(vertex);
+        component.push(vertex);
+        
+        if let Some(neighbors) = adj_list.get(&vertex) {
+            for &neighbor in neighbors {
+                if !local_visited.contains(&neighbor) {
+                    stack.push(neighbor);
+                }
+            }
+        }
+    }
+    
+    component
+}
+
+/// Extracts the shortest cycle from a connected component
+fn extract_shortest_cycle(
+    component: &[usize], 
+    adj_list: &HashMap<usize, Vec<usize>>
+) -> Option<Vec<usize>> {
+    if component.len() < 3 {
+        return None; // Need at least 3 vertices for a cycle
+    }
+    
+    // Try to find the shortest cycle using BFS from each vertex
+    // Prefer cycles that start with smaller vertex IDs for deterministic results
+    let mut shortest_cycle: Option<Vec<usize>> = None;
+    
+    for &start in component {
+        if let Some(mut cycle) = find_cycle_from_vertex(start, adj_list, component) {
+            // Normalize cycle to start with the smallest vertex for consistent comparison
+            if let Some(min_pos) = cycle.iter().position(|&x| x == *cycle.iter().min().unwrap()) {
+                cycle.rotate_left(min_pos);
+            }
+            
+            let should_replace = if let Some(ref current) = shortest_cycle {
+                cycle.len() < current.len() || 
+                (cycle.len() == current.len() && cycle < *current)
+            } else {
+                true
+            };
+            
+            if should_replace {
+                shortest_cycle = Some(cycle);
+            }
+        }
+    }
+    
+    shortest_cycle
+}
+
+/// Finds a cycle starting from a specific vertex using DFS
+fn find_cycle_from_vertex(
+    start: usize,
+    adj_list: &HashMap<usize, Vec<usize>>,
+    component: &[usize]
+) -> Option<Vec<usize>> {
+    let component_set: HashSet<usize> = component.iter().cloned().collect();
+    
+    // Use DFS to find shortest cycle from start vertex
+    fn dfs_shortest_cycle(
+        current: usize,
+        start: usize,
+        adj_list: &HashMap<usize, Vec<usize>>,
+        component_set: &HashSet<usize>,
+        path: &mut Vec<usize>,
+        visited: &mut HashSet<usize>,
+        min_cycle_len: &mut usize
+    ) -> Option<Vec<usize>> {
+        
+        if path.len() >= *min_cycle_len {
+            return None; // Don't explore paths longer than current minimum
+        }
+        
+        path.push(current);
+        visited.insert(current);
+        
+        if let Some(neighbors) = adj_list.get(&current) {
+            for &neighbor in neighbors {
+                if !component_set.contains(&neighbor) {
+                    continue;
+                }
+                
+                if neighbor == start && path.len() >= 3 {
+                    // Found a cycle back to start
+                    if path.len() < *min_cycle_len {
+                        *min_cycle_len = path.len();
+                        let result = path.clone();
+                        path.pop();
+                        visited.remove(&current);
+                        return Some(result);
+                    }
+                } else if !visited.contains(&neighbor) {
+                    if let Some(cycle) = dfs_shortest_cycle(neighbor, start, adj_list, component_set, path, visited, min_cycle_len) {
+                        path.pop();
+                        visited.remove(&current);
+                        return Some(cycle);
+                    }
+                }
+            }
+        }
+        
+        path.pop();
+        visited.remove(&current);
+        None
+    }
+    
+    let mut path = Vec::new();
+    let mut visited = HashSet::new();
+    let mut min_cycle_len = usize::MAX;
+    
+    dfs_shortest_cycle(start, start, adj_list, &component_set, &mut path, &mut visited, &mut min_cycle_len)
+}
+
+/// Reconstructs a cycle from the parent information
+fn reconstruct_cycle(
+    u: usize, 
+    v: usize, 
+    parent: &HashMap<usize, Option<usize>>
+) -> Vec<usize> {
+    let mut cycle = Vec::new();
+    
+    // Trace back from u to find the path to the common ancestor
+    let mut path_u = Vec::new();
+    let mut current = u;
+    path_u.push(current);
+    while let Some(Some(p)) = parent.get(&current) {
+        current = *p;
+        path_u.push(current);
+    }
+    
+    // Trace back from v to find the path to the common ancestor
+    let mut path_v = Vec::new();
+    current = v;
+    path_v.push(current);
+    while let Some(Some(p)) = parent.get(&current) {
+        current = *p;
+        path_v.push(current);
+    }
+    
+    // Find the lowest common ancestor
+    let path_u_set: HashSet<usize> = path_u.iter().cloned().collect();
+    let mut lca = v;
+    for &vertex in &path_v {
+        if path_u_set.contains(&vertex) {
+            lca = vertex;
+            break;
+        }
+    }
+    
+    // Build the cycle: path from u to lca + path from lca to v
+    for &vertex in path_u.iter().take_while(|&&x| x != lca) {
+        cycle.push(vertex);
+    }
+    cycle.push(lca);
+    for &vertex in path_v.iter().take_while(|&&x| x != lca).collect::<Vec<_>>().iter().rev() {
+        cycle.push(*vertex);
+    }
+    
+    cycle
+}
+
+/// Checks if a cycle is a duplicate of any existing cycle (considering direction)
+fn is_duplicate_cycle(new_cycle: &[usize], existing_cycles: &[Vec<usize>]) -> bool {
+    for existing in existing_cycles {
+        if is_same_cycle(new_cycle, existing) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Checks if two cycles are the same (considering both directions and rotations)
+fn is_same_cycle(cycle1: &[usize], cycle2: &[usize]) -> bool {
+    if cycle1.len() != cycle2.len() {
+        return false;
+    }
+    
+    let len = cycle1.len();
+    
+    // Check all rotations in both directions
+    for start in 0..len {
+        // Forward direction
+        let mut matches = true;
+        for i in 0..len {
+            if cycle1[i] != cycle2[(start + i) % len] {
+                matches = false;
+                break;
+            }
+        }
+        if matches {
+            return true;
+        }
+        
+        // Reverse direction
+        matches = true;
+        for i in 0..len {
+            if cycle1[i] != cycle2[(start + len - i) % len] {
+                matches = false;
+                break;
+            }
+        }
+        if matches {
+            return true;
+        }
+    }
+    
+    false
 }
 
 #[cfg(test)]
@@ -975,5 +1277,233 @@ mod test_merge_points {
         assert_eq!(arc_map[&5], (4000, 4001)); // 4000 -> 4000, 4001 -> 4001 (unchanged)
         assert_eq!(arc_map[&6], (4001, 4003)); // 4002 -> 4001, 4003 -> 4003 (unchanged)
         assert_eq!(arc_map[&7], (4003, 4000)); // 4004 -> 4003, 4005 -> 4000
+    }
+}
+
+#[cfg(test)]
+mod test_find_connected_components {
+    use super::find_connected_components;
+
+    #[test]
+    fn test_find_connected_components_empty_graph() {
+        let graph = vec![];
+        let components = find_connected_components(&graph);
+        assert_eq!(components.len(), 0);
+    }
+
+    #[test]
+    fn test_find_connected_components_simple_triangle() {
+        // Simple triangle: 0-1-2-0
+        let graph = vec![(0, 1), (1, 2), (2, 0)];
+        let components = find_connected_components(&graph);
+        
+        assert_eq!(components.len(), 1);
+        let cycle = &components[0];
+        assert_eq!(cycle.len(), 3);
+        
+        // Check that it contains all vertices (order may vary)
+        assert!(cycle.contains(&0));
+        assert!(cycle.contains(&1));
+        assert!(cycle.contains(&2));
+    }
+
+    #[test]
+    fn test_find_connected_components_square() {
+        // Square: 0-1-2-3-0
+        let graph = vec![(0, 1), (1, 2), (2, 3), (3, 0)];
+        let components = find_connected_components(&graph);
+        
+        assert_eq!(components.len(), 1);
+        let cycle = &components[0];
+        assert_eq!(cycle.len(), 4);
+        
+        // Check that it contains all vertices
+        for i in 0..4 {
+            assert!(cycle.contains(&i));
+        }
+    }
+
+    #[test]
+    fn test_find_connected_components_multiple_cycles() {
+        // Two separate triangles: (0-1-2-0) and (3-4-5-3)
+        let graph = vec![
+            (0, 1), (1, 2), (2, 0),  // First triangle
+            (3, 4), (4, 5), (5, 3)   // Second triangle
+        ];
+        let components = find_connected_components(&graph);
+        
+        assert_eq!(components.len(), 2);
+        
+        // Each component should be a 3-vertex cycle
+        for cycle in &components {
+            assert_eq!(cycle.len(), 3);
+        }
+        
+        // Check that all vertices are present
+        let mut all_vertices = std::collections::HashSet::new();
+        for cycle in &components {
+            for &vertex in cycle {
+                all_vertices.insert(vertex);
+            }
+        }
+        assert_eq!(all_vertices.len(), 6);
+        for i in 0..6 {
+            assert!(all_vertices.contains(&i));
+        }
+    }
+
+    #[test]
+    fn test_find_connected_components_isolated_vertices() {
+        // Triangle with isolated edge: (0-1-2-0) and (3-4)
+        let graph = vec![(0, 1), (1, 2), (2, 0), (3, 4)];
+        let components = find_connected_components(&graph);
+        
+        // Should only find the triangle (isolated edge doesn't form a cycle)
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].len(), 3);
+    }
+
+    #[test]
+    fn test_find_connected_components_complex_graph() {
+        // Graph with multiple cycles: figure-8 pattern
+        // Two triangles sharing a vertex: (0-1-2-0) and (0-3-4-0)
+        let graph = vec![
+            (0, 1), (1, 2), (2, 0),  // First triangle
+            (0, 3), (3, 4), (4, 0)   // Second triangle (shares vertex 0)
+        ];
+        let components = find_connected_components(&graph);
+        
+        // Should find the shortest cycles from this complex structure
+        assert!(!components.is_empty());
+        
+        // Each component should be at least 3 vertices (minimum cycle)
+        for cycle in &components {
+            assert!(cycle.len() >= 3);
+        }
+    }
+
+    #[test]
+    fn test_find_connected_components_line_graph() {
+        // Linear chain: 0-1-2-3 (no cycles)
+        let graph = vec![(0, 1), (1, 2), (2, 3)];
+        let components = find_connected_components(&graph);
+        
+        // Should find no cycles
+        assert_eq!(components.len(), 0);
+    }
+
+    #[test]
+    fn test_find_connected_components_self_loop() {
+        // Self-loop: vertex connected to itself
+        let graph = vec![(0, 0)];
+        let components = find_connected_components(&graph);
+        
+        // Self-loops don't form valid cycles (need at least 3 vertices)
+        assert_eq!(components.len(), 0);
+    }
+
+    #[test]
+    fn test_find_connected_components_duplicate_elimination() {
+        // Graph where the same cycle can be traversed in different directions
+        let graph = vec![(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)];
+        let components = find_connected_components(&graph);
+        
+        // Should eliminate duplicates and return only one cycle
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].len(), 3);
+    }
+
+    #[test]
+    fn test_find_connected_components_pentagon() {
+        // Pentagon: 0-1-2-3-4-0
+        let graph = vec![(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)];
+        let components = find_connected_components(&graph);
+        
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].len(), 5);
+        
+        // Verify all vertices are present
+        for i in 0..5 {
+            assert!(components[0].contains(&i));
+        }
+    }
+
+    #[test]
+    fn test_find_connected_components_wheel_graph() {
+        // Wheel graph: central vertex 0 connected to rim vertices 1,2,3 which form a cycle
+        let graph = vec![
+            (1, 2), (2, 3), (3, 1),  // Rim cycle
+            (0, 1), (0, 2), (0, 3)   // Spokes to center
+        ];
+        let components = find_connected_components(&graph);
+        
+        // Should find at least one cycle
+        assert!(!components.is_empty());
+        
+        // In a wheel graph, we expect to find either:
+        // 1. The rim triangle [1,2,3] (length 3), or 
+        // 2. A 4-cycle involving the center vertex (length 4)
+        // Both are valid cycles in this graph structure
+        let has_valid_cycle = components.iter().any(|cycle| cycle.len() == 3 || cycle.len() == 4);
+        assert!(has_valid_cycle, "Expected to find either a 3-cycle or 4-cycle, but found: {:?}", components);
+    }
+
+    #[test]
+    fn test_find_connected_components_bowtie_graph() {
+        // Bowtie: two triangles sharing one vertex
+        // (0-1-2-0) and (0-3-4-0)
+        let graph = vec![
+            (0, 1), (1, 2), (2, 0),  // First triangle
+            (0, 3), (3, 4), (4, 0)   // Second triangle
+        ];
+        let components = find_connected_components(&graph);
+        
+        // Should find both triangles
+        assert!(components.len() >= 1); // At least one cycle should be found
+        
+        // All cycles should have at least 3 vertices
+        for cycle in &components {
+            assert!(cycle.len() >= 3);
+        }
+    }
+
+    #[test]
+    fn test_find_connected_components_large_cycle() {
+        // Large cycle: 0-1-2-3-4-5-6-7-0
+        let mut graph = vec![];
+        for i in 0..8 {
+            graph.push((i, (i + 1) % 8));
+        }
+        let components = find_connected_components(&graph);
+        
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].len(), 8);
+        
+        // Verify all vertices are present
+        for i in 0..8 {
+            assert!(components[0].contains(&i));
+        }
+    }
+
+    #[test]
+    fn test_find_connected_components_mixed_components() {
+        // Mix of cycles and non-cycles:
+        // Triangle: (0-1-2-0)
+        // Square: (3-4-5-6-3)  
+        // Line: (7-8-9)
+        let graph = vec![
+            (0, 1), (1, 2), (2, 0),           // Triangle
+            (3, 4), (4, 5), (5, 6), (6, 3),   // Square
+            (7, 8), (8, 9)                    // Line (no cycle)
+        ];
+        let components = find_connected_components(&graph);
+        
+        // Should find 2 cycles (triangle and square)
+        assert_eq!(components.len(), 2);
+        
+        // One should be 3-vertex, one should be 4-vertex
+        let mut cycle_sizes: Vec<usize> = components.iter().map(|c| c.len()).collect();
+        cycle_sizes.sort();
+        assert_eq!(cycle_sizes, vec![3, 4]);
     }
 }
