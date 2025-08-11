@@ -1,5 +1,5 @@
 use geom::prelude::*;
-use offroad::{OffsetCfg, offset_polyline_multiple};
+use offroad::prelude::{OffsetCfg, offset_polyline_multiple};
 
 fn main() {
     let mut cfg = OffsetCfg::default();

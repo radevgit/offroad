@@ -1,9 +1,5 @@
 use geom::prelude::*;
-use offroad::OffsetCfg;
-
-// Import or define pline_01 so it is available in this scope
-use offroad::pline_01;
-use offroad::offset_polyline;
+use offroad::prelude::{OffsetCfg, pline_01, offset_polyline};
 
 fn main() {
     let mut cfg = OffsetCfg::default();

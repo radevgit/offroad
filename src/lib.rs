@@ -30,7 +30,6 @@ pub mod prelude {
     pub use crate::offset::{pline_01, pline_02, pline_03, pline_04};
 }
 // For internal use
-    pub use crate::offset_raw::{offset_polyline_raw, poly_to_raws};
 pub use crate::offset_polyline_raw::{offset_polyline_raw, poly_to_raws};
 pub use crate::offset_connect_raw::offset_connect_raw;
 pub use crate::offset_split_arcs::offset_split_arcs;

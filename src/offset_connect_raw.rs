@@ -129,7 +129,8 @@ fn arc_connect_new(
 #[cfg(test)]
 mod test_offset_connect_raw {
     use crate::{
-        offset_polyline_raw::{offset_polyline_raw, poly_to_raws}, pline_01,
+        offset_polyline_raw::{offset_polyline_raw, poly_to_raws},
+        offset::pline_01,
     };
 
     use super::*;

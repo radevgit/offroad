@@ -1,5 +1,5 @@
 use geom::prelude::*;
-use offroad::{OffsetCfg, offset_polyline};
+use offroad::prelude::{OffsetCfg, offset_polyline};
 
 fn main() {
     let mut cfg = OffsetCfg::default();
@@ -7,7 +7,8 @@ fn main() {
     cfg.svg = Some(&mut svg);
     cfg.reconnect = false;
     cfg.debug_orig = true;
-    cfg.debug_prune = true;
+    cfg.debug_prune = false;
+    cfg.reconnect = true;
 
     let poly_orig = vec![
         pvertex(point(0.0, 0.0), 0.0),
