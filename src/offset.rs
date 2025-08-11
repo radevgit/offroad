@@ -16,7 +16,7 @@ pub struct OffsetCfg<'a> {
     pub debug_connect: bool,      // Flag to enable debug connect offsets
     pub debug_split: bool,        // Flag to enable debug split offsets
     pub debug_prune: bool,        // Flag to enable debug pruned offsets
-    pub debug_recconnect: bool,   // Flag to enable debug reconnect arcs
+    pub debug_reconnect: bool,   // Flag to enable debug reconnect arcs
 }
 
 impl<'a> Default for OffsetCfg<'a> {
@@ -29,7 +29,7 @@ impl<'a> Default for OffsetCfg<'a> {
             debug_connect: false,    // Debugging flags are off by default
             debug_split: false,      // Debugging flags are off by default
             debug_prune: false,      // Debugging flags are off by default
-            debug_recconnect: false, // Debugging reconnect arcs
+            debug_reconnect: false,  // Debugging reconnect arcs
         }
     }
 }
@@ -59,7 +59,7 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
     let result = arcs_to_polylines(&reconnect_arcs);
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
-        if cfg.debug_recconnect {
+        if cfg.debug_reconnect {
             svg.polylines(&result, "violet");
         }
     }

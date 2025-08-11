@@ -74,8 +74,15 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
 
     merge_points(&mut arc_map, &merge);
 
+    println!("DEBUG: Merge operations: {:?}", merge);
+    println!("DEBUG: Arc map after merge: {:?}", arc_map);
+
     // Build the graph from arc_map
     let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
+
+    println!("DEBUG: Initial arcs count: {}", len);
+    println!("DEBUG: Arc map: {:?}", arc_map);
+    println!("DEBUG: Graph edges: {:?}", graph);
 
     // Find connected components (cycles) in the undirected graph defined by edges in "graph" vector.
     // Where each component is a closed path of vertices Ids.
@@ -91,15 +98,24 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     // let components: Vec<Vec<usize>> = Vec::new(); // Temporary placeholder
     let components = find_connected_components(&graph);
 
+    println!("DEBUG: Found {} components", components.len());
+    for (i, component) in components.iter().enumerate() {
+        println!("DEBUG: Component {}: {:?}", i, component);
+    }
+
     // Convert each component (cycle of vertex IDs) to a sequence of arcs
     for component in components.iter() {
         if component.len() >= 2 {
-            let arc_sequence = vertex_path_to_arcs(&component, &arcs, len);
+            println!("DEBUG: Converting component {:?} to arcs", component);
+            let arc_sequence = vertex_path_to_arcs(&component, &arcs, &arc_map);
+            println!("DEBUG: Arc sequence length: {}", arc_sequence.len());
             if !arc_sequence.is_empty() {
                 result.push(arc_sequence);
             }
         }
     }
+
+    println!("DEBUG: offset_reconnect_arcs returned {} components", result.len());
 
     result
 }
@@ -163,9 +179,13 @@ fn merge_points(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize
 }
 
 
-fn vertex_path_to_arcs(vertex_path: &[usize], arcs: &[Arc], len: usize) -> Vec<Arc> {
+fn vertex_path_to_arcs(
+    vertex_path: &[usize], 
+    arcs: &[Arc], 
+    arc_map: &HashMap<usize, (usize, usize)>
+) -> Vec<Arc> {
     // Convert a path of vertex IDs back to a sequence of arcs
-    // Vertex IDs: 0..len-1 are arc start points, len..2*len-1 are arc end points
+    // We need to find which arc connects each pair of consecutive vertices in the path
     
     let mut result = Vec::new();
     let mut used_arcs = HashSet::new();
@@ -174,29 +194,46 @@ fn vertex_path_to_arcs(vertex_path: &[usize], arcs: &[Arc], len: usize) -> Vec<A
         let current_vertex = vertex_path[i];
         let next_vertex = vertex_path[(i + 1) % vertex_path.len()];
         
-        // Find arc that connects current_vertex to next_vertex
-        let arc_idx = find_connecting_arc(current_vertex, next_vertex, len);
+        println!("DEBUG: Looking for arc connecting {} -> {}", current_vertex, next_vertex);
+        
+        // Find arc that connects current_vertex to next_vertex using arc_map
+        let arc_idx = find_connecting_arc_by_vertices(current_vertex, next_vertex, arc_map);
         
         if let Some(idx) = arc_idx {
-            if idx < arcs.len() && !used_arcs.contains(&idx) {
-                // Determine if we need to reverse the arc direction
-                let arc = &arcs[idx];
-                //let use_forward = should_use_forward_direction(current_vertex, next_vertex, len);
-                
-
-                result.push(arc.clone());
-                // if use_forward {
-                //     result.push(arc.clone());
-                // } else {
-                //     // Create reversed arc
-                //     result.push(Arc::new(arc.b, arc.a, arc.c, arc.r));
-                // }
-                used_arcs.insert(idx);
+            if !used_arcs.contains(&idx) {
+                println!("DEBUG: Found arc {} connecting vertices", idx);
+                if idx < arcs.len() {
+                    let arc = &arcs[idx];
+                    result.push(arc.clone());
+                    used_arcs.insert(idx);
+                }
             }
+        } else {
+            println!("DEBUG: No arc found connecting {} -> {}", current_vertex, next_vertex);
         }
     }
     
     result
+}
+
+fn find_connecting_arc_by_vertices(
+    vertex1: usize, 
+    vertex2: usize, 
+    arc_map: &HashMap<usize, (usize, usize)>
+) -> Option<usize> {
+    // Find the arc index that connects vertex1 to vertex2
+    // Check both directions since the graph is undirected
+    
+    for (&arc_idx, &(start_vertex, end_vertex)) in arc_map {
+        if (start_vertex == vertex1 && end_vertex == vertex2) ||
+           (start_vertex == vertex2 && end_vertex == vertex1) {
+            println!("DEBUG: Found arc {} mapping to ({}, {})", arc_idx, start_vertex, end_vertex);
+            return Some(arc_idx);
+        }
+    }
+    
+    println!("DEBUG: No arc found in arc_map for vertices {} -> {}", vertex1, vertex2);
+    None
 }
 
 fn find_connecting_arc(vertex1: usize, vertex2: usize, len: usize) -> Option<usize> {
@@ -335,9 +372,11 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
             continue;
         }
         
-        let component = find_component_with_cycles(start_vertex, &adj_list, &mut visited);
-        if !component.is_empty() {
-            if let Some(cycle) = extract_shortest_cycle(&component, &adj_list) {
+        let component_vertices = find_component_vertices(start_vertex, &adj_list, &mut visited);
+        if component_vertices.len() >= 3 {
+            // Find all fundamental cycles in this component
+            let cycles = find_all_cycles_in_component(&component_vertices, &adj_list);
+            for cycle in cycles {
                 if !is_duplicate_cycle(&cycle, &components) {
                     components.push(cycle);
                 }
@@ -524,6 +563,127 @@ fn reconstruct_cycle(
     }
     
     cycle
+}
+
+/// Finds all vertices in a connected component using DFS
+fn find_component_vertices(
+    start: usize, 
+    adj_list: &HashMap<usize, Vec<usize>>, 
+    visited: &mut HashSet<usize>
+) -> Vec<usize> {
+    let mut component = Vec::new();
+    let mut stack = vec![start];
+    let mut local_visited = HashSet::new();
+    
+    while let Some(vertex) = stack.pop() {
+        if local_visited.contains(&vertex) {
+            continue;
+        }
+        
+        local_visited.insert(vertex);
+        visited.insert(vertex);
+        component.push(vertex);
+        
+        if let Some(neighbors) = adj_list.get(&vertex) {
+            for &neighbor in neighbors {
+                if !local_visited.contains(&neighbor) {
+                    stack.push(neighbor);
+                }
+            }
+        }
+    }
+    
+    component
+}
+
+/// Finds all fundamental cycles in a connected component
+fn find_all_cycles_in_component(
+    component: &[usize], 
+    adj_list: &HashMap<usize, Vec<usize>>
+) -> Vec<Vec<usize>> {
+    use std::collections::HashSet;
+    
+    if component.len() < 3 {
+        return Vec::new(); // Need at least 3 vertices for a cycle
+    }
+    
+    let mut cycles = Vec::new();
+    let component_set: HashSet<usize> = component.iter().cloned().collect();
+    
+    // Try to find cycles starting from each vertex
+    for &start in component {
+        let found_cycles = find_cycles_from_vertex(start, adj_list, &component_set);
+        for cycle in found_cycles {
+            // Normalize and check for duplicates
+            let mut normalized_cycle = cycle;
+            if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+                normalized_cycle.rotate_left(min_pos);
+            }
+            
+            if !is_duplicate_cycle(&normalized_cycle, &cycles) {
+                cycles.push(normalized_cycle);
+            }
+        }
+    }
+    
+    // Sort cycles by length, then by lexicographic order for deterministic results
+    cycles.sort_by(|a, b| {
+        a.len().cmp(&b.len()).then_with(|| a.cmp(b))
+    });
+    
+    cycles
+}
+
+/// Finds cycles starting from a specific vertex using DFS
+fn find_cycles_from_vertex(
+    start: usize,
+    adj_list: &HashMap<usize, Vec<usize>>,
+    component_set: &HashSet<usize>
+) -> Vec<Vec<usize>> {
+    let mut cycles = Vec::new();
+    
+    // DFS to find all simple cycles from start vertex
+    fn dfs_find_cycles(
+        current: usize,
+        start: usize,
+        adj_list: &HashMap<usize, Vec<usize>>,
+        component_set: &HashSet<usize>,
+        path: &mut Vec<usize>,
+        visited: &mut HashSet<usize>,
+        cycles: &mut Vec<Vec<usize>>
+    ) {
+        
+        if path.len() > 10 {
+            return; // Avoid very long cycles
+        }
+        
+        path.push(current);
+        visited.insert(current);
+        
+        if let Some(neighbors) = adj_list.get(&current) {
+            for &neighbor in neighbors {
+                if !component_set.contains(&neighbor) {
+                    continue;
+                }
+                
+                if neighbor == start && path.len() >= 3 {
+                    // Found a cycle back to start
+                    cycles.push(path.clone());
+                } else if !visited.contains(&neighbor) {
+                    dfs_find_cycles(neighbor, start, adj_list, component_set, path, visited, cycles);
+                }
+            }
+        }
+        
+        path.pop();
+        visited.remove(&current);
+    }
+    
+    let mut path = Vec::new();
+    let mut visited = HashSet::new();
+    dfs_find_cycles(start, start, adj_list, component_set, &mut path, &mut visited, &mut cycles);
+    
+    cycles
 }
 
 /// Checks if a cycle is a duplicate of any existing cycle (considering direction)
