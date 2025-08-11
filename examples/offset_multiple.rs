@@ -6,7 +6,7 @@ fn main() {
     // This will create an SVG file at /tmp/out3.svg
     let mut svg = SVG::new(300.0, 300.0, "/tmp/out3.svg");
     cfg.svg = Some(&mut svg);
-    cfg.reconnect = false;
+    cfg.reconnect = true;
     cfg.debug_orig = true;
     cfg.debug_prune = true;
     let poly = vec![
