@@ -1,6 +1,6 @@
 [package]
 name = "offroad"
-version = "0.0.2"
+version = "0.0.5"
 description = "2D offsetting for arc polylines/polygons."
 rust-version = "1.88"
 edition = "2024"
@@ -12,7 +12,7 @@ repository = "https://github.com/radevgit/offroad"
 
 
 [dependencies]
-geom = { package = "base-geom", version = "0.0.5" }
+geom = { package = "basegeom", version = "0.2.0" }
 robust = "1.2.0"
 
 [lib]

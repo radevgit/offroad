@@ -3,6 +3,7 @@
 use std::collections::{HashMap, HashSet}; 
 
 use geom::prelude::*;
+use rand::distr::uniform::SampleBorrow;
 
 /// Reconnects offset segments by merging adjacent arcs vertices.
 const EPS_CONNECT: f64 = 1e-6;
@@ -16,15 +17,13 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     let len = arcs.len();
 
     // Initialize the edge list: each arc contributes 2 vertices
-    let mut edge_list: HashMap<usize, usize> = HashMap::new(); // (point id, arc id)
-    let mut merge: HashMap<usize, usize> = HashMap::new(); // (point id, point id)
-    let mut k = 0;
+    let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new(); // map arcs to end vertices
+    let mut merge: Vec<(usize, usize)> = Vec::new(); // coincident vertices
+    let mut k = 1000;
     // arc orientation is always from small id to large id
     for i in 0..len {
-        edge_list.insert(k, i);
-        k += 1;
-        edge_list.insert(k, i);
-        k += 1;
+        arc_map.insert(i, (k, k + 1));
+        k += 2;
     }
 
     // find where the arcs are touching at ends
@@ -40,33 +39,41 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
                 arcs[i].a = mid;
                 arcs[j].a = mid;
                 // track merge
-                merge.insert(i, j);
+                let x = arc_map.get(&i).unwrap().0;
+                let y = arc_map.get(&j).unwrap().0;
+                merge.push((x, y));
             }
             if arcs[i].a.close_enough(arcs[j].b, EPS_CONNECT) {
                 let mid = middle_point(&arcs[i].a, &arcs[j].b);
                 arcs[i].a = mid;
                 arcs[j].b = mid;
                 // track merge
-                merge.insert(i, j + 1);
+                let x = arc_map.get(&i).unwrap().0;
+                let y = arc_map.get(&j).unwrap().1;
+                merge.push((x, y));
             }
             if arcs[i].b.close_enough(arcs[j].a, EPS_CONNECT) {
                 let mid = middle_point(&arcs[i].b, &arcs[j].a);
                 arcs[i].b = mid;
                 arcs[j].a = mid;
                 // track merge
-                merge.insert(i + 1, j);
+                let x = arc_map.get(&i).unwrap().1;
+                let y = arc_map.get(&j).unwrap().0;
+                merge.push((x, y));
             }
             if arcs[i].b.close_enough(arcs[j].b, EPS_CONNECT) {
                 let mid = middle_point(&arcs[i].b, &arcs[j].b);
                 arcs[i].b = mid;
                 arcs[j].b = mid;
                 // track merge
-                merge.insert(i + 1, j + 1);
+                let x = arc_map.get(&i).unwrap().0;
+                let y = arc_map.get(&j).unwrap().0;
+                merge.push((x, y));
             }
         }
     }
 
-    merge_points(&mut edge_list, &merge);
+    merge_points(&mut arc_map, &merge);
 
     // Build the graph from edge_list
     let graph: Vec<(usize, usize)> = edge_list.into_iter().collect();
@@ -104,239 +111,14 @@ fn middle_point(a: &Point, b: &Point) -> Point {
     }
 }
 
-// edge_list is a map of point ids to arc ids
-// where points id are ordered as arc.a and arc.b
-// Change the edge_list to merge points based on the merge map
-// This change should be done in such way to preserve arc orientation
-// where arc orientation is always from small id to large id
-fn merge_points(edge_list: &mut HashMap<usize, usize>, merge: &HashMap<usize, usize>) {
-    // Simply update edge_list to merge points by removing merged points
-    // and keeping only the target points
-    for (&from_point, &to_point) in merge {
-        if let Some(arc_id) = edge_list.remove(&from_point) {
-            edge_list.insert(to_point, arc_id);
-        }
-    }
+// arc_map - map arcs and their end vertices
+// where points id are ordered as arc.a and arc.b (CCW)
+// Reduce the "merge" to make the vertices unique and update arc_map,
+// So the arcs vertices are now the updated one indices.
+fn merge_points(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize, usize)>) {
+    
 }
 
-fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
-    // Algorithm: DFS-based cycle detection for undirected graphs
-    // Reference: Based on Tarjan's algorithm principles for cycle detection
-    // This finds all simple cycles (closed paths) in the undirected graph
-    //
-    // Implementation Details:
-    // 1. Build adjacency list representation from edge list
-    // 2. Use DFS to explore connected components and detect cycles
-    // 3. Track path during DFS to identify when we revisit a vertex (cycle detected)
-    // 4. Normalize cycles to canonical form (start with smallest vertex, lexicographically smallest direction)
-    // 5. Deduplicate cycles that represent the same geometric path
-    // 6. Sort by cycle length (prefer shorter cycles for robustness)
-    //
-    // Time Complexity: O(V + E) for DFS + O(C × L log L) for normalization
-    // where V = vertices, E = edges, C = cycles found, L = average cycle length
-    
-    use std::collections::{HashMap, HashSet, BTreeSet};
-    
-    // Build adjacency list from edge list - using BTreeMap for deterministic iteration
-    let mut adj_list: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut all_vertices = BTreeSet::new(); // BTreeSet for sorted iteration
-    
-    for &(u, v) in graph {
-        adj_list.entry(u).or_insert_with(Vec::new).push(v);
-        adj_list.entry(v).or_insert_with(Vec::new).push(u);
-        all_vertices.insert(u);
-        all_vertices.insert(v);
-    }
-    
-    // Sort adjacency lists for deterministic behavior
-    for neighbors in adj_list.values_mut() {
-        neighbors.sort();
-    }
-    
-    let mut cycles = Vec::new();
-    let mut global_visited: HashSet<usize> = HashSet::new();
-    
-    // DFS to find all cycles starting from each unvisited vertex (in sorted order)
-    for &start_vertex in &all_vertices {
-        if global_visited.contains(&start_vertex) {
-            continue;
-        }
-        
-        let mut visited = HashSet::new();
-        let mut path = Vec::new();
-        find_cycles_dfs(start_vertex, None, &adj_list, &mut visited, &mut path, &mut cycles);
-        
-        // Mark all vertices in this connected component as globally visited
-        global_visited.extend(&visited);
-    }
-    
-    // Remove duplicate cycles (same cycle but different starting point or direction)
-    normalize_and_deduplicate_cycles(cycles)
-}
-
-fn find_cycles_dfs(
-    current: usize,
-    parent: Option<usize>,
-    adj_list: &HashMap<usize, Vec<usize>>,
-    visited: &mut HashSet<usize>,
-    path: &mut Vec<usize>,
-    cycles: &mut Vec<Vec<usize>>,
-) {
-    visited.insert(current);
-    path.push(current);
-    
-    if let Some(neighbors) = adj_list.get(&current) {
-        for &neighbor in neighbors {
-            if Some(neighbor) == parent {
-                continue; // Skip back to parent in undirected graph
-            }
-            
-            if let Some(cycle_start_pos) = path.iter().position(|&v| v == neighbor) {
-                // Found a cycle - extract it
-                let cycle: Vec<usize> = path[cycle_start_pos..].to_vec();
-                if cycle.len() >= 3 { // Valid cycle needs at least 3 vertices
-                    cycles.push(cycle);
-                }
-            } else if !visited.contains(&neighbor) {
-                // Continue DFS
-                find_cycles_dfs(neighbor, Some(current), adj_list, visited, path, cycles);
-            }
-        }
-    }
-    
-    path.pop();
-}
-
-fn normalize_and_deduplicate_cycles(cycles: Vec<Vec<usize>>) -> Vec<Vec<usize>> {
-    use std::collections::HashSet;
-    
-    let mut normalized_cycles = HashSet::new();
-    
-    for cycle in cycles {
-        if cycle.len() < 3 {
-            continue; // Skip invalid cycles
-        }
-        
-        // Find canonical representation: start with smallest vertex, choose direction that gives lexicographically smaller sequence
-        let min_vertex = cycle.iter().min().unwrap();
-        let min_pos = cycle.iter().position(|&v| v == *min_vertex).unwrap();
-        
-        // Create forward direction (as given)
-        let forward: Vec<usize> = cycle[min_pos..].iter().chain(cycle[..min_pos].iter()).cloned().collect();
-        
-        // Create reverse direction (reverse the entire cycle, then rotate to start with min)
-        let mut reverse_cycle = cycle.clone();
-        reverse_cycle.reverse();
-        let min_pos_rev = reverse_cycle.iter().position(|&v| v == *min_vertex).unwrap();
-        let reverse: Vec<usize> = reverse_cycle[min_pos_rev..].iter().chain(reverse_cycle[..min_pos_rev].iter()).cloned().collect();
-        
-        // Choose lexicographically smaller representation
-        let canonical = if forward <= reverse { forward } else { reverse };
-        normalized_cycles.insert(canonical);
-    }
-    
-    // Convert back to Vec and sort by length (prefer shorter cycles)
-    let mut result: Vec<Vec<usize>> = normalized_cycles.into_iter().collect();
-    result.sort_by_key(|cycle| cycle.len());
-    
-    // Filter out composite cycles (cycles that can be formed by combining shorter cycles)
-    result
-}
-
-fn filter_composite_cycles(cycles: Vec<Vec<usize>>, len: usize) -> Vec<Vec<usize>> {
-    use std::collections::HashSet;
-    
-    // Goal: Find all fundamental cycles (no shared arcs) representing distinct geometric components
-    // This should work for any number of components, not just 2
-    
-    // Filter out obviously invalid cycles first
-    let valid_cycles: Vec<Vec<usize>> = cycles.into_iter()
-        .filter(|cycle| {
-            if cycle.len() < 6 || cycle.len() % 2 != 0 {
-                false
-            } else {
-                true
-            }
-        }).collect();
-    
-    if valid_cycles.is_empty() {
-        return Vec::new();
-    }
-    
-    // Convert cycles to their arc sets for comparison
-    let cycle_arc_sets: Vec<(Vec<usize>, HashSet<usize>)> = valid_cycles.iter().map(|cycle| {
-        let arc_set: HashSet<usize> = cycle.iter()
-            .map(|&v| if v < len { v } else { v - len })
-            .collect();
-        (cycle.clone(), arc_set)
-    }).collect();
-    
-    // If we have only a few cycles (≤ 3), be more permissive about overlaps
-    // This helps with simple geometries where we expect multiple small components
-    if cycle_arc_sets.len() <= 3 {
-        // Sort by cycle length (prefer shorter fundamental cycles)
-        let mut sorted_cycles = cycle_arc_sets;
-        sorted_cycles.sort_by_key(|(cycle, _)| cycle.len());
-        
-        // For small numbers of cycles, allow some overlap but prioritize by size
-        let mut selected: Vec<(Vec<usize>, HashSet<usize>)> = Vec::new();
-        
-        for (cycle, arc_set) in sorted_cycles {
-            // For the first few cycles, be more lenient about overlaps
-            if selected.len() < 2 {
-                selected.push((cycle, arc_set));
-            } else {
-                // For additional cycles, check for conflicts
-                let mut conflicts = false;
-                for (_, selected_arc_set) in &selected {
-                    let overlap = arc_set.intersection(selected_arc_set).count();
-                    // Allow small overlaps for small cycle counts
-                    if overlap > arc_set.len() / 2 {  // Only reject if more than 50% overlap
-                        conflicts = true;
-                        break;
-                    }
-                }
-                
-                if !conflicts {
-                    selected.push((cycle, arc_set));
-                }
-            }
-        }
-        
-        // Extract just the cycles
-        return selected.into_iter().map(|(cycle, _)| cycle).collect();
-    }
-    
-    // For larger numbers of cycles, use the strict non-overlapping algorithm
-    // Sort by cycle length (prefer shorter fundamental cycles)
-    let mut sorted_cycles = cycle_arc_sets;
-    sorted_cycles.sort_by_key(|(cycle, _)| cycle.len());
-    
-    // Use greedy algorithm to find maximum set of non-overlapping cycles
-    let mut selected: Vec<(Vec<usize>, HashSet<usize>)> = Vec::new();
-    
-    for (cycle, arc_set) in sorted_cycles {
-        let mut conflicts = false;
-        
-        // Check if this cycle conflicts with any already selected cycle
-        for (_, selected_arc_set) in &selected {
-            let overlap = arc_set.intersection(selected_arc_set).count();
-            
-            // If there's any arc overlap, it conflicts
-            if overlap > 0 {
-                conflicts = true;
-                break;
-            }
-        }
-        
-        if !conflicts {
-            selected.push((cycle, arc_set));
-        }
-    }
-    
-    // Extract just the cycles
-    selected.into_iter().map(|(cycle, _)| cycle).collect()
-}
 
 fn vertex_path_to_arcs(vertex_path: &[usize], arcs: &[Arc], len: usize) -> Vec<Arc> {
     // Convert a path of vertex IDs back to a sequence of arcs
