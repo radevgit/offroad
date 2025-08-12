@@ -34,7 +34,7 @@ pub use crate::offset_polyline_raw::{offset_polyline_raw, poly_to_raws};
 pub use crate::offset_connect_raw::offset_connect_raw;
 pub use crate::offset_split_arcs::offset_split_arcs;
 pub use crate::offset_prune_invalid::offset_prune_invalid;
-pub use crate::offset_reconnect_arcs::offset_reconnect_arcs;
+pub use crate::offset_reconnect_arcs::{offset_reconnect_arcs, find_connected_components};
 
 #[cfg(test)]
 mod tests;

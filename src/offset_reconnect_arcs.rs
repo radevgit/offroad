@@ -328,6 +328,7 @@ fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
 /// 
 /// # Examples
 /// ```rust
+/// use offroad::find_connected_components;
 /// let graph = vec![(0, 1), (1, 2), (2, 0), (3, 4)];
 /// let components = find_connected_components(&graph);
 /// // Returns cycles like [[0, 1, 2]] for triangle and potentially isolated vertices
