@@ -5,11 +5,12 @@ use std::collections::{HashMap, HashSet};
 use geom::prelude::*;
 
 
-const EPS_CONNECT: f64 = 1e-5;
+const EPS_CONNECT: f64 = 1e-6;
 
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.
 pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
+    println!("DEBUG: offset_reconnect_arcs called with {} arcs", arcs.len());
     let mut result = Vec::new();
 
     let len = arcs.len();
@@ -65,14 +66,14 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
 
     // Apply merge operations to arc_map
     merge_points(&mut arc_map, &merge);
+    
+    println!("DEBUG: Arc map after merge: {:?}", arc_map);
 
     // Build the graph from arc_map
     let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
 
-    // println!("DEBUG: Initial arcs count: {}", len);
-    // println!("DEBUG: Arc map: {:?}", arc_map);
-    // println!("DEBUG: Graph edges: {:?}", graph);
-    // println!("DEBUG: Merge operations: {:?}", merge);
+    println!("DEBUG: Graph edges after merge: {:?}", graph);
+    println!("DEBUG: Merge operations count: {}", merge.len());
 
     // Find connected components (cycles) in the undirected graph defined by edges in "graph" vector.
     // Where each component is a closed path of vertices Ids.
@@ -88,24 +89,29 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     // let components: Vec<Vec<usize>> = Vec::new(); // Temporary placeholder
     let components = find_connected_components(&graph);
 
-    // println!("DEBUG: Found {} components", components.len());
-    // for (i, component) in components.iter().enumerate() {
-    //     println!("DEBUG: Component {}: {:?}", i, component);
-    // }
+    println!("DEBUG: Found {} components", components.len());
+    for (i, component) in components.iter().enumerate() {
+        println!("DEBUG: Component {}: {:?}", i, component);
+    }
 
     // Convert each component (cycle of vertex IDs) to a sequence of arcs
     for component in components.iter() {
+        println!("DEBUG: Processing component with {} vertices: {:?}", component.len(), component);
         if component.len() >= 2 {
-            // println!("DEBUG: Converting component {:?} to arcs", component);
+            println!("DEBUG: Converting component {:?} to arcs", component);
             let arc_sequence = vertex_path_to_arcs(&component, &arcs, &arc_map);
-            // println!("DEBUG: Arc sequence length: {}", arc_sequence.len());
+            println!("DEBUG: Arc sequence length: {}", arc_sequence.len());
             if !arc_sequence.is_empty() {
                 result.push(arc_sequence);
+            } else {
+                println!("DEBUG: Arc sequence was empty for component {:?}", component);
             }
+        } else {
+            println!("DEBUG: Skipping component {:?} - too short (len={})", component, component.len());
         }
     }
 
-    // println!("DEBUG: offset_reconnect_arcs returning {} components", result.len());
+    println!("DEBUG: offset_reconnect_arcs returning {} components", result.len());
 
     result
 }
@@ -358,47 +364,21 @@ pub fn remove_bridge_arcs(arcs: &Arcline) -> Arcline {
 /// - Reference: "Introduction to Algorithms" by Cormen et al., Chapter 22 (Graph Algorithms)
 /// 
 pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
-    // Optimized for graphs where each vertex has degree 1-4 only
-    // This is typical for arc connection graphs in geometric applications
-    // 1. Build adjacency list and analyze vertex degrees
-    // 2. Find connected components using DFS
-    // 3. For each component, find fundamental cycles efficiently
-    // 4. Deduplicate and return cycles
     use std::collections::{HashMap, HashSet};
     
     if graph.is_empty() {
         return Vec::new();
     }
     
-    // Build undirected adjacency list and track vertex degrees
+    // Build undirected adjacency list 
     let mut adj_list: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut vertex_degrees: HashMap<usize, usize> = HashMap::new();
     let mut all_vertices = HashSet::new();
-    let mut edges_set = HashSet::new();
     
-    // Normalize edges to avoid duplicates (keep smaller vertex first)
     for &(u, v) in graph {
-        let edge = if u <= v { (u, v) } else { (v, u) };
-        edges_set.insert(edge);
+        adj_list.entry(u).or_insert_with(Vec::new).push(v);
+        adj_list.entry(v).or_insert_with(Vec::new).push(u);
         all_vertices.insert(u);
         all_vertices.insert(v);
-    }
-    
-    // Build adjacency list from normalized edges and count degrees
-    for (u, v) in edges_set {
-        if u != v { // Skip self-loops for now
-            adj_list.entry(u).or_insert_with(Vec::new).push(v);
-            adj_list.entry(v).or_insert_with(Vec::new).push(u);
-            *vertex_degrees.entry(u).or_insert(0) += 1;
-            *vertex_degrees.entry(v).or_insert(0) += 1;
-        }
-    }
-    
-    // Validate degree constraint (1-4 edges per vertex)
-    for (&vertex, &degree) in &vertex_degrees {
-        if degree > 4 {
-            eprintln!("Warning: Vertex {} has degree {} > 4, which violates the constraint", vertex, degree);
-        }
     }
     
     // Sort adjacency lists for deterministic ordering
@@ -407,27 +387,120 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
     }
     
     let mut visited = HashSet::new();
-    let mut components = Vec::new();
+    let mut cycles = Vec::new();
     
-    // Find all connected components and extract cycles from each
+    // Find cycles in each connected component
     for &start_vertex in &all_vertices {
         if visited.contains(&start_vertex) {
             continue;
         }
         
+        // Find connected component starting from this vertex
         let component_vertices = find_component_vertices(start_vertex, &adj_list, &mut visited);
+        
         if component_vertices.len() >= 3 {
-            // For small components with degree constraints, we can use efficient cycle detection
-            let cycles = find_cycles_optimized(&component_vertices, &adj_list, &vertex_degrees);
-            for cycle in cycles {
-                if !is_duplicate_cycle(&cycle, &components) {
-                    components.push(cycle);
+            // Find cycles in this component using iterative DFS (no recursion)
+            let component_cycles = find_cycles_iterative(&component_vertices, &adj_list);
+            cycles.extend(component_cycles);
+        }
+    }
+    
+    cycles
+}
+
+#[doc(hidden)]
+/// Find cycles in a component using iterative DFS (no recursion to avoid stack overflow)
+fn find_cycles_iterative(
+    component: &[usize], 
+    adj_list: &HashMap<usize, Vec<usize>>
+) -> Vec<Vec<usize>> {
+    use std::collections::HashSet;
+    
+    if component.len() < 3 {
+        return Vec::new();
+    }
+    
+    let mut cycles = Vec::new();
+    let component_set: HashSet<usize> = component.iter().cloned().collect();
+    
+    // Try to find cycles starting from each vertex using iterative DFS
+    for &start in component {
+        let found_cycles = find_cycles_from_vertex_iterative(start, adj_list, &component_set);
+        for cycle in found_cycles {
+            // Normalize and check for duplicates
+            let mut normalized_cycle = cycle;
+            if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+                normalized_cycle.rotate_left(min_pos);
+            }
+            
+            if !is_duplicate_cycle(&normalized_cycle, &cycles) {
+                cycles.push(normalized_cycle);
+            }
+        }
+    }
+    
+    // Sort cycles by length for deterministic results
+    cycles.sort_by(|a, b| a.len().cmp(&b.len()));
+    
+    cycles
+}
+
+#[doc(hidden)]
+/// Find cycles starting from a specific vertex using iterative DFS
+fn find_cycles_from_vertex_iterative(
+    start: usize,
+    adj_list: &HashMap<usize, Vec<usize>>,
+    component_set: &HashSet<usize>
+) -> Vec<Vec<usize>> {
+    let mut cycles = Vec::new();
+    
+    // Use iterative DFS with explicit stack
+    #[derive(Clone)]
+    struct DfsState {
+        current: usize,
+        path: Vec<usize>,
+        visited: HashSet<usize>,
+    }
+    
+    let mut stack = Vec::new();
+    stack.push(DfsState {
+        current: start,
+        path: Vec::new(),
+        visited: HashSet::new(),
+    });
+    
+    while let Some(mut state) = stack.pop() {
+        // Skip paths that are too long to avoid infinite loops
+        if state.path.len() > 10 {
+            continue;
+        }
+        
+        state.path.push(state.current);
+        state.visited.insert(state.current);
+        
+        if let Some(neighbors) = adj_list.get(&state.current) {
+            for &neighbor in neighbors {
+                if !component_set.contains(&neighbor) {
+                    continue;
+                }
+                
+                if neighbor == start && state.path.len() >= 3 {
+                    // Found a cycle back to start
+                    cycles.push(state.path.clone());
+                } else if !state.visited.contains(&neighbor) {
+                    // Continue exploring from this neighbor
+                    let new_state = DfsState {
+                        current: neighbor,
+                        path: state.path.clone(),
+                        visited: state.visited.clone(),
+                    };
+                    stack.push(new_state);
                 }
             }
         }
     }
     
-    components
+    cycles
 }
 
 #[doc(hidden)]
@@ -703,46 +776,47 @@ fn find_cycles_from_vertex_optimized(
 ) -> Vec<Vec<usize>> {
     let mut cycles = Vec::new();
     
-    // DFS to find cycles with optimizations for degree constraints
-    fn dfs_optimized(
+    // Use iterative DFS with explicit stack to avoid recursion limits
+    #[derive(Clone)]
+    struct SearchState {
         current: usize,
-        start: usize,
-        adj_list: &HashMap<usize, Vec<usize>>,
-        component_set: &HashSet<usize>,
-        path: &mut Vec<usize>,
-        visited: &mut HashSet<usize>,
-        cycles: &mut Vec<Vec<usize>>
-    ) {
+        path: Vec<usize>,
+        visited: HashSet<usize>,
+    }
+    
+    let mut stack = Vec::new();
+    stack.push(SearchState {
+        current: start,
+        path: Vec::new(),
+        visited: HashSet::new(),
+    });
+    
+    while let Some(mut state) = stack.pop() {
+        // Add current vertex to path and visited set
+        state.path.push(state.current);
+        state.visited.insert(state.current);
         
-        if path.len() > 8 {
-            return; // Avoid very long cycles in geometric applications
-        }
-        
-        path.push(current);
-        visited.insert(current);
-        
-        if let Some(neighbors) = adj_list.get(&current) {
+        if let Some(neighbors) = adj_list.get(&state.current) {
             for &neighbor in neighbors {
                 if !component_set.contains(&neighbor) {
                     continue;
                 }
                 
-                if neighbor == start && path.len() >= 3 {
+                if neighbor == start && state.path.len() >= 3 {
                     // Found a cycle back to start
-                    cycles.push(path.clone());
-                } else if !visited.contains(&neighbor) {
-                    dfs_optimized(neighbor, start, adj_list, component_set, path, visited, cycles);
+                    cycles.push(state.path.clone());
+                } else if !state.visited.contains(&neighbor) {
+                    // Continue exploring from this neighbor
+                    let new_state = SearchState {
+                        current: neighbor,
+                        path: state.path.clone(),
+                        visited: state.visited.clone(),
+                    };
+                    stack.push(new_state);
                 }
             }
         }
-        
-        path.pop();
-        visited.remove(&current);
     }
-    
-    let mut path = Vec::new();
-    let mut visited = HashSet::new();
-    dfs_optimized(start, start, adj_list, component_set, &mut path, &mut visited, &mut cycles);
     
     cycles
 }
@@ -756,22 +830,23 @@ fn find_cycles_by_degree_analysis(
 ) -> Vec<Vec<usize>> {
     let mut cycles = Vec::new();
     
-    // For now, fall back to the simple approach
-    // This can be optimized further based on specific degree patterns
+    // For a component where all vertices have degree 2, there should be exactly one cycle
+    // We only need to trace from one vertex to find it
     let component_set: HashSet<usize> = component.iter().cloned().collect();
     
-    for &start in component {
-        if vertex_degrees.get(&start).unwrap_or(&0) >= &2 {
-            let found_cycles = find_cycles_from_vertex_optimized(start, adj_list, &component_set, vertex_degrees);
-            for cycle in found_cycles {
-                let mut normalized_cycle = cycle;
-                if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
-                    normalized_cycle.rotate_left(min_pos);
-                }
-                
-                if !is_duplicate_cycle(&normalized_cycle, &cycles) {
-                    cycles.push(normalized_cycle);
-                }
+    // Pick the first vertex with degree >= 2 and find all cycles from it
+    if let Some(&start) = component.iter().find(|&&v| vertex_degrees.get(&v).unwrap_or(&0) >= &2) {
+        let found_cycles = find_cycles_from_vertex_optimized(start, adj_list, &component_set, vertex_degrees);
+        
+        for cycle in found_cycles {
+            // Normalize cycle to start with the smallest vertex to avoid duplicates
+            let mut normalized_cycle = cycle;
+            if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+                normalized_cycle.rotate_left(min_pos);
+            }
+            
+            if !is_duplicate_cycle(&normalized_cycle, &cycles) {
+                cycles.push(normalized_cycle);
             }
         }
     }

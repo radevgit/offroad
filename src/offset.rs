@@ -112,10 +112,8 @@ pub fn offset_polyline_to_polyline(
     }
     let offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);
 
-    // remove bridges
     let offset_arcs = remove_bridge_arcs(&offset_arcs);
 
-    // Slightly adjust arc endpoints
     let offset_arcs = find_middle_points(&offset_arcs);
 
     // Always reconnect arcs
@@ -198,10 +196,8 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     }
     let offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
 
-    // remove bridges
     let offset_arcs = remove_bridge_arcs(&offset_arcs);
 
-    // Slightly adjust arc endpoints
     let offset_arcs = find_middle_points(&offset_arcs);
 
     let mut final_arcs = Vec::new();
