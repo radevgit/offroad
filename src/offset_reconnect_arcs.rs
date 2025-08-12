@@ -117,39 +117,37 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
 }
 
 #[doc(hidden)]
-pub fn find_middle_points(arcs: &Arcline) -> Arcline {
-    let mut res = arcs.clone();
+pub fn find_middle_points(arcs: &mut Arcline) {
     // find where the arcs are touching at ends
-    for i in 0..res.len() {
-        for j in 0..res.len() {
+    for i in 0..arcs.len() {
+        for j in 0..arcs.len() {
             if i == j {
                 continue; // skip self
             }
 
             // merge close points, point ids
-            if res[i].a.close_enough(res[j].a, EPS_CONNECT) {
-                let mid = middle_point(&res[i].a, &res[j].a);
-                res[i].a = mid;
-                res[j].a = mid;
+            if arcs[i].a.close_enough(arcs[j].a, EPS_CONNECT) {
+                let mid = middle_point(&arcs[i].a, &arcs[j].a);
+                arcs[i].a = mid;
+                arcs[j].a = mid;
             }
-            if res[i].a.close_enough(res[j].b, EPS_CONNECT) {
-                let mid = middle_point(&res[i].a, &res[j].b);
-                res[i].a = mid;
-                res[j].b = mid;
+            if arcs[i].a.close_enough(arcs[j].b, EPS_CONNECT) {
+                let mid = middle_point(&arcs[i].a, &arcs[j].b);
+                arcs[i].a = mid;
+                arcs[j].b = mid;
             }
-            if res[i].b.close_enough(res[j].a, EPS_CONNECT) {
-                let mid = middle_point(&res[i].b, &res[j].a);
-                res[i].b = mid;
-                res[j].a = mid;
+            if arcs[i].b.close_enough(arcs[j].a, EPS_CONNECT) {
+                let mid = middle_point(&arcs[i].b, &arcs[j].a);
+                arcs[i].b = mid;
+                arcs[j].a = mid;
             }
-            if res[i].b.close_enough(res[j].b, EPS_CONNECT) {
-                let mid = middle_point(&res[i].b, &res[j].b);
-                res[i].b = mid;
-                res[j].b = mid;
+            if arcs[i].b.close_enough(arcs[j].b, EPS_CONNECT) {
+                let mid = middle_point(&arcs[i].b, &arcs[j].b);
+                arcs[i].b = mid;
+                arcs[j].b = mid;
             }
         }
     }
-    res
 }
 
 
@@ -305,13 +303,12 @@ fn should_use_forward_direction(from_vertex: usize, to_vertex: usize, len: usize
 /// Removes duplicate arcs that overlap as 2D graphics elements.
 ///
 /// DO NOT CHANGE THIS FUNCTION - it's a critical component for maintaining geometric consistency.
-pub fn remove_bridge_arcs(arcs: &Arcline) -> Arcline {
-    let mut result = arcs.clone();
+pub fn remove_bridge_arcs(arcs: &mut Arcline) {
     let mut to_remove = Vec::new();
-    for i in 0..result.len() {
-        for j in (i + 1)..result.len() {
-            let arc0 = &result[i];
-            let arc1 = &result[j];
+    for i in 0..arcs.len() {
+        for j in (i + 1)..arcs.len() {
+            let arc0 = &arcs[i];
+            let arc1 = &arcs[j];
             if arc0.is_line() && arc1.is_line() {
                 if (arc0.a.close_enough(arc1.a, EPS_CONNECT)
                     && arc0.b.close_enough(arc1.b, EPS_CONNECT))
@@ -339,9 +336,8 @@ pub fn remove_bridge_arcs(arcs: &Arcline) -> Arcline {
     to_remove.sort_unstable();
     to_remove.dedup();
     for i in to_remove.iter().rev() {
-        result.remove(*i);
+        arcs.remove(*i);
     }
-    result
 }
 
 #[doc(hidden)]

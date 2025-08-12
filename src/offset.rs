@@ -110,11 +110,11 @@ pub fn offset_polyline_to_polyline(
     {
         svg.polyline(poly, "red");
     }
-    let offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);
+    let mut offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);
 
-    let offset_arcs = remove_bridge_arcs(&offset_arcs);
+    remove_bridge_arcs(&mut offset_arcs);
 
-    let offset_arcs = find_middle_points(&offset_arcs);
+    find_middle_points(&mut offset_arcs);
 
     // Always reconnect arcs
     let reconnect_arcs = offset_reconnect_arcs(&offset_arcs);
@@ -194,11 +194,11 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     {
         svg.arcline(arcs, "red");
     }
-    let offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
+    let mut offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
 
-    let offset_arcs = remove_bridge_arcs(&offset_arcs);
+    remove_bridge_arcs(&mut offset_arcs);
 
-    let offset_arcs = find_middle_points(&offset_arcs);
+    find_middle_points(&mut offset_arcs);
 
     let mut final_arcs = Vec::new();
     if cfg.reconnect {
