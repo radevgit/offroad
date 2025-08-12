@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
-use std::{collections::{HashMap, HashSet}, result}; 
+use std::collections::{HashMap, HashSet}; 
 
 use geom::prelude::*;
 
 
-const EPS_CONNECT: f64 = 1e-6;
+const EPS_CONNECT: f64 = 1e-5;
 
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.
@@ -63,12 +63,16 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     // println!("DEBUG: Merge operations: {:?}", merge);
     // println!("DEBUG: Arc map after merge: {:?}", arc_map);
 
+    // Apply merge operations to arc_map
+    merge_points(&mut arc_map, &merge);
+
     // Build the graph from arc_map
     let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
 
     // println!("DEBUG: Initial arcs count: {}", len);
     // println!("DEBUG: Arc map: {:?}", arc_map);
     // println!("DEBUG: Graph edges: {:?}", graph);
+    // println!("DEBUG: Merge operations: {:?}", merge);
 
     // Find connected components (cycles) in the undirected graph defined by edges in "graph" vector.
     // Where each component is a closed path of vertices Ids.
@@ -101,7 +105,7 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
         }
     }
 
-    // println!("DEBUG: offset_reconnect_arcs returned {} components", result.len());
+    // println!("DEBUG: offset_reconnect_arcs returning {} components", result.len());
 
     result
 }
