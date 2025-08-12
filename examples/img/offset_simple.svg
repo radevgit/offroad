@@ -1,0 +1,29 @@
+<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-width="0.1" stroke-linecap="round"><rect width="100%" height="100%" fill="#ffffffff" />
+<path d="M 140 100 A 88.38834764831844 88.38834764831844 0 0 0 240 200" stroke="red" />
+<circle cx="240" cy="200" r="0.5" stroke="blue" />
+<circle cx="140" cy="100" r="0.5" stroke="blue" />
+<line x1="140" y1="100" x2="40" y2="200" stroke="red" />
+<circle cx="140" cy="100" r="0.5" stroke="blue" />
+<circle cx="40" cy="200" r="0.5" stroke="blue" />
+<path d="M 240 200 A 103.46153846153845 103.46153846153845 0 1 0 40 200" stroke="red" />
+<circle cx="40" cy="200" r="0.5" stroke="blue" />
+<circle cx="240" cy="200" r="0.5" stroke="blue" />
+<path d="M 154.8492424049175 102.12132034355963 A 15 15 0 0 0 140 85" stroke="violet" />
+<circle cx="154.8492424049175" cy="102.12132034355963" r="0.5" stroke="blue" />
+<circle cx="140" cy="85" r="0.5" stroke="blue" />
+<path d="M 227.58435593958149 185.88829916700556 A 88.46153846153845 88.46153846153845 0 0 0 140 85" stroke="violet" />
+<circle cx="140" cy="85" r="0.5" stroke="blue" />
+<circle cx="227.58435593958149" cy="185.88829916700556" r="0.5" stroke="blue" />
+<path d="M 154.8492424049175 102.12132034355963 A 73.38834764831846 73.38834764831846 0 0 0 227.58435593958149 185.88829916700556" stroke="violet" />
+<circle cx="227.58435593958149" cy="185.88829916700556" r="0.5" stroke="blue" />
+<circle cx="154.8492424049175" cy="102.12132034355963" r="0.5" stroke="blue" />
+<path d="M 140 85 A 15.000000000000002 15.000000000000002 0 0 0 129.3933982822018 89.39339828220179" stroke="violet" />
+<circle cx="140" cy="85" r="0.5" stroke="blue" />
+<circle cx="129.3933982822018" cy="89.39339828220179" r="0.5" stroke="blue" />
+<line x1="129.3933982822018" y1="89.39339828220179" x2="51.77381389167467" y2="167.0129826727289" stroke="violet" />
+<circle cx="129.3933982822018" cy="89.39339828220179" r="0.5" stroke="blue" />
+<circle cx="51.77381389167467" cy="167.0129826727289" r="0.5" stroke="blue" />
+<path d="M 140 85 A 88.46153846153845 88.46153846153845 0 0 0 51.77381389167467 167.0129826727289" stroke="violet" />
+<circle cx="51.77381389167467" cy="167.0129826727289" r="0.5" stroke="blue" />
+<circle cx="140" cy="85" r="0.5" stroke="blue" />
+</svg>

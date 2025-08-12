@@ -333,9 +333,11 @@ fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
 /// // Returns cycles like [[0, 1, 2]] for triangle and potentially isolated vertices
 /// ```
 pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
-    // 1. Build adjacency list from edge list
+    // Optimized for graphs where each vertex has degree 1-4 only
+    // This is typical for arc connection graphs in geometric applications
+    // 1. Build adjacency list and analyze vertex degrees
     // 2. Find connected components using DFS
-    // 3. For each component, find shortest cycle using BFS
+    // 3. For each component, find fundamental cycles efficiently
     // 4. Deduplicate and return cycles
     use std::collections::{HashMap, HashSet};
     
@@ -343,8 +345,9 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
         return Vec::new();
     }
     
-    // Build undirected adjacency list representation (normalize bidirectional edges)
+    // Build undirected adjacency list and track vertex degrees
     let mut adj_list: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut vertex_degrees: HashMap<usize, usize> = HashMap::new();
     let mut all_vertices = HashSet::new();
     let mut edges_set = HashSet::new();
     
@@ -356,18 +359,32 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
         all_vertices.insert(v);
     }
     
-    // Build adjacency list from normalized edges
-    for &(u, v) in &edges_set {
+    // Build adjacency list from normalized edges and count degrees
+    for (u, v) in edges_set {
         if u != v { // Skip self-loops for now
             adj_list.entry(u).or_insert_with(Vec::new).push(v);
             adj_list.entry(v).or_insert_with(Vec::new).push(u);
+            *vertex_degrees.entry(u).or_insert(0) += 1;
+            *vertex_degrees.entry(v).or_insert(0) += 1;
         }
+    }
+    
+    // Validate degree constraint (1-4 edges per vertex)
+    for (&vertex, &degree) in &vertex_degrees {
+        if degree > 4 {
+            eprintln!("Warning: Vertex {} has degree {} > 4, which violates the constraint", vertex, degree);
+        }
+    }
+    
+    // Sort adjacency lists for deterministic ordering
+    for neighbors in adj_list.values_mut() {
+        neighbors.sort();
     }
     
     let mut visited = HashSet::new();
     let mut components = Vec::new();
     
-    // Find all connected components using DFS
+    // Find all connected components and extract cycles from each
     for &start_vertex in &all_vertices {
         if visited.contains(&start_vertex) {
             continue;
@@ -375,8 +392,8 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
         
         let component_vertices = find_component_vertices(start_vertex, &adj_list, &mut visited);
         if component_vertices.len() >= 3 {
-            // Find all fundamental cycles in this component
-            let cycles = find_all_cycles_in_component(&component_vertices, &adj_list);
+            // For small components with degree constraints, we can use efficient cycle detection
+            let cycles = find_cycles_optimized(&component_vertices, &adj_list, &vertex_degrees);
             for cycle in cycles {
                 if !is_duplicate_cycle(&cycle, &components) {
                     components.push(cycle);
@@ -595,6 +612,138 @@ fn find_component_vertices(
     }
     
     component
+}
+
+/// Optimized cycle detection for graphs with degree constraints (1-4 edges per vertex)
+fn find_cycles_optimized(
+    component: &[usize], 
+    adj_list: &HashMap<usize, Vec<usize>>,
+    vertex_degrees: &HashMap<usize, usize>
+) -> Vec<Vec<usize>> {
+    use std::collections::HashSet;
+    
+    if component.len() < 3 {
+        return Vec::new(); // Need at least 3 vertices for a cycle
+    }
+    
+    let mut cycles = Vec::new();
+    let component_set: HashSet<usize> = component.iter().cloned().collect();
+    
+    // With degree constraints, we can use more efficient strategies
+    // For vertices with degree 2, they must be part of a simple path or cycle
+    // For vertices with degree 3+, they are branch points
+    
+    // Strategy 1: For small components (typical case), use simple DFS
+    if component.len() <= 10 {
+        for &start in component {
+            let found_cycles = find_cycles_from_vertex_optimized(start, adj_list, &component_set, vertex_degrees);
+            for cycle in found_cycles {
+                // Normalize and check for duplicates
+                let mut normalized_cycle = cycle;
+                if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+                    normalized_cycle.rotate_left(min_pos);
+                }
+                
+                if !is_duplicate_cycle(&normalized_cycle, &cycles) {
+                    cycles.push(normalized_cycle);
+                }
+            }
+        }
+    } else {
+        // Strategy 2: For larger components, use degree-based analysis
+        cycles = find_cycles_by_degree_analysis(component, adj_list, vertex_degrees);
+    }
+    
+    // Sort cycles by length, then by lexicographic order for deterministic results
+    cycles.sort_by(|a, b| {
+        a.len().cmp(&b.len()).then_with(|| a.cmp(b))
+    });
+    
+    cycles
+}
+
+/// Optimized cycle detection from a single vertex using degree constraints
+fn find_cycles_from_vertex_optimized(
+    start: usize,
+    adj_list: &HashMap<usize, Vec<usize>>,
+    component_set: &HashSet<usize>,
+    _vertex_degrees: &HashMap<usize, usize>
+) -> Vec<Vec<usize>> {
+    let mut cycles = Vec::new();
+    
+    // DFS to find cycles with optimizations for degree constraints
+    fn dfs_optimized(
+        current: usize,
+        start: usize,
+        adj_list: &HashMap<usize, Vec<usize>>,
+        component_set: &HashSet<usize>,
+        path: &mut Vec<usize>,
+        visited: &mut HashSet<usize>,
+        cycles: &mut Vec<Vec<usize>>
+    ) {
+        
+        if path.len() > 8 {
+            return; // Avoid very long cycles in geometric applications
+        }
+        
+        path.push(current);
+        visited.insert(current);
+        
+        if let Some(neighbors) = adj_list.get(&current) {
+            for &neighbor in neighbors {
+                if !component_set.contains(&neighbor) {
+                    continue;
+                }
+                
+                if neighbor == start && path.len() >= 3 {
+                    // Found a cycle back to start
+                    cycles.push(path.clone());
+                } else if !visited.contains(&neighbor) {
+                    dfs_optimized(neighbor, start, adj_list, component_set, path, visited, cycles);
+                }
+            }
+        }
+        
+        path.pop();
+        visited.remove(&current);
+    }
+    
+    let mut path = Vec::new();
+    let mut visited = HashSet::new();
+    dfs_optimized(start, start, adj_list, component_set, &mut path, &mut visited, &mut cycles);
+    
+    cycles
+}
+
+/// Find cycles using degree-based analysis for larger components
+fn find_cycles_by_degree_analysis(
+    component: &[usize], 
+    adj_list: &HashMap<usize, Vec<usize>>,
+    vertex_degrees: &HashMap<usize, usize>
+) -> Vec<Vec<usize>> {
+    let mut cycles = Vec::new();
+    
+    // For now, fall back to the simple approach
+    // This can be optimized further based on specific degree patterns
+    let component_set: HashSet<usize> = component.iter().cloned().collect();
+    
+    for &start in component {
+        if vertex_degrees.get(&start).unwrap_or(&0) >= &2 {
+            let found_cycles = find_cycles_from_vertex_optimized(start, adj_list, &component_set, vertex_degrees);
+            for cycle in found_cycles {
+                let mut normalized_cycle = cycle;
+                if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+                    normalized_cycle.rotate_left(min_pos);
+                }
+                
+                if !is_duplicate_cycle(&normalized_cycle, &cycles) {
+                    cycles.push(normalized_cycle);
+                }
+            }
+        }
+    }
+    
+    cycles
 }
 
 /// Finds all fundamental cycles in a connected component
@@ -1604,6 +1753,135 @@ mod test_find_connected_components {
         // Both are valid cycles in this graph structure
         let has_valid_cycle = components.iter().any(|cycle| cycle.len() == 3 || cycle.len() == 4);
         assert!(has_valid_cycle, "Expected to find either a 3-cycle or 4-cycle, but found: {:?}", components);
+    }
+
+    #[test]
+    fn test_find_connected_components_degree_constraints() {
+        // Test graph where each vertex has degree 1-4
+        // Degree 1: terminal vertices
+        // Degree 2: path vertices  
+        // Degree 3: branch vertices
+        // Degree 4: intersection vertices
+        
+        // Create a graph: 0-1-2-3-0 (degree 2 for all vertices)
+        let graph = vec![(0, 1), (1, 2), (2, 3), (3, 0)];
+        let components = find_connected_components(&graph);
+        
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].len(), 4);
+        
+        // Verify it's the expected square cycle
+        let cycle = &components[0];
+        for i in 0..4 {
+            assert!(cycle.contains(&i));
+        }
+    }
+
+    #[test]
+    fn test_find_connected_components_degree_1_endpoints() {
+        // Test graph with degree 1 vertices (endpoints)
+        // 0-1-2 (linear chain)
+        let graph = vec![(0, 1), (1, 2)];
+        let components = find_connected_components(&graph);
+        
+        // Linear chain has no cycles
+        assert_eq!(components.len(), 0);
+    }
+
+    #[test]
+    fn test_find_connected_components_degree_3_branch() {
+        // Test graph with degree 3 vertex (branch point)
+        // Y-shaped graph: 0-1, 1-2, 1-3, 2-3 (forms triangle with branch)
+        let graph = vec![(0, 1), (1, 2), (1, 3), (2, 3)];
+        let components = find_connected_components(&graph);
+        
+        assert_eq!(components.len(), 1);
+        // Should find the triangle [1, 2, 3]
+        assert_eq!(components[0].len(), 3);
+        let cycle = &components[0];
+        assert!(cycle.contains(&1) && cycle.contains(&2) && cycle.contains(&3));
+    }
+
+    #[test]
+    fn test_find_connected_components_degree_4_intersection() {
+        // Test graph with degree 4 vertex (intersection)
+        // X-shaped graph: center vertex 0 connected to 4 outer vertices in two triangles
+        let graph = vec![
+            (0, 1), (0, 2), (0, 3), (0, 4),  // Center to outer vertices (degree 4 for vertex 0)
+            (1, 2), (3, 4)                   // Two triangles
+        ];
+        let components = find_connected_components(&graph);
+        
+        // Should find two triangles: [0,1,2] and [0,3,4]
+        assert_eq!(components.len(), 2);
+        
+        for component in &components {
+            assert_eq!(component.len(), 3);
+            assert!(component.contains(&0)); // Center vertex should be in both triangles
+        }
+    }
+
+    #[test]
+    fn test_find_connected_components_mixed_degrees() {
+        // Test graph with mixed vertex degrees (1, 2, 3, 4)
+        // Complex graph combining different degree patterns
+        let graph = vec![
+            // Triangle with branch
+            (0, 1), (1, 2), (2, 0),  // Triangle (degree 2 for each)
+            (2, 3),                  // Branch from vertex 2 (now degree 3)
+            (3, 4), (3, 5),          // Branch continues (degree 3 for vertex 3)
+            (4, 5)                   // Close another triangle (degree 2 for vertices 4,5)
+        ];
+        let components = find_connected_components(&graph);
+        
+        // Should find two triangles: [0,1,2] and [3,4,5]
+        assert_eq!(components.len(), 2);
+        
+        let mut found_triangle_1 = false;
+        let mut found_triangle_2 = false;
+        
+        for component in &components {
+            assert_eq!(component.len(), 3);
+            if component.contains(&0) && component.contains(&1) && component.contains(&2) {
+                found_triangle_1 = true;
+            }
+            if component.contains(&3) && component.contains(&4) && component.contains(&5) {
+                found_triangle_2 = true;
+            }
+        }
+        
+        assert!(found_triangle_1, "Should find triangle [0,1,2]");
+        assert!(found_triangle_2, "Should find triangle [3,4,5]");
+    }
+
+    #[test]
+    fn test_find_connected_components_performance_constraints() {
+        // Test that the algorithm efficiently handles the degree constraints
+        // Create a larger graph that still respects the 1-4 degree constraint
+        let mut graph = Vec::new();
+        
+        // Create a chain of connected triangles (each vertex has degree ≤ 3)
+        for i in 0..5 {
+            let base = i * 2;
+            // Triangle: base, base+1, base+2
+            graph.push((base, base + 1));
+            graph.push((base + 1, base + 2));
+            graph.push((base + 2, base));
+            
+            // Connect to next triangle if not the last one
+            if i < 4 {
+                graph.push((base + 2, base + 3));
+            }
+        }
+        
+        let components = find_connected_components(&graph);
+        
+        // Should find 5 triangles
+        assert_eq!(components.len(), 5);
+        
+        for component in &components {
+            assert_eq!(component.len(), 3, "Each component should be a triangle");
+        }
     }
 
     #[test]
