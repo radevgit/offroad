@@ -7,9 +7,9 @@ fn main() {
     let mut svg = SVG::new(300.0, 300.0, "/tmp/polyline.svg");
     cfg.svg = Some(&mut svg);
     // Show original polyline in SVG output
-    cfg.debug_orig = true;
+    cfg.svg_orig = true;
     // Show final offset polylines in SVG output
-    cfg.debug_final = true;
+    cfg.svg_final = true;
 
     let poly_orig = vec![
         pvertex(point(0.0, 0.0), 0.0),
@@ -33,8 +33,5 @@ fn main() {
         // Write svg to file
         svg.write_stroke_width(0.1);
     }
-    assert!(
-        offset_polylines.len() == 2,
-        "Wrong number of offset polylines generated"
-    );
+    assert!(offset_polylines.len() == 2);
 }

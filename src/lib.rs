@@ -4,7 +4,29 @@
 //!
 //! # Examples
 //!
-//! Check "examples" directory for usage examples.
+//! ```rust
+//! use geom::prelude::*;
+//! use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
+//!
+//! // Create a simple L-shaped polyline
+//! let poly = vec![
+//!     pvertex(point(0.0, 0.0), 0.0),    // Start point
+//!     pvertex(point(10.0, 0.0), 0.0),   // Horizontal line
+//!     pvertex(point(10.0, 10.0), 0.0),  // Vertical line
+//! ];
+//!
+//! // Create default configuration
+//! let mut cfg = OffsetCfg::default();
+//!
+//! // Offset by 2.0 units to the right
+//! let offset_polylines = offset_polyline_to_polyline(&poly, 2.0, &mut cfg);
+//!
+//! // The function returns a vector of polylines
+//! assert!(offset_polylines.len() == 1);
+//! assert!(offset_polylines[0].len() == 6);
+//! ```
+//!
+//! Check "examples" directory for more usage examples.
 
 
 // Offsetting algorithm components

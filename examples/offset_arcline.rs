@@ -7,9 +7,9 @@ fn main() {
     let mut svg = SVG::new(300.0, 300.0, "/tmp/arcline.svg");
     cfg.svg = Some(&mut svg);
     // Show original arcline in SVG output
-    cfg.debug_orig = true;
+    cfg.svg_orig = true;
     // Show final offset arclines in SVG output
-    cfg.debug_final = true;
+    cfg.svg_final = true;
 
     let arc0 = arc_circle_parametrization(point(0.0, 0.0), point(100.0, 100.0), 0.0);
     let arc1 = arc_circle_parametrization(point(100.0, 100.0), point(200.0, 0.0), 0.5);

@@ -12,33 +12,42 @@ use crate::{
     offset_split_arcs::offset_split_arcs
 };
 
+/// Configuration options for offsetting operations.
 pub struct OffsetCfg<'a> {
-    pub svg: Option<&'a mut SVG>, // Optional SVG context for rendering
-    pub reconnect: bool,          // Flag to indicate if reconnecting arcs is needed
-    pub debug_orig: bool,         // Flag to enable debug original polyline
-    pub debug_row: bool,          // Flag to enable debug row offsets
-    pub debug_connect: bool,      // Flag to enable debug connect offsets
-    pub debug_split: bool,        // Flag to enable debug split offsets
-    pub debug_prune: bool,        // Flag to enable debug pruned offsets
-    pub debug_final: bool,        // Flag to enable debug final offsets
+    /// Optional SVG context for rendering
+    pub svg: Option<&'a mut SVG>, 
+    /// Flag to indicate if reconnecting arcs is needed
+    pub reconnect: bool,
+    /// Flag to enable writing in svg original polyline
+    pub svg_orig: bool,
+    /// Flag to enable writing in svg raw offsets
+    pub svg_raw: bool,
+    /// Flag to enable writing in svg connect offsets
+    pub svg_connect: bool,
+    /// Flag to enable writing in svg split offsets
+    pub svg_split: bool,
+    /// Flag to enable writing in svg pruned offsets
+    pub svg_prune: bool,
+    /// Flag to enable writing in svg final offsets
+    pub svg_final: bool,
 }
 
 impl<'a> Default for OffsetCfg<'a> {
     fn default() -> Self {
         OffsetCfg {
-            svg: None,            // SVG context can be set later
-            reconnect: true,      // Default to reconnecting arcs
-            debug_orig: false,    // Debugging flags are off by default
-            debug_row: false,     // Debugging flags are off by default
-            debug_connect: false, // Debugging flags are off by default
-            debug_split: false,   // Debugging flags are off by default
-            debug_prune: false,   // Debugging flags are off by default
-            debug_final: false,   // Debugging reconnect arcs
+            svg: None,
+            reconnect: true,
+            svg_orig: false,
+            svg_raw: false,
+            svg_connect: false,
+            svg_split: false,
+            svg_prune: false,
+            svg_final: false,
         }
     }
 }
 
-/// Computes the offset of a polyline and returns result as simplified polylines.
+/// Computes the offset of a polyline and returns result as multiple polylines.
 ///
 /// This is the main entry point for polyline offsetting. It takes an input polyline,
 /// applies the specified offset distance, and returns a vector of output polylines.
@@ -98,7 +107,7 @@ pub fn offset_polyline_to_polyline(
     cfg: &mut OffsetCfg,
 ) -> Vec<Polyline> {
     if let Some(svg) = cfg.svg.as_deref_mut()
-        && cfg.debug_orig
+        && cfg.svg_orig
     {
         svg.polyline(poly, "red");
     }
@@ -117,7 +126,7 @@ pub fn offset_polyline_to_polyline(
     let final_poly = arcs_to_polylines(&reconnect_arcs);
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
-        if cfg.debug_final {
+        if cfg.svg_final {
             svg.polylines(&final_poly, "violet");
         }
     }
@@ -125,7 +134,7 @@ pub fn offset_polyline_to_polyline(
     final_poly
 }
 
-/// Computes the offset of an Arcline and returns result as Arcline-s.
+/// Computes the offset of an Arcline and returns result as multiple Arcline-s.
 ///
 /// This function is similar to `offset_polyline_to_polyline` but operates on arclines
 /// (sequences of arcs). This is useful when
@@ -185,7 +194,7 @@ pub fn offset_polyline_to_polyline(
 ///
 pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arcline> {
     if let Some(svg) = cfg.svg.as_deref_mut()
-        && cfg.debug_orig
+        && cfg.svg_orig
     {
         svg.arcline(arcs, "red");
     }
@@ -212,7 +221,7 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     }
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
-        if cfg.debug_final {
+        if cfg.svg_final {
             svg.arclines(&final_arcs, "violet");
         }
     }
@@ -236,6 +245,8 @@ fn offset_arcline_to_arcline_impl(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg)
     offset_arcs
 }
 
+#[doc(hidden)]
+/// Converts a vector of arcs into a vector of polylines.
 pub fn arcs_to_polylines(reconnect_arcs: &Vec<Vec<Arc>>) -> Vec<Polyline> {
     let mut polylines = Vec::with_capacity(reconnect_arcs.len());
     for arcs in reconnect_arcs.iter() {
@@ -245,9 +256,10 @@ pub fn arcs_to_polylines(reconnect_arcs: &Vec<Vec<Arc>>) -> Vec<Polyline> {
     polylines
 }
 
-// function to convert from Vec<Arc> to Polyline
-// Note: arcs is a loop of arcs and when converting to PVertex,
-// some Arc can be either "a" to "b" or "b" to "a" oriented
+#[doc(hidden)]
+/// function to convert from Vec<Arc> to Polyline
+/// Note: arcs is a loop of arcs and when converting to PVertex,
+/// some Arc can be either "a" to "b" or "b" to "a" oriented
 pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
     let mut polyline = Vec::new();
 
@@ -384,6 +396,8 @@ mod test_arcs_to_polylines {
     }
 }
 
+
+#[doc(hidden)]
 pub fn offset_polyline_multiple(
     poly: &Polyline,
     step: f64,
@@ -404,21 +418,21 @@ pub fn offset_polyline_multiple(
 fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
     let offset_raw = offset_polyline_raw::offset_polyline_raw(&poly_raws, off);
     if let Some(svg) = cfg.svg.as_deref_mut()
-        && cfg.debug_row
+        && cfg.svg_raw
     {
         svg_offset_raws(svg, &offset_raw, "blue");
     }
 
     let offset_connect = offset_connect_raw(&offset_raw, off);
     if let Some(svg) = cfg.svg.as_deref_mut()
-        && cfg.debug_connect
+        && cfg.svg_connect
     {
         svg.arclines(&offset_connect, "violet");
     }
 
     let mut offset_split = offset_split_arcs(&offset_raw, &offset_connect);
     if let Some(svg) = cfg.svg.as_deref_mut()
-        && cfg.debug_split
+        && cfg.svg_split
     {
         svg.arcline(&offset_split, "violet");
         svg.offset_segments_single_points(&offset_split, "violet");
@@ -427,7 +441,7 @@ fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg)
     let offset_prune = offset_prune_invalid(&poly_raws, &mut offset_split, off);
 
     if let Some(svg) = cfg.svg.as_deref_mut()
-        && cfg.debug_prune
+        && cfg.svg_prune
     {
         svg.arcline(&offset_prune, "violet");
         svg.offset_segments_single_points(&offset_prune, "violet");
@@ -435,6 +449,8 @@ fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg)
     offset_prune
 }
 
+
+#[doc(hidden)]
 pub fn svg_offset_raws(svg: &mut SVG, offset_raws: &Vec<Vec<OffsetRaw>>, color: &str) {
     for raw in offset_raws {
         for seg in raw {
@@ -1585,6 +1601,7 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 // }
 
 /// Test polyline for offseting.
+/// Has a mix of positive and negative offsets.
 pub fn pline_01() -> Vec<Polyline> {
     let pline = vec![
         pvertex(point(100.0, 100.0), 1.5),
@@ -1617,6 +1634,8 @@ pub fn pline_01() -> Vec<Polyline> {
     return plines;
 }
 
+
+/// Test polyline for offseting.
 pub fn pline_02() -> Polyline {
     let pline = vec![
         pvertex(point(50.0, 50.0), ZERO),
@@ -2016,6 +2035,7 @@ pub fn pline_04() -> Vec<Polyline> {
 
 // }
 
+#[doc(hidden)]
 pub fn polyline_to_arcs(plines: &Vec<Polyline>) -> Vec<Vec<Arc>> {
     let mut varcs: Vec<Vec<Arc>> = Vec::new();
     for pline in plines {
@@ -2024,6 +2044,7 @@ pub fn polyline_to_arcs(plines: &Vec<Polyline>) -> Vec<Vec<Arc>> {
     varcs
 }
 
+#[doc(hidden)]
 fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
     let mut arcs = Vec::with_capacity(pline.len() + 1);
     let last = pline.len() - 1;
