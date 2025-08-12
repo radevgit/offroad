@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use geom::prelude::*;
 
 /// Reconnects offset segments by merging adjacent arcs vertices.
-const EPS_CONNECT: f64 = 1e-6;
+const EPS_CONNECT: f64 = 1e-8;
 
 pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     let mut result = Vec::new();
@@ -18,7 +18,7 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     // Initialize the edge list: each arc contributes 2 vertices
     let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new(); // map arcs to end vertices
     let mut merge: Vec<(usize, usize)> = Vec::new(); // coincident vertices
-    let mut k = 1000;
+    let mut k = 1000; // TODO: use 0
     // arc orientation is always from small id to large id
     for i in 0..len {
         arc_map.insert(i, (k, k + 1));
@@ -131,6 +131,7 @@ fn middle_point(a: &Point, b: &Point) -> Point {
 // where points id are ordered as arc.a and arc.b (CCW)
 // Reduce the "merge" to make the vertices unique and update arc_map,
 // So the arcs vertices are now the updated one indices.
+// Checked.
 fn merge_points(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize, usize)>) {
     use std::collections::HashMap;
     
@@ -875,9 +876,6 @@ mod test_remove_bridge_arcs {
 
 #[cfg(test)]
 mod test_merge_points {
-    use geom::prelude::*;
-
-    use super::*;
 
     #[test]
     fn test_merge_points() {

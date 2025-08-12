@@ -6,7 +6,6 @@ fn main() {
     // This will create an SVG file at /tmp/pline1.svg
     let mut svg = SVG::new(300.0, 300.0, "/tmp/pline1.svg");
     cfg.svg = Some(&mut svg);
-    cfg.reconnect = false;
     cfg.debug_orig = true;
     cfg.debug_prune = true;
 

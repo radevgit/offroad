@@ -2,10 +2,10 @@
 name = "offroad"
 version = "0.0.5"
 description = "2D offsetting for arc polylines/polygons."
-rust-version = "1.88"
+rust-version = "1.89"
 edition = "2024"
 categories = ["algorithms", "data-structures", "graphics", "mathematics"]
-keywords = ["offset", "2d", "cad", "cnc", "polygon"]
+keywords = ["offset", "arc", "polyline", "cnc", "polygon"]
 license = "MIT"
 repository = "https://github.com/radevgit/offroad"
 

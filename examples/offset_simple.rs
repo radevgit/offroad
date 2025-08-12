@@ -5,7 +5,6 @@ fn main() {
     let mut cfg = OffsetCfg::default();
     let mut svg = SVG::new(300.0, 300.0, "/tmp/out2.svg");
     cfg.svg = Some(&mut svg);
-    cfg.reconnect = true;
     cfg.debug_orig = true;
     cfg.debug_reconnect = true;
 
@@ -31,5 +30,5 @@ fn main() {
         // Write svg to file
         svg.write_stroke_width(0.1);
     }
-
+    assert!(_offset_polylines.len() == 2, "Wrong number of offset polylines generated");
 }
