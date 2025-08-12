@@ -1,5 +1,5 @@
 use geom::prelude::*;
-use offroad::prelude::{OffsetCfg, pline_01, offset_polyline};
+use offroad::prelude::{OffsetCfg, pline_01, offset_polyline_to_polyline};
 
 fn main() {
     let mut cfg = OffsetCfg::default();
@@ -14,14 +14,14 @@ fn main() {
     let poly = polyline_translate(&poly_orig, point(100.0, -50.0));
 
     // Offset the polyline
-    // let offset_polylines = offset_polyline(&poly, 15.0, &mut cfg);
+    // let offset_polylines = offset_polyline_to_polyline(&poly, 15.0, &mut cfg);
     // for offset_poly in offset_polylines {
     //     svg.polyline(&offset_poly, "grey");
     // }
 
     // Internal offsetting
     let poly = polyline_reverse(&poly);
-    let _offset_polylines = offset_polyline(&poly, 15.5600615, &mut cfg);
+    let _offset_polylines = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
     
     if let Some(svg) = cfg.svg.as_deref_mut() {
         // Write svg to file

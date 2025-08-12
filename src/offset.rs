@@ -16,31 +16,89 @@ pub struct OffsetCfg<'a> {
     pub debug_connect: bool,      // Flag to enable debug connect offsets
     pub debug_split: bool,        // Flag to enable debug split offsets
     pub debug_prune: bool,        // Flag to enable debug pruned offsets
-    pub debug_reconnect: bool,   // Flag to enable debug reconnect arcs
+    pub debug_reconnect: bool,    // Flag to enable debug reconnect arcs
 }
 
 impl<'a> Default for OffsetCfg<'a> {
     fn default() -> Self {
         OffsetCfg {
-            svg: None,               // SVG context can be set later
-            reconnect: true,         // Default to reconnecting arcs
-            debug_orig: false,       // Debugging flags are off by default
-            debug_row: false,        // Debugging flags are off by default
-            debug_connect: false,    // Debugging flags are off by default
-            debug_split: false,      // Debugging flags are off by default
-            debug_prune: false,      // Debugging flags are off by default
-            debug_reconnect: false,  // Debugging reconnect arcs
+            svg: None,              // SVG context can be set later
+            reconnect: true,        // Default to reconnecting arcs
+            debug_orig: false,      // Debugging flags are off by default
+            debug_row: false,       // Debugging flags are off by default
+            debug_connect: false,   // Debugging flags are off by default
+            debug_split: false,     // Debugging flags are off by default
+            debug_prune: false,     // Debugging flags are off by default
+            debug_reconnect: false, // Debugging reconnect arcs
         }
     }
 }
 
-pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Polyline> {
+/// Computes the offset of a polyline and returns result as simplified polylines.
+/// 
+/// This is the main entry point for polyline offsetting. It takes an input polyline,
+/// applies the specified offset distance, and returns a vector of output polylines.
+/// 
+/// # Arguments
+/// 
+/// * `poly` - The input polyline to offset. Should be a sequence of connected pvertices.
+/// * `off` - The offset distance. Only positive values offset to the "right" side of the polyline.
+/// * `cfg` - Configuration options controlling the offsetting behavior.
+/// 
+/// # Returns
+/// 
+/// A vector of polylines representing the offset result. Each polyline is a sequence of
+/// pvertices. The number of output polylines depends
+/// on the input geometry and offset distance:
+/// - Simple cases may produce a single offset polyline
+/// - Complex geometries or self-intersecting offsets may produce multiple polylines
+/// - Invalid or degenerate cases may produce an empty vector
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use geom::prelude::*;
+/// use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
+/// 
+/// let mut cfg = OffsetCfg::default();
+/// let poly = vec![
+///     pvertex(point(0.0, 0.0), 0.0),    // Start point (no arc)
+///     pvertex(point(10.0, 0.0), 0.0),   // Line segment
+///     pvertex(point(10.0, 10.0), 0.0),  // End point (no arc)
+/// ];
+/// 
+/// // Offset by 2.0 units
+/// let offset_polylines = offset_polyline_to_polyline(&poly, 2.0, &mut cfg);
+/// 
+/// println!("Generated {} offset polylines", offset_polylines.len());
+/// ```
+/// 
+/// # Algorithm Overview
+/// 
+/// The offsetting process involves several stages:
+/// 1. Convert input polyline to raw offset segments (lines and arcs)
+/// 2. Compute offset for each segment
+/// 3. Connect adjacent offset segments with transition arcs
+/// 4. Split overlapping segments at intersection points
+/// 5. Prune invalid segments that are too close to the original
+/// 6. Reconnect valid segments into continuous paths
+/// 7. Convert final arcs back to polylines with pvertex segments
+/// 
+/// # Notes
+/// 
+/// - The function is intended to handle closed polylines.
+/// - Offset direction follows the right-hand rule relative to polyline direction.
+pub fn offset_polyline_to_polyline(
+    poly: &Polyline,
+    off: f64,
+    cfg: &mut OffsetCfg,
+) -> Vec<Polyline> {
     if let Some(svg) = cfg.svg.as_deref_mut()
         && cfg.debug_orig
     {
         svg.polyline(poly, "red");
     }
-    let offset_arcs = offset_polyline_impl(poly, off, cfg);
+    let offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);
 
     let mut reconnect_arcs = Vec::new();
     if cfg.reconnect {
@@ -65,6 +123,14 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
     }
 
     result
+}
+
+fn offset_polyline_to_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
+    let mut plines = Vec::new();
+    plines.push(poly.clone());
+    let poly_raws = poly_to_raws(&plines);
+    let offset_arcs = offset_single(&poly_raws, off, cfg);
+    offset_arcs
 }
 
 pub fn arcs_to_polylines(reconnect_arcs: &Vec<Vec<Arc>>) -> Vec<Polyline> {
@@ -225,20 +291,14 @@ pub fn offset_polyline_multiple(
     let mut off = start;
     let mut polylines = Vec::new();
     while off < end {
-        let offset_polylines = offset_polyline(&poly, off, config);
+        let offset_polylines = offset_polyline_to_polyline(&poly, off, config);
         polylines.extend(offset_polylines);
         off += step;
     }
     polylines
 }
 
-fn offset_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
-    let mut plines = Vec::new();
-    plines.push(poly.clone());
-    let poly_raws = poly_to_raws(&plines);
-    let offset_arcs = offset_single(&poly_raws, off, cfg);
-    offset_arcs
-}
+
 
 fn offset_multiple(poly_raws: &Vec<Vec<OffsetRaw>>, off_start: f64, off_end: f64, svg: &mut SVG) {
     svg.offset_raws(&poly_raws, "red");
