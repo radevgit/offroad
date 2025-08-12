@@ -9,16 +9,21 @@
 
 // Offsetting algorithm components
 pub mod offset;
-// 
+#[doc(hidden)]
 pub mod offset_raw;
+#[doc(hidden)]
 // raw offsetting components (lines, arcs)
 mod offset_polyline_raw;
+#[doc(hidden)]
 // connect raw offsets with arcs
 mod offset_connect_raw;
+#[doc(hidden)]
 // split raw offsets into segments in intersection points
 mod offset_split_arcs;
+#[doc(hidden)]
 // prune invalid offsets that are close to original polylines
 mod offset_prune_invalid;
+#[doc(hidden)]
 // resulting soup of arcs is ordered and reconnected
 mod offset_reconnect_arcs;
 
@@ -26,15 +31,15 @@ mod offset_reconnect_arcs;
 // Re-export main offsetting functions
 // For public API
 pub mod prelude {
-    pub use crate::offset::{offset_polyline_to_polyline, offset_arcline_to_arcline, offset_polyline_multiple, OffsetCfg};
+    pub use crate::offset::{offset_polyline_to_polyline, offset_arcline_to_arcline, OffsetCfg};
     pub use crate::offset::{pline_01, pline_02, pline_03, pline_04};
 }
 // For internal use
-pub use crate::offset_polyline_raw::{offset_polyline_raw, poly_to_raws};
-pub use crate::offset_connect_raw::offset_connect_raw;
-pub use crate::offset_split_arcs::offset_split_arcs;
-pub use crate::offset_prune_invalid::offset_prune_invalid;
-pub use crate::offset_reconnect_arcs::{offset_reconnect_arcs, find_connected_components, find_middle_points, remove_bridge_arcs};
+// pub use crate::offset_polyline_raw::{offset_polyline_raw, poly_to_raws};
+// pub use crate::offset_connect_raw::offset_connect_raw;
+// pub use crate::offset_split_arcs::offset_split_arcs;
+// pub use crate::offset_prune_invalid::offset_prune_invalid;
+// pub use crate::offset_reconnect_arcs::{offset_reconnect_arcs, find_connected_components, find_middle_points, remove_bridge_arcs};
 
 #[cfg(test)]
 mod tests;

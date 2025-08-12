@@ -4,7 +4,7 @@ use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
 fn main() {
     // Configuration for offsetting
     let mut cfg = OffsetCfg::default();
-    let mut svg = SVG::new(300.0, 300.0, "/tmp/out2.svg");
+    let mut svg = SVG::new(300.0, 300.0, "/tmp/polyline.svg");
     cfg.svg = Some(&mut svg);
     // Show original polyline in SVG output
     cfg.debug_orig = true;
@@ -21,17 +21,20 @@ fn main() {
 
     // Internal offsetting
     let poly = polyline_reverse(&poly);
-    let _offset_polylines = offset_polyline_to_polyline(&poly, 15.0, &mut cfg);
-    
+    let offset_polylines = offset_polyline_to_polyline(&poly, 15.0, &mut cfg);
+
     println!("Input polyline has {} vertices", poly.len());
-    println!("Output has {} polylines", _offset_polylines.len());
-    for (i, polyline) in _offset_polylines.iter().enumerate() {
+    println!("Output has {} polylines", offset_polylines.len());
+    for (i, polyline) in offset_polylines.iter().enumerate() {
         println!("Polyline {}: {} vertices", i, polyline.len());
     }
-    
+
     if let Some(svg) = cfg.svg.as_deref_mut() {
         // Write svg to file
         svg.write_stroke_width(0.1);
     }
-    assert!(_offset_polylines.len() == 2, "Wrong number of offset polylines generated");
+    assert!(
+        offset_polylines.len() == 2,
+        "Wrong number of offset polylines generated"
+    );
 }

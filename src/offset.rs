@@ -4,7 +4,12 @@
 use geom::prelude::*;
 
 use crate::{
-    find_middle_points, offset_connect_raw, offset_polyline_raw::{self, arcs_to_raws}, offset_prune_invalid, offset_raw::OffsetRaw, offset_reconnect_arcs, offset_split_arcs, poly_to_raws, remove_bridge_arcs
+    offset_connect_raw::offset_connect_raw,
+    offset_polyline_raw::{self, arcs_to_raws, poly_to_raws},
+    offset_prune_invalid::offset_prune_invalid,
+    offset_raw::OffsetRaw,
+    offset_reconnect_arcs::{find_middle_points, offset_reconnect_arcs, remove_bridge_arcs},
+    offset_split_arcs::offset_split_arcs
 };
 
 pub struct OffsetCfg<'a> {
@@ -21,14 +26,14 @@ pub struct OffsetCfg<'a> {
 impl<'a> Default for OffsetCfg<'a> {
     fn default() -> Self {
         OffsetCfg {
-            svg: None,              // SVG context can be set later
-            reconnect: true,        // Default to reconnecting arcs
-            debug_orig: false,      // Debugging flags are off by default
-            debug_row: false,       // Debugging flags are off by default
-            debug_connect: false,   // Debugging flags are off by default
-            debug_split: false,     // Debugging flags are off by default
-            debug_prune: false,     // Debugging flags are off by default
-            debug_final: false, // Debugging reconnect arcs
+            svg: None,            // SVG context can be set later
+            reconnect: true,      // Default to reconnecting arcs
+            debug_orig: false,    // Debugging flags are off by default
+            debug_row: false,     // Debugging flags are off by default
+            debug_connect: false, // Debugging flags are off by default
+            debug_split: false,   // Debugging flags are off by default
+            debug_prune: false,   // Debugging flags are off by default
+            debug_final: false,   // Debugging reconnect arcs
         }
     }
 }
@@ -101,13 +106,13 @@ pub fn offset_polyline_to_polyline(
 
     // Always reconnect arcs
     let reconnect_arcs = offset_reconnect_arcs(&mut offset_arcs.clone());
-    println!(
-        "offset_reconnect_arcs returned {} components",
-        reconnect_arcs.len()
-    );
-    for (i, component) in reconnect_arcs.iter().enumerate() {
-        println!("  Component {}: {} arcs", i, component.len());
-    }
+    // println!(
+    //     "DEBUG: offset_reconnect_arcs returned {} components",
+    //     reconnect_arcs.len()
+    // );
+    // for (i, component) in reconnect_arcs.iter().enumerate() {
+    //     println!("DEBUG: Component {}: {} arcs", i, component.len());
+    // }
 
     let final_poly = arcs_to_polylines(&reconnect_arcs);
 
@@ -121,13 +126,13 @@ pub fn offset_polyline_to_polyline(
 }
 
 /// Computes the offset of an Arcline and returns result as Arcline-s.
-/// 
-/// This function is similar to `offset_polyline_to_polyline` but operates on arclines 
+///
+/// This function is similar to `offset_polyline_to_polyline` but operates on arclines
 /// (sequences of arcs). This is useful when
 /// precise arc representation is required rather than converting arcs to line segments.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `arcs` - The input arcline (sequence of arcs) to offset. Can contain both straight
 ///   line segments and curved arc segments with specified radii and bulge factors.
 /// * `off` - The offset distance. Positive values offset to the "right" side of the arcline
@@ -135,39 +140,39 @@ pub fn offset_polyline_to_polyline(
 /// * `cfg` - Configuration options controlling the offsetting behavior, including:
 ///   - `reconnect`: Whether to reconnect offset segments into continuous arclines
 ///   - Debug flags for visualization and troubleshooting  
-/// 
+///
 /// # Returns
-/// 
+///
 /// A vector of arclines representing the offset result. Each arcline preserves the original
 /// arc geometry rather than approximating with line segments.
 /// The number of output arclines depends on the input geometry and offset distance:
 /// - Simple cases may produce a single offset arcline
 /// - Complex geometries or self-intersecting offsets may produce multiple arclines
 /// - Invalid or degenerate cases may produce an empty vector
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// use geom::prelude::*;
 /// use offroad::prelude::{OffsetCfg, offset_arcline_to_arcline};
-/// 
+///
 /// let mut cfg = OffsetCfg::default();
-/// 
+///
 /// // Create a simple arcline with line segments
 /// let arcline = vec![
 ///     arcseg(point(0.0, 0.0), point(10.0, 0.0)),   // Line segment  
 ///     arcseg(point(10.0, 0.0), point(10.0, 10.0)), // Another line segment
 /// ];
-/// 
+///
 /// // Offset by 2.0 units while preserving arc geometry
 /// let offset_arclines = offset_arcline_to_arcline(&arcline, 2.0, &mut cfg);
-/// 
+///
 /// println!("Generated {} offset arclines", offset_arclines.len());
 /// // Each output arcline maintains the original arc properties
 /// ```
-/// 
+///
 /// # Algorithm Overview
-/// 
+///
 /// The offsetting process follows the same stages as polyline offsetting but preserves
 /// arc geometry throughout:
 /// 1. Convert input arcline to raw offset segments (lines and arcs)
@@ -395,7 +400,6 @@ pub fn offset_polyline_multiple(
     }
     polylines
 }
-
 
 fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
     let offset_raw = offset_polyline_raw::offset_polyline_raw(&poly_raws, off);
@@ -2084,154 +2088,150 @@ fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
 #[cfg(test)]
 mod test_offset {
 
-    use std::vec;
+    // use geom::prelude::*;
 
-    use geom::prelude::*;
-
-    use super::*;
-    use crate::{offset_connect_raw, offset_polyline_raw, offset_split_arcs, poly_to_raws};
 
     const ZERO: f64 = 0f64;
-    #[test]
-    #[ignore = "svg output"]
-    fn test_self_intersect_issue() {
-        let pline = vec![vec![
-            pvertex(point(100.0, 160.0), ZERO),
-            pvertex(point(120.0, 200.0), ZERO),
-            pvertex(point(128.0, 192.0), ZERO),
-            pvertex(point(128.0, 205.0), ZERO),
-            pvertex(point(136.0, 197.0), ZERO),
-            pvertex(point(136.0, 250.0), ZERO),
-        ]];
-        let pliner = polylines_reverse(&pline);
-        let poly_raws = poly_to_raws(&pliner);
-        let mut svg = svg(300.0, 350.0);
-        svg_offset_raws(&mut svg, &poly_raws, "black");
+    // #[test]
+    // #[ignore = "svg output"]
+    // fn test_self_intersect_issue() {
+    //     let pline = vec![vec![
+    //         pvertex(point(100.0, 160.0), ZERO),
+    //         pvertex(point(120.0, 200.0), ZERO),
+    //         pvertex(point(128.0, 192.0), ZERO),
+    //         pvertex(point(128.0, 205.0), ZERO),
+    //         pvertex(point(136.0, 197.0), ZERO),
+    //         pvertex(point(136.0, 250.0), ZERO),
+    //     ]];
+    //     let pliner = polylines_reverse(&pline);
+    //     let poly_raws = poly_to_raws(&pliner);
+    //     let mut svg = svg(300.0, 350.0);
+    //     svg_offset_raws(&mut svg, &poly_raws, "black");
 
-        let off = 5.0;
+    //     let off = 5.0;
 
-        let offset_raw = offset_polyline_raw(&poly_raws, off);
-        svg_offset_raws(&mut svg, &offset_raw, "blue");
+    //     let offset_raw = offset_polyline_raw(&poly_raws, off);
+    //     svg_offset_raws(&mut svg, &offset_raw, "blue");
 
-        let offset_connect = offset_connect_raw(&offset_raw, off);
-        svg.arclines(&offset_connect, "violet");
+    //     let offset_connect = offset_connect_raw(&offset_raw, off);
+    //     svg.arclines(&offset_connect, "violet");
 
-        let mut offset_split = offset_split_arcs(&offset_raw, &offset_connect);
-        //svg.offset_segments_single(&offset_split, "violet");
+    //     let mut offset_split = offset_split_arcs(&offset_raw, &offset_connect);
+    //     //svg.offset_segments_single(&offset_split, "violet");
 
-        let offset_final = offset_prune_invalid(&poly_raws, &mut offset_split, off);
-        svg.arcline(&offset_final, "black");
+    //     let offset_final = offset_prune_invalid(&poly_raws, &mut offset_split, off);
+    //     svg.arcline(&offset_final, "black");
 
-        svg.write();
-    }
+    //     svg.write();
+    // }
 
-    #[test]
-    #[ignore = "svg output"]
-    fn test_offset_complex_polyline() {
-        //let plines = polylines_reverse(&pline_01());
-        let plines = &pline_01();
-        let poly_raws = poly_to_raws(&plines);
-        let mut svg = svg(300.0, 350.0);
-        svg_offset_raws(&mut svg, &poly_raws, "red");
+    // #[test]
+    // #[ignore = "svg output"]
+    // fn test_offset_complex_polyline() {
+    //     //let plines = polylines_reverse(&pline_01());
+    //     let plines = &pline_01();
+    //     let poly_raws = poly_to_raws(&plines);
+    //     let mut svg = svg(300.0, 350.0);
+    //     svg_offset_raws(&mut svg, &poly_raws, "red");
 
-        let off = 16.0;
+    //     let off = 16.0;
 
-        let offset_raw = offset_polyline_raw(&poly_raws, off);
-        // svg.offset_raws(&offset_raw, "blue");
+    //     let offset_raw = offset_polyline_raw(&poly_raws, off);
+    //     // svg.offset_raws(&offset_raw, "blue");
 
-        let offset_connect = offset_connect_raw(&offset_raw, off);
-        // svg.offset_segments(&offset_connect, "violet");
+    //     let offset_connect = offset_connect_raw(&offset_raw, off);
+    //     // svg.offset_segments(&offset_connect, "violet");
 
-        let mut offset_split = offset_split_arcs(&offset_raw, &offset_connect);
-        // svg.offset_segments_single(&offset_split, "violet");
+    //     let mut offset_split = offset_split_arcs(&offset_raw, &offset_connect);
+    //     // svg.offset_segments_single(&offset_split, "violet");
 
-        let offset_final = offset_prune_invalid(&poly_raws, &mut offset_split, off);
-        svg.arcline(&offset_final, "black");
+    //     let offset_final = offset_prune_invalid(&poly_raws, &mut offset_split, off);
+    //     svg.arcline(&offset_final, "black");
 
-        svg.write();
-    }
+    //     svg.write();
+    // }
 
-    #[test]
-    #[ignore = "svg output"]
-    fn test_offset_multiple_complex_polyline() {
-        let mut p = pline_01()[0].clone();
-        p = polyline_translate(&p, point(180.0, -60.0));
-        p = polyline_scale(&p, 2.5);
+    // #[test]
+    // #[ignore = "svg output"]
+    // fn test_offset_multiple_complex_polyline() {
+    //     let mut p = pline_01()[0].clone();
+    //     p = polyline_translate(&p, point(180.0, -60.0));
+    //     p = polyline_scale(&p, 2.5);
 
-        let mut cfg = crate::offset::OffsetCfg::default();
-        let mut svg = svg(500.0, 400.0);
-        cfg.svg = Some(&mut svg);
-        let _ = offset_polyline_multiple(&p, 1.0, 1.0, 100.0, &mut cfg);
-    }
+    //     let mut cfg = crate::offset::OffsetCfg::default();
+    //     let mut svg = svg(500.0, 400.0);
+    //     cfg.svg = Some(&mut svg);
+    //     let _ = offset_polyline_multiple(&p, 1.0, 1.0, 100.0, &mut cfg);
+    // }
 
-    #[test]
-    #[ignore = "svg output"]
-    fn test_offset_complex_polyline_2() {
-        let p = pline_02();
-        let p2 = polyline_translate(&p, point(50.0, 50.0));
-        let mut cfg = crate::offset::OffsetCfg::default();
-        let mut svg = svg(250.0, 350.0);
-        cfg.svg = Some(&mut svg);
-        let _ = offset_polyline_multiple(&p2, 1.0, 1.0, 100.0, &mut cfg);
-    }
+    // #[test]
+    // #[ignore = "svg output"]
+    // fn test_offset_complex_polyline_2() {
+    //     let p = pline_02();
+    //     let p2 = polyline_translate(&p, point(50.0, 50.0));
+    //     let mut cfg = crate::offset::OffsetCfg::default();
+    //     let mut svg = svg(250.0, 350.0);
+    //     cfg.svg = Some(&mut svg);
+    //     let _ = offset_polyline_multiple(&p2, 1.0, 1.0, 100.0, &mut cfg);
+    // }
 
-    #[test]
-    #[ignore = "svg output"]
-    fn test_offset_arcs_issue() {
-        let p = vec![
-            pvertex(point(50.0, 50.0), 0.2),
-            pvertex(point(100.0, 50.0), -0.5),
-            pvertex(point(100.0, 100.0), 0.2),
-            pvertex(point(50.0, 100.0), -0.5),
-        ];
-        let mut plines = Vec::new();
-        plines.push(p.clone());
+    // #[test]
+    // #[ignore = "svg output"]
+    // fn test_offset_arcs_issue() {
+    //     let p = vec![
+    //         pvertex(point(50.0, 50.0), 0.2),
+    //         pvertex(point(100.0, 50.0), -0.5),
+    //         pvertex(point(100.0, 100.0), 0.2),
+    //         pvertex(point(50.0, 100.0), -0.5),
+    //     ];
+    //     let mut plines = Vec::new();
+    //     plines.push(p.clone());
 
-        let p2 = polyline_translate(&p, point(50.0, 30.0));
+    //     let p2 = polyline_translate(&p, point(50.0, 30.0));
 
-        let mut cfg = crate::offset::OffsetCfg::default();
-        let mut svg = svg(250.0, 350.0);
-        cfg.svg = Some(&mut svg);
-        let _ = offset_polyline_multiple(&p2, 1.0, 1.0, 100.0, &mut cfg);
-    }
+    //     let mut cfg = crate::offset::OffsetCfg::default();
+    //     let mut svg = svg(250.0, 350.0);
+    //     cfg.svg = Some(&mut svg);
+    //     let _ = offset_polyline_multiple(&p2, 1.0, 1.0, 100.0, &mut cfg);
+    // }
 
-    #[test]
-    #[ignore = "svg output"]
-    fn test_offset_04() {
-        let pline1 = pline_04();
-        let p_outer = polyline_reverse(&pline1[0].clone());
-        //let p_inner = polyline_reverse(&pline1[1].clone());
+    // #[test]
+    // #[ignore = "svg output"]
+    // fn test_offset_04() {
+    //     let pline1 = pline_04();
+    //     let p_outer = polyline_reverse(&pline1[0].clone());
+    //     //let p_inner = polyline_reverse(&pline1[1].clone());
 
-        let mut cfg = crate::offset::OffsetCfg::default();
-        let mut svg = svg(250.0, 350.0);
-        cfg.svg = Some(&mut svg);
-        let _ = offset_polyline_multiple(&p_outer, 1.0, 1.0, 100.0, &mut cfg);
-    }
+    //     let mut cfg = crate::offset::OffsetCfg::default();
+    //     let mut svg = svg(250.0, 350.0);
+    //     cfg.svg = Some(&mut svg);
+    //     let _ = offset_polyline_multiple(&p_outer, 1.0, 1.0, 100.0, &mut cfg);
+    // }
 
-    #[test]
-    #[ignore = "svg output"]
-    fn test_offset_new_connect() {
-        let plines = pline_03();
-        let poly_raws = poly_to_raws(&plines);
-        let mut svg = svg(250.0, 350.0);
-        svg_offset_raws(&mut svg, &poly_raws, "red");
+    // #[test]
+    // #[ignore = "svg output"]
+    // fn test_offset_new_connect() {
+    //     let plines = pline_03();
+    //     let poly_raws = poly_to_raws(&plines);
+    //     let mut svg = svg(250.0, 350.0);
+    //     svg_offset_raws(&mut svg, &poly_raws, "red");
 
-        let off = 40.0;
+    //     let off = 40.0;
 
-        let offset_raw = offset_polyline_raw(&poly_raws, off);
-        svg_offset_raws(&mut svg, &offset_raw, "blue");
+    //     let offset_raw = offset_polyline_raw(&poly_raws, off);
+    //     svg_offset_raws(&mut svg, &offset_raw, "blue");
 
-        let offset_connect = offset_connect_raw(&offset_raw, off);
-        svg.arclines(&offset_connect, "violet");
+    //     let offset_connect = offset_connect_raw(&offset_raw, off);
+    //     svg.arclines(&offset_connect, "violet");
 
-        //let mut offset_split = offset_split_arcs(&offset_raw, &offset_connect);
-        //svg.offset_segments_single(&offset_split, "violet");
+    //     //let mut offset_split = offset_split_arcs(&offset_raw, &offset_connect);
+    //     //svg.offset_segments_single(&offset_split, "violet");
 
-        // let offset_final = offset_prune_invalid_offsets(&poly_raws, &mut offset_split, off);
-        // svg.offset_segments_single(&offset_final, "black");
+    //     // let offset_final = offset_prune_invalid_offsets(&poly_raws, &mut offset_split, off);
+    //     // svg.offset_segments_single(&offset_final, "black");
 
-        svg.write();
-    }
+    //     svg.write();
+    // }
 
     #[test]
     #[ignore = "svg output"]

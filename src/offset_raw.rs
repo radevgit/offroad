@@ -4,6 +4,7 @@ use std::fmt::Display;
 
 use geom::prelude::*;
 
+#[doc(hidden)]
 /// This is used in offsetting operations (offroad package).
 #[derive(Debug, PartialEq, Clone)]
 pub struct OffsetRaw {
@@ -29,6 +30,7 @@ impl OffsetRaw {
     }
 }
 
+#[doc(hidden)]
 /// Creates a new OffsetRaw instance.
 #[inline]
 pub fn offsetraw(arc: Arc, orig: Point, g: f64) -> OffsetRaw {

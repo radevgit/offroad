@@ -4,9 +4,11 @@ use std::collections::{HashMap, HashSet};
 
 use geom::prelude::*;
 
-/// Reconnects offset segments by merging adjacent arcs vertices.
+
 const EPS_CONNECT: f64 = 1e-8;
 
+#[doc(hidden)]
+/// Reconnects offset segments by merging adjacent arcs vertices.
 pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     let mut result = Vec::new();
 
@@ -60,15 +62,15 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
 
     merge_points(&mut arc_map, &merge);
 
-    println!("DEBUG: Merge operations: {:?}", merge);
-    println!("DEBUG: Arc map after merge: {:?}", arc_map);
+    // println!("DEBUG: Merge operations: {:?}", merge);
+    // println!("DEBUG: Arc map after merge: {:?}", arc_map);
 
     // Build the graph from arc_map
     let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
 
-    println!("DEBUG: Initial arcs count: {}", len);
-    println!("DEBUG: Arc map: {:?}", arc_map);
-    println!("DEBUG: Graph edges: {:?}", graph);
+    // println!("DEBUG: Initial arcs count: {}", len);
+    // println!("DEBUG: Arc map: {:?}", arc_map);
+    // println!("DEBUG: Graph edges: {:?}", graph);
 
     // Find connected components (cycles) in the undirected graph defined by edges in "graph" vector.
     // Where each component is a closed path of vertices Ids.
@@ -84,28 +86,29 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     // let components: Vec<Vec<usize>> = Vec::new(); // Temporary placeholder
     let components = find_connected_components(&graph);
 
-    println!("DEBUG: Found {} components", components.len());
-    for (i, component) in components.iter().enumerate() {
-        println!("DEBUG: Component {}: {:?}", i, component);
-    }
+    // println!("DEBUG: Found {} components", components.len());
+    // for (i, component) in components.iter().enumerate() {
+    //     println!("DEBUG: Component {}: {:?}", i, component);
+    // }
 
     // Convert each component (cycle of vertex IDs) to a sequence of arcs
     for component in components.iter() {
         if component.len() >= 2 {
-            println!("DEBUG: Converting component {:?} to arcs", component);
+            // println!("DEBUG: Converting component {:?} to arcs", component);
             let arc_sequence = vertex_path_to_arcs(&component, &arcs, &arc_map);
-            println!("DEBUG: Arc sequence length: {}", arc_sequence.len());
+            // println!("DEBUG: Arc sequence length: {}", arc_sequence.len());
             if !arc_sequence.is_empty() {
                 result.push(arc_sequence);
             }
         }
     }
 
-    println!("DEBUG: offset_reconnect_arcs returned {} components", result.len());
+    // println!("DEBUG: offset_reconnect_arcs returned {} components", result.len());
 
     result
 }
 
+#[doc(hidden)]
 pub fn find_middle_points(arcs: &Arcline) -> Arcline {
     let mut res = arcs.clone();
     // find where the arcs are touching at ends
@@ -217,14 +220,14 @@ fn vertex_path_to_arcs(
         let current_vertex = vertex_path[i];
         let next_vertex = vertex_path[(i + 1) % vertex_path.len()];
         
-        println!("DEBUG: Looking for arc connecting {} -> {}", current_vertex, next_vertex);
+        // println!("DEBUG: Looking for arc connecting {} -> {}", current_vertex, next_vertex);
         
         // Find arc that connects current_vertex to next_vertex using arc_map
         let arc_idx = find_connecting_arc_by_vertices(current_vertex, next_vertex, arc_map);
         
         if let Some(idx) = arc_idx {
             if !used_arcs.contains(&idx) {
-                println!("DEBUG: Found arc {} connecting vertices", idx);
+                // println!("DEBUG: Found arc {} connecting vertices", idx);
                 if idx < arcs.len() {
                     let arc = &arcs[idx];
                     result.push(arc.clone());
@@ -232,7 +235,7 @@ fn vertex_path_to_arcs(
                 }
             }
         } else {
-            println!("DEBUG: No arc found connecting {} -> {}", current_vertex, next_vertex);
+            // println!("DEBUG: No arc found connecting {} -> {}", current_vertex, next_vertex);
         }
     }
     
@@ -250,12 +253,12 @@ fn find_connecting_arc_by_vertices(
     for (&arc_idx, &(start_vertex, end_vertex)) in arc_map {
         if (start_vertex == vertex1 && end_vertex == vertex2) ||
            (start_vertex == vertex2 && end_vertex == vertex1) {
-            println!("DEBUG: Found arc {} mapping to ({}, {})", arc_idx, start_vertex, end_vertex);
+            // println!("DEBUG: Found arc {} mapping to ({}, {})", arc_idx, start_vertex, end_vertex);
             return Some(arc_idx);
         }
     }
     
-    println!("DEBUG: No arc found in arc_map for vertices {} -> {}", vertex1, vertex2);
+    // println!("DEBUG: No arc found in arc_map for vertices {} -> {}", vertex1, vertex2);
     None
 }
 
@@ -290,6 +293,7 @@ fn should_use_forward_direction(from_vertex: usize, to_vertex: usize, len: usize
     }
 }
 
+#[doc(hidden)]
 /// Removes duplicate arcs that overlap as 2D graphics elements.
 ///
 /// DO NOT CHANGE THIS FUNCTION - it's a critical component for maintaining geometric consistency.
@@ -330,6 +334,7 @@ pub fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
     }
 }
 
+#[doc(hidden)]
 /// Finds connected components (cycles) in an undirected graph.
 /// 
 /// This function uses Depth-First Search (DFS) to find connected components in an undirected graph.
@@ -428,6 +433,7 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
     components
 }
 
+#[doc(hidden)]
 /// Finds a connected component starting from a given vertex using DFS
 fn find_component_with_cycles(
     start: usize, 
@@ -459,6 +465,7 @@ fn find_component_with_cycles(
     component
 }
 
+#[doc(hidden)]
 /// Extracts the shortest cycle from a connected component
 fn extract_shortest_cycle(
     component: &[usize], 
@@ -495,6 +502,7 @@ fn extract_shortest_cycle(
     shortest_cycle
 }
 
+#[doc(hidden)]
 /// Finds a cycle starting from a specific vertex using DFS
 fn find_cycle_from_vertex(
     start: usize,
@@ -558,6 +566,7 @@ fn find_cycle_from_vertex(
     dfs_shortest_cycle(start, start, adj_list, &component_set, &mut path, &mut visited, &mut min_cycle_len)
 }
 
+#[doc(hidden)]
 /// Reconstructs a cycle from the parent information
 fn reconstruct_cycle(
     u: usize, 
@@ -606,6 +615,7 @@ fn reconstruct_cycle(
     cycle
 }
 
+#[doc(hidden)]
 /// Finds all vertices in a connected component using DFS
 fn find_component_vertices(
     start: usize, 
@@ -637,6 +647,7 @@ fn find_component_vertices(
     component
 }
 
+#[doc(hidden)]
 /// Optimized cycle detection for graphs with degree constraints (1-4 edges per vertex)
 fn find_cycles_optimized(
     component: &[usize], 
@@ -685,6 +696,7 @@ fn find_cycles_optimized(
     cycles
 }
 
+#[doc(hidden)]
 /// Optimized cycle detection from a single vertex using degree constraints
 fn find_cycles_from_vertex_optimized(
     start: usize,
@@ -738,6 +750,7 @@ fn find_cycles_from_vertex_optimized(
     cycles
 }
 
+#[doc(hidden)]
 /// Find cycles using degree-based analysis for larger components
 fn find_cycles_by_degree_analysis(
     component: &[usize], 
@@ -769,6 +782,7 @@ fn find_cycles_by_degree_analysis(
     cycles
 }
 
+#[doc(hidden)]
 /// Finds all fundamental cycles in a connected component
 fn find_all_cycles_in_component(
     component: &[usize], 
@@ -807,6 +821,7 @@ fn find_all_cycles_in_component(
     cycles
 }
 
+#[doc(hidden)]
 /// Finds cycles starting from a specific vertex using DFS
 fn find_cycles_from_vertex(
     start: usize,
@@ -859,6 +874,7 @@ fn find_cycles_from_vertex(
     cycles
 }
 
+#[doc(hidden)]
 /// Checks if a cycle is a duplicate of any existing cycle (considering direction)
 fn is_duplicate_cycle(new_cycle: &[usize], existing_cycles: &[Vec<usize>]) -> bool {
     for existing in existing_cycles {
@@ -869,6 +885,7 @@ fn is_duplicate_cycle(new_cycle: &[usize], existing_cycles: &[Vec<usize>]) -> bo
     false
 }
 
+#[doc(hidden)]
 /// Checks if two cycles are the same (considering both directions and rotations)
 fn is_same_cycle(cycle1: &[usize], cycle2: &[usize]) -> bool {
     if cycle1.len() != cycle2.len() {
