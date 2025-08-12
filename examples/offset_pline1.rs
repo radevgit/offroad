@@ -11,7 +11,8 @@ fn main() {
 
     let poly_orig = pline_01()[0].clone();
     // Translate to fit in the SVG viewport
-    let poly = polyline_translate(&poly_orig, point(100.0, -50.0));
+    let p1 = polyline_reverse(&poly_orig);
+    let poly = polyline_translate(&p1, point(100.0, -50.0));
 
     // Offset the polyline
     // let offset_polylines = offset_polyline_to_polyline(&poly, 15.0, &mut cfg);
@@ -21,7 +22,8 @@ fn main() {
 
     // Internal offsetting
     let poly = polyline_reverse(&poly);
-    let _offset_polylines = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
+    //let _offset_polylines = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
+    let _offset_polylines = offset_polyline_to_polyline(&poly, 16.0, &mut cfg);
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
         // Write svg to file

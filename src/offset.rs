@@ -91,12 +91,10 @@ impl<'a> Default for OffsetCfg<'a> {
 ///
 /// The offsetting process involves several stages:
 /// 1. Convert input polyline to raw offset segments (lines and arcs)
-/// 2. Compute offset for each segment
-/// 3. Connect adjacent offset segments with transition arcs
-/// 4. Split overlapping segments at intersection points
-/// 5. Prune invalid segments that are too close to the original
-/// 6. Reconnect valid segments into continuous paths
-/// 7. Convert final arcs back to polylines with pvertex segments
+/// 2. Connect adjacent offset segments with transition arcs
+/// 3. Split overlapping segments at intersection points
+/// 4. Prune invalid segments that are too close to the original
+/// 5. Reconnect valid segments into continuous paths
 ///
 /// # Notes
 ///
@@ -114,8 +112,14 @@ pub fn offset_polyline_to_polyline(
     }
     let offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);
 
+    // remove bridges
+    let offset_arcs = remove_bridge_arcs(&offset_arcs);
+
+    // Slightly adjust arc endpoints
+    let offset_arcs = find_middle_points(&offset_arcs);
+
     // Always reconnect arcs
-    let reconnect_arcs = offset_reconnect_arcs(&mut offset_arcs.clone());
+    let reconnect_arcs = offset_reconnect_arcs(&offset_arcs);
     // println!(
     //     "DEBUG: offset_reconnect_arcs returned {} components",
     //     reconnect_arcs.len()
@@ -181,12 +185,10 @@ pub fn offset_polyline_to_polyline(
 /// The offsetting process follows the same stages as polyline offsetting but preserves
 /// arc geometry throughout:
 /// 1. Convert input arcline to raw offset segments (lines and arcs)
-/// 2. Compute precise offset for each segment maintaining arc properties
-/// 3. Connect adjacent offset segments with transition arcs
-/// 4. Split overlapping segments at intersection points
-/// 5. Prune invalid segments that are too close to the original
-/// 6. Reconnect valid segments into continuous arc-preserving paths
-/// 7. Return final result as arclines (no conversion to line segments)
+/// 2. Connect adjacent offset segments with transition arcs
+/// 3. Split overlapping segments at intersection points
+/// 4. Prune invalid segments that are too close to the original
+/// 5. Reconnect valid segments into continuous arc-paths
 ///
 pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arcline> {
     if let Some(svg) = cfg.svg.as_deref_mut()
@@ -196,15 +198,15 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     }
     let offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
 
-    // Slightly adjust arc endpoints
-    let mut mod_arcs = find_middle_points(&mut offset_arcs.clone());
-
     // remove bridges
-    remove_bridge_arcs(&mut mod_arcs);
+    let offset_arcs = remove_bridge_arcs(&offset_arcs);
+
+    // Slightly adjust arc endpoints
+    let offset_arcs = find_middle_points(&offset_arcs);
 
     let mut final_arcs = Vec::new();
     if cfg.reconnect {
-        final_arcs = offset_reconnect_arcs(&mut mod_arcs);
+        final_arcs = offset_reconnect_arcs(&offset_arcs);
         println!(
             "offset_reconnect_arcs returned {} components",
             final_arcs.len()
@@ -213,7 +215,7 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
             println!("  Component {}: {} arcs", i, component.len());
         }
     } else {
-        final_arcs.push(mod_arcs);
+        final_arcs.push(offset_arcs);
     }
 
     if let Some(svg) = cfg.svg.as_deref_mut() {

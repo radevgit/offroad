@@ -9,7 +9,7 @@ const EPS_CONNECT: f64 = 1e-8;
 
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.
-pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
+pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     let mut result = Vec::new();
 
     let len = arcs.len();
@@ -59,8 +59,6 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
             }
         }
     }
-
-    merge_points(&mut arc_map, &merge);
 
     // println!("DEBUG: Merge operations: {:?}", merge);
     // println!("DEBUG: Arc map after merge: {:?}", arc_map);
@@ -141,7 +139,7 @@ pub fn find_middle_points(arcs: &Arcline) -> Arcline {
             }
         }
     }
-    res.clone()
+    res
 }
 
 
@@ -297,12 +295,13 @@ fn should_use_forward_direction(from_vertex: usize, to_vertex: usize, len: usize
 /// Removes duplicate arcs that overlap as 2D graphics elements.
 ///
 /// DO NOT CHANGE THIS FUNCTION - it's a critical component for maintaining geometric consistency.
-pub fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
+pub fn remove_bridge_arcs(arcs: &Arcline) -> Arcline {
+    let mut result = arcs.clone();
     let mut to_remove = Vec::new();
-    for i in 0..arcs.len() {
-        for j in (i + 1)..arcs.len() {
-            let arc0 = &arcs[i];
-            let arc1 = &arcs[j];
+    for i in 0..result.len() {
+        for j in (i + 1)..result.len() {
+            let arc0 = &result[i];
+            let arc1 = &result[j];
             if arc0.is_line() && arc1.is_line() {
                 if (arc0.a.close_enough(arc1.a, EPS_CONNECT)
                     && arc0.b.close_enough(arc1.b, EPS_CONNECT))
@@ -330,8 +329,9 @@ pub fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
     to_remove.sort_unstable();
     to_remove.dedup();
     for i in to_remove.iter().rev() {
-        arcs.remove(*i);
+        result.remove(*i);
     }
+    result
 }
 
 #[doc(hidden)]
