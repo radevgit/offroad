@@ -10,9 +10,6 @@ const EPS_CONNECT: f64 = 1e-8;
 pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
     let mut result = Vec::new();
 
-    // remove bridges
-    remove_bridge_arcs(arcs);
-
     let len = arcs.len();
 
     // Initialize the edge list: each arc contributes 2 vertices
@@ -32,38 +29,27 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
                 continue; // skip self
             }
 
-            // merge close points, point ids
+            // close points are already merged
+            // here we just track them
             if arcs[i].a.close_enough(arcs[j].a, EPS_CONNECT) {
-                let mid = middle_point(&arcs[i].a, &arcs[j].a);
-                arcs[i].a = mid;
-                arcs[j].a = mid;
                 // track merge
                 let x = arc_map.get(&i).unwrap().0;
                 let y = arc_map.get(&j).unwrap().0;
                 merge.push((x, y));
             }
             if arcs[i].a.close_enough(arcs[j].b, EPS_CONNECT) {
-                let mid = middle_point(&arcs[i].a, &arcs[j].b);
-                arcs[i].a = mid;
-                arcs[j].b = mid;
                 // track merge
                 let x = arc_map.get(&i).unwrap().0;
                 let y = arc_map.get(&j).unwrap().1;
                 merge.push((x, y));
             }
             if arcs[i].b.close_enough(arcs[j].a, EPS_CONNECT) {
-                let mid = middle_point(&arcs[i].b, &arcs[j].a);
-                arcs[i].b = mid;
-                arcs[j].a = mid;
                 // track merge
                 let x = arc_map.get(&i).unwrap().1;
                 let y = arc_map.get(&j).unwrap().0;
                 merge.push((x, y));
             }
             if arcs[i].b.close_enough(arcs[j].b, EPS_CONNECT) {
-                let mid = middle_point(&arcs[i].b, &arcs[j].b);
-                arcs[i].b = mid;
-                arcs[j].b = mid;
                 // track merge
                 let x = arc_map.get(&i).unwrap().1;
                 let y = arc_map.get(&j).unwrap().1;
@@ -119,6 +105,42 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Vec<Arc>> {
 
     result
 }
+
+pub fn find_middle_points(arcs: &Arcline) -> Arcline {
+    let mut res = arcs.clone();
+    // find where the arcs are touching at ends
+    for i in 0..res.len() {
+        for j in 0..res.len() {
+            if i == j {
+                continue; // skip self
+            }
+
+            // merge close points, point ids
+            if res[i].a.close_enough(res[j].a, EPS_CONNECT) {
+                let mid = middle_point(&res[i].a, &res[j].a);
+                res[i].a = mid;
+                res[j].a = mid;
+            }
+            if res[i].a.close_enough(res[j].b, EPS_CONNECT) {
+                let mid = middle_point(&res[i].a, &res[j].b);
+                res[i].a = mid;
+                res[j].b = mid;
+            }
+            if res[i].b.close_enough(res[j].a, EPS_CONNECT) {
+                let mid = middle_point(&res[i].b, &res[j].a);
+                res[i].b = mid;
+                res[j].a = mid;
+            }
+            if res[i].b.close_enough(res[j].b, EPS_CONNECT) {
+                let mid = middle_point(&res[i].b, &res[j].b);
+                res[i].b = mid;
+                res[j].b = mid;
+            }
+        }
+    }
+    res.clone()
+}
+
 
 fn middle_point(a: &Point, b: &Point) -> Point {
     Point {
@@ -271,7 +293,7 @@ fn should_use_forward_direction(from_vertex: usize, to_vertex: usize, len: usize
 /// Removes duplicate arcs that overlap as 2D graphics elements.
 ///
 /// DO NOT CHANGE THIS FUNCTION - it's a critical component for maintaining geometric consistency.
-fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
+pub fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
     let mut to_remove = Vec::new();
     for i in 0..arcs.len() {
         for j in (i + 1)..arcs.len() {

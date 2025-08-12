@@ -4,11 +4,7 @@
 use geom::prelude::*;
 
 use crate::{
-    offset_connect_raw,
-    offset_polyline_raw::{self, arcs_to_raws},
-    offset_prune_invalid,
-    offset_raw::OffsetRaw,
-    offset_reconnect_arcs, offset_split_arcs, poly_to_raws,
+    find_middle_points, offset_connect_raw, offset_polyline_raw::{self, arcs_to_raws}, offset_prune_invalid, offset_raw::OffsetRaw, offset_reconnect_arcs, offset_split_arcs, poly_to_raws, remove_bridge_arcs
 };
 
 pub struct OffsetCfg<'a> {
@@ -190,9 +186,15 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     }
     let offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
 
+    // Slightly adjust arc endpoints
+    let mut mod_arcs = find_middle_points(&mut offset_arcs.clone());
+
+    // remove bridges
+    remove_bridge_arcs(&mut mod_arcs);
+
     let mut result = Vec::new();
     if cfg.reconnect {
-        result = offset_reconnect_arcs(&mut offset_arcs.clone());
+        result = offset_reconnect_arcs(&mut mod_arcs);
         println!(
             "offset_reconnect_arcs returned {} components",
             result.len()
@@ -201,7 +203,7 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
             println!("  Component {}: {} arcs", i, component.len());
         }
     } else {
-        result.push(offset_arcs);
+        result.push(mod_arcs);
     }
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
