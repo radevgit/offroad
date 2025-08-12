@@ -2,11 +2,14 @@ use geom::prelude::*;
 use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
 
 fn main() {
+    // Configuration for offsetting
     let mut cfg = OffsetCfg::default();
     let mut svg = SVG::new(300.0, 300.0, "/tmp/out2.svg");
     cfg.svg = Some(&mut svg);
+    // Show original polyline in SVG output
     cfg.debug_orig = true;
-    cfg.debug_reconnect = true;
+    // Show final offset polylines in SVG output
+    cfg.debug_final = true;
 
     let poly_orig = vec![
         pvertex(point(0.0, 0.0), 0.0),

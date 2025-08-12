@@ -15,7 +15,7 @@ pub struct OffsetCfg<'a> {
     pub debug_connect: bool,      // Flag to enable debug connect offsets
     pub debug_split: bool,        // Flag to enable debug split offsets
     pub debug_prune: bool,        // Flag to enable debug pruned offsets
-    pub debug_reconnect: bool,    // Flag to enable debug reconnect arcs
+    pub debug_final: bool,        // Flag to enable debug final offsets
 }
 
 impl<'a> Default for OffsetCfg<'a> {
@@ -28,7 +28,7 @@ impl<'a> Default for OffsetCfg<'a> {
             debug_connect: false,   // Debugging flags are off by default
             debug_split: false,     // Debugging flags are off by default
             debug_prune: false,     // Debugging flags are off by default
-            debug_reconnect: false, // Debugging reconnect arcs
+            debug_final: false, // Debugging reconnect arcs
         }
     }
 }
@@ -109,15 +109,15 @@ pub fn offset_polyline_to_polyline(
         println!("  Component {}: {} arcs", i, component.len());
     }
 
-    let result = arcs_to_polylines(&reconnect_arcs);
+    let final_poly = arcs_to_polylines(&reconnect_arcs);
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
-        if cfg.debug_reconnect {
-            svg.polylines(&result, "violet");
+        if cfg.debug_final {
+            svg.polylines(&final_poly, "violet");
         }
     }
 
-    result
+    final_poly
 }
 
 /// Computes the offset of an Arcline and returns result as Arcline-s.
@@ -192,27 +192,27 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     // remove bridges
     remove_bridge_arcs(&mut mod_arcs);
 
-    let mut result = Vec::new();
+    let mut final_arcs = Vec::new();
     if cfg.reconnect {
-        result = offset_reconnect_arcs(&mut mod_arcs);
+        final_arcs = offset_reconnect_arcs(&mut mod_arcs);
         println!(
             "offset_reconnect_arcs returned {} components",
-            result.len()
+            final_arcs.len()
         );
-        for (i, component) in result.iter().enumerate() {
+        for (i, component) in final_arcs.iter().enumerate() {
             println!("  Component {}: {} arcs", i, component.len());
         }
     } else {
-        result.push(mod_arcs);
+        final_arcs.push(mod_arcs);
     }
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
-        if cfg.debug_reconnect {
-            svg.arclines(&result, "violet");
+        if cfg.debug_final {
+            svg.arclines(&final_arcs, "violet");
         }
     }
 
-    result
+    final_arcs
 }
 
 fn offset_polyline_to_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
