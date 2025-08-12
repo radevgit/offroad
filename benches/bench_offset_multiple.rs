@@ -22,10 +22,10 @@ fn bench_offset_polyline_to_polyline(off: f64) {
     let mut p = pline_01()[0].clone();
     p = polyline_translate(&p, point(180.0, -60.0));
     p = polyline_scale(&p, 2.5);
-    offset_polyline_to_polyline(&p, 16.0, &mut cfg);
+    offset_polyline_to_polyline(&p, off, &mut cfg);
 
     let p2 = polyline_reverse(&p);
-    offset_polyline_to_polyline(&p2, 16.0, &mut cfg);
+    offset_polyline_to_polyline(&p2, off, &mut cfg);
 }
 
 /*
@@ -34,14 +34,15 @@ fn bench_offset_polyline_to_polyline(off: f64) {
 Timer precision: 20 ns
 bench_offset_multiple                 fastest       │ slowest       │ median        │ mean          │ samples │ iters
 ╰─ bench_offset_polyline_to_polyline                │               │               │               │         │
-   ├─ 1                               373.1 µs      │ 446.2 µs      │ 375.3 µs      │ 388.5 µs      │ 13      │ 2600
-   ├─ 2                               480 µs        │ 565.5 µs      │ 534.3 µs      │ 529 µs        │ 10      │ 2000
-   ├─ 4                               545.9 µs      │ 565 µs        │ 562.8 µs      │ 559.9 µs      │ 9       │ 1800
-   ├─ 8                               566.8 µs      │ 628.3 µs      │ 581.6 µs      │ 584.4 µs      │ 9       │ 1800
-   ├─ 16                              674.7 µs      │ 784.2 µs      │ 715.3 µs      │ 729.3 µs      │ 7       │ 1400
-   ├─ 32                              642.5 µs      │ 917.4 µs      │ 755.8 µs      │ 775.4 µs      │ 7       │ 1400
-   ├─ 64                              568.9 µs      │ 623.1 µs      │ 589.6 µs      │ 595 µs        │ 9       │ 1800
-   ├─ 128                             566.6 µs      │ 585.9 µs      │ 568.6 µs      │ 571.5 µs      │ 9       │ 1800
-   ╰─ 256                             565 µs        │ 585.2 µs      │ 566.5 µs      │ 570.5 µs      │ 9       │ 1800
+   ├─ 1                               368.7 µs      │ 384.5 µs      │ 376.3 µs      │ 376 µs        │ 14      │ 2800
+   ├─ 2                               373.6 µs      │ 413.5 µs      │ 380.6 µs      │ 384.6 µs      │ 14      │ 2800
+   ├─ 4                               373.7 µs      │ 409.5 µs      │ 375.2 µs      │ 379.3 µs      │ 14      │ 2800
+   ├─ 8                               372 µs        │ 440.5 µs      │ 379 µs        │ 383.8 µs      │ 14      │ 2800
+   ├─ 16                              439.9 µs      │ 1.033 ms      │ 541.8 µs      │ 606.1 µs      │ 9       │ 1800
+   ├─ 32                              628 µs        │ 908 µs        │ 706.4 µs      │ 730.5 µs      │ 7       │ 1400
+   ├─ 64                              679.9 µs      │ 708 µs        │ 687.6 µs      │ 689.7 µs      │ 8       │ 1600
+   ├─ 128                             614.9 µs      │ 635.9 µs      │ 616 µs        │ 620.7 µs      │ 9       │ 1800
+   ╰─ 256                             719.6 µs      │ 742.2 µs      │ 739.8 µs      │ 736.8 µs      │ 7       │ 1400
+
 
 */

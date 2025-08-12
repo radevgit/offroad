@@ -47,21 +47,22 @@ impl<'a> Default for OffsetCfg<'a> {
     }
 }
 
-/// Computes the offset of a polyline and returns result as multiple polylines.
+/// Computes the offset of a Polyline and returns result as multiple Polylines.
 ///
 /// This is the main entry point for polyline offsetting. It takes an input polyline,
 /// applies the specified offset distance, and returns a vector of output polylines.
+/// It is expected that the Polyline is a closed shape.
 ///
 /// # Arguments
 ///
-/// * `poly` - The input polyline to offset. Should be a sequence of connected pvertices.
+/// * `poly` - The input polyline to offset. Should be a sequence of connected PVertex-es.
 /// * `off` - The offset distance. Only positive values offset to the "right" side of the polyline.
-/// * `cfg` - Configuration options controlling the offsetting behavior.
+/// * `cfg` - Configuration options controlling the offsetting behavior and writing to svg file.
 ///
 /// # Returns
 ///
-/// A vector of polylines representing the offset result. Each polyline is a sequence of
-/// pvertices. The number of output polylines depends
+/// A vector of polylines representing the offset result. Each Polyline is a sequence of
+/// PVertex-es. The number of output polylines depends
 /// on the input geometry and offset distance:
 /// - Simple cases may produce a single offset polyline
 /// - Complex geometries or self-intersecting offsets may produce multiple polylines
@@ -137,23 +138,18 @@ pub fn offset_polyline_to_polyline(
 /// Computes the offset of an Arcline and returns result as multiple Arcline-s.
 ///
 /// This function is similar to `offset_polyline_to_polyline` but operates on arclines
-/// (sequences of arcs). This is useful when
-/// precise arc representation is required rather than converting arcs to line segments.
+/// (sequences of arcs).
+/// It is expected that the Arcline is a closed shape.
 ///
 /// # Arguments
 ///
-/// * `arcs` - The input arcline (sequence of arcs) to offset. Can contain both straight
-///   line segments and curved arc segments with specified radii and bulge factors.
-/// * `off` - The offset distance. Positive values offset to the "right" side of the arcline
-///   direction, negative values offset to the "left" side.
-/// * `cfg` - Configuration options controlling the offsetting behavior, including:
-///   - `reconnect`: Whether to reconnect offset segments into continuous arclines
-///   - Debug flags for visualization and troubleshooting  
+/// * `arcs` - The input arcline (sequence of arcs) to offset.
+/// * `off` - The offset distance. Positive values only, to the "right" side of the Arcline
+///   direction.
+/// * `cfg` - Configuration options controlling the offsetting behavior and writing to svg file.
 ///
 /// # Returns
 ///
-/// A vector of arclines representing the offset result. Each arcline preserves the original
-/// arc geometry rather than approximating with line segments.
 /// The number of output arclines depends on the input geometry and offset distance:
 /// - Simple cases may produce a single offset arcline
 /// - Complex geometries or self-intersecting offsets may produce multiple arclines
