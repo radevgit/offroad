@@ -1,21 +1,20 @@
 # Offroad
 ![Build](https://github.com/radevgit/offroad/actions/workflows/rust.yml/badge.svg)
 
+## Adding the library to your project
+
+To use the Offroad library in your project, add the following to your `Cargo.toml`:
+
+```toml
+[dependencies]
+offroad = "0.0.5"
+```
+
 ## 2D offsetting for arc polylines/polygons
-
-
-
 ![](https://raw.githubusercontent.com/radevgit/offroad/refs/heads/main/img/offsets.svg "arc-line polygon offsets")
 
 
-## Status
-
-Currently, the library is in active development and may not yet be feature-complete.
-
-It is already useful to produce "soup of arcs" when polyline is provided.
-The arcs are not ordered however.
-
 ## Examples
 
-Check the examples directory for usage.
+Check "examples" directory for more usage examples.
 
