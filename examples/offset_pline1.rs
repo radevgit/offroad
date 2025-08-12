@@ -7,7 +7,7 @@ fn main() {
     let mut svg = SVG::new(300.0, 300.0, "/tmp/pline1.svg");
     cfg.svg = Some(&mut svg);
     cfg.svg_orig = true;
-    cfg.svg_prune = true;
+    cfg.svg_final = true;
 
     let poly_orig = pline_01()[0].clone();
     // Translate to fit in the SVG viewport

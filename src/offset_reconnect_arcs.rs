@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
-use std::collections::{HashMap, HashSet}; 
+use std::{collections::{HashMap, HashSet}, result}; 
 
 use geom::prelude::*;
 
 
-const EPS_CONNECT: f64 = 1e-8;
+const EPS_CONNECT: f64 = 1e-6;
 
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.

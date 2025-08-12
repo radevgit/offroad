@@ -8,6 +8,7 @@ categories = ["algorithms", "data-structures", "graphics", "mathematics"]
 keywords = ["offset", "arc", "polyline", "cnc", "polygon"]
 license = "MIT"
 repository = "https://github.com/radevgit/offroad"
+readme = "README.md"
 
 
 
@@ -25,9 +26,6 @@ divan = "0.1.21"
 [[bench]]
 name = "bench_offset_multiple"
 harness = false
-
-[[example]]
-name = "offset_polyline"
 
 [workspace.lints]
 rust.unsafe_code = "forbid"
