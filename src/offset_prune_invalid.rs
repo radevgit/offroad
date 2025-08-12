@@ -2,6 +2,8 @@
 
 use geom::prelude::*;
 
+use crate::offset_raw::OffsetRaw;
+
 // Prune arcs that are close to any of the arcs in the polyline.
 const PRUNE_EPSILON: f64 = 1e-8;
 pub fn offset_prune_invalid(

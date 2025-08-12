@@ -2,7 +2,7 @@
 // 
 
 use geom::prelude::*;
-use offroad::{offset::pline_01, offset_connect_raw, offset_polyline_raw, offset_prune_invalid, offset_split_arcs, poly_to_raws};
+use offroad::{offset::pline_01, offset_connect_raw, offset_polyline_raw, offset_prune_invalid, offset_raw::OffsetRaw, offset_split_arcs, poly_to_raws};
 
 
 

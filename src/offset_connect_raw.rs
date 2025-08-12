@@ -4,6 +4,8 @@ use robust::{Coord, orient2d};
 
 use geom::prelude::*;
 
+use crate::offset_raw::OffsetRaw;
+
 const ZERO: f64 = 0f64;
 const EPS: f64 = 1e-10;
 
@@ -129,8 +131,7 @@ fn arc_connect_new(
 #[cfg(test)]
 mod test_offset_connect_raw {
     use crate::{
-        offset_polyline_raw::{offset_polyline_raw, poly_to_raws},
-        offset::pline_01,
+        offset::{pline_01, svg_offset_raws}, offset_polyline_raw::{offset_polyline_raw, poly_to_raws}
     };
 
     use super::*;
@@ -144,15 +145,15 @@ mod test_offset_connect_raw {
         ]];
         let poly_raws = poly_to_raws(&pline);
         let mut svg = svg(300.0, 350.0);
-        svg.offset_raws(&poly_raws, "red");
+        svg_offset_raws(&mut svg, &poly_raws, "red");
 
         let off: f64 = 52.25;
 
         let offset_raw = offset_polyline_raw(&poly_raws, off);
-        svg.offset_raws(&offset_raw, "blue");
+        svg_offset_raws(&mut svg, &offset_raw, "blue");
 
         let offset_connect = offset_connect_raw(&offset_raw, off);
-        svg.offset_segments(&offset_connect, "violet");
+        svg.arclines(&offset_connect, "violet");
 
         svg.write();
     }
@@ -171,15 +172,15 @@ mod test_offset_connect_raw {
         ]];
         let poly_raws = poly_to_raws(&pline);
         let mut svg = svg(300.0, 400.0);
-        svg.offset_raws(&poly_raws, "red");
+        svg_offset_raws(&mut svg, &poly_raws, "red");
 
         let off: f64 = 22.0;
 
         let offset_raw = offset_polyline_raw(&poly_raws, off);
-        svg.offset_raws(&offset_raw, "blue");
+        svg_offset_raws(&mut svg, &offset_raw, "blue");
 
         let offset_connect = offset_connect_raw(&offset_raw, off);
-        svg.offset_segments(&offset_connect, "violet");
+        svg.arclines(&offset_connect, "violet");
 
         svg.write();
     }
@@ -245,8 +246,8 @@ mod test_offset_connect_raw {
         let offset_raw1 = offset_polyline_raw(&poly_raws, off);
         let offset_raw2 = offset_connect_raw(&offset_raw1, off);
 
-        svg.offset_raws(&offset_raw1, "red");
-        svg.offset_segments(&offset_raw2, "blue");
+        svg_offset_raws(&mut svg, &offset_raw1, "red");
+        svg.arclines(&offset_raw2, "blue");
         svg.write();
     }
 }

@@ -904,9 +904,9 @@ mod test_remove_bridge_arcs {
     #[test]
     fn test_remove_bridge_arcs_duplicate_lines() {
         let mut arcs = vec![
-            arcline(point(0.0, 0.0), point(1.0, 1.0)),
-            arcline(point(1.0, 1.0), point(2.0, 2.0)),
-            arcline(point(0.0, 0.0), point(1.0, 1.0)), // duplicate
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)),
+            arcseg(point(1.0, 1.0), point(2.0, 2.0)),
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)), // duplicate
         ];
         remove_bridge_arcs(&mut arcs);
         assert_eq!(arcs.len(), 1);
@@ -915,9 +915,9 @@ mod test_remove_bridge_arcs {
     #[test]
     fn test_remove_bridge_arcs_duplicate_lines_reversed() {
         let mut arcs = vec![
-            arcline(point(0.0, 0.0), point(1.0, 1.0)),
-            arcline(point(1.0, 1.0), point(0.0, 0.0)), // reversed duplicate
-            arcline(point(2.0, 2.0), point(3.0, 3.0)),
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)),
+            arcseg(point(1.0, 1.0), point(0.0, 0.0)), // reversed duplicate
+            arcseg(point(2.0, 2.0), point(3.0, 3.0)),
         ];
         remove_bridge_arcs(&mut arcs);
         assert_eq!(arcs.len(), 1);
@@ -926,8 +926,8 @@ mod test_remove_bridge_arcs {
     #[test]
     fn test_remove_bridge_arcs_no_duplicates() {
         let mut arcs = vec![
-            arcline(point(0.0, 0.0), point(1.0, 1.0)),
-            arcline(point(1.0, 1.0), point(2.0, 2.0)),
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)),
+            arcseg(point(1.0, 1.0), point(2.0, 2.0)),
             arc(point(2.0, 2.0), point(3.0, 1.0), point(2.5, 1.5), 0.5),
         ];
         let original_len = arcs.len();
@@ -940,7 +940,7 @@ mod test_remove_bridge_arcs {
         let mut arcs = vec![
             arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, 1.0), 1.0),
             arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, 1.0), 1.0), // exact duplicate
-            arcline(point(3.0, 3.0), point(4.0, 4.0)),
+            arcseg(point(3.0, 3.0), point(4.0, 4.0)),
         ];
         remove_bridge_arcs(&mut arcs);
         assert_eq!(arcs.len(), 1);
@@ -951,7 +951,7 @@ mod test_remove_bridge_arcs {
         let mut arcs = vec![
             arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, 1.0), 1.0),
             arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, -1.0), 1.0), // different center
-            arcline(point(3.0, 3.0), point(4.0, 4.0)),
+            arcseg(point(3.0, 3.0), point(4.0, 4.0)),
         ];
         let original_len = arcs.len();
         remove_bridge_arcs(&mut arcs);
@@ -962,8 +962,8 @@ mod test_remove_bridge_arcs {
     fn test_remove_bridge_arcs_mixed_arc_and_line() {
         let mut arcs = vec![
             arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, 1.0), 1.0),
-            arcline(point(0.0, 0.0), point(2.0, 0.0)), // line with same endpoints
-            arcline(point(3.0, 3.0), point(4.0, 4.0)),
+            arcseg(point(0.0, 0.0), point(2.0, 0.0)), // line with same endpoints
+            arcseg(point(3.0, 3.0), point(4.0, 4.0)),
         ];
         let original_len = arcs.len();
         remove_bridge_arcs(&mut arcs);
@@ -973,12 +973,12 @@ mod test_remove_bridge_arcs {
     #[test]
     fn test_remove_bridge_arcs_multiple_duplicates() {
         let mut arcs = vec![
-            arcline(point(0.0, 0.0), point(1.0, 1.0)),
-            arcline(point(0.0, 0.0), point(1.0, 1.0)), // duplicate 1
-            arcline(point(0.0, 0.0), point(1.0, 1.0)), // duplicate 2
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)),
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)), // duplicate 1
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)), // duplicate 2
             arc(point(2.0, 2.0), point(4.0, 2.0), point(3.0, 3.0), 1.0),
             arc(point(2.0, 2.0), point(4.0, 2.0), point(3.0, 3.0), 1.0), // duplicate arc
-            arcline(point(5.0, 5.0), point(6.0, 6.0)),
+            arcseg(point(5.0, 5.0), point(6.0, 6.0)),
         ];
         remove_bridge_arcs(&mut arcs);
         assert_eq!(arcs.len(), 1); // should keep only unique elements
@@ -994,7 +994,7 @@ mod test_remove_bridge_arcs {
     #[test]
     fn test_remove_bridge_arcs_single_element() {
         let mut arcs = vec![
-            arcline(point(0.0, 0.0), point(1.0, 1.0)),
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)),
         ];
         remove_bridge_arcs(&mut arcs);
         assert_eq!(arcs.len(), 1);
@@ -1004,8 +1004,8 @@ mod test_remove_bridge_arcs {
     fn test_remove_bridge_arcs_close_but_not_equal() {
         let eps = super::EPS_CONNECT;
         let mut arcs = vec![
-            arcline(point(0.0, 0.0), point(1.0, 1.0)),
-            arcline(point(0.0, 0.0), point(1.0 + eps * 0.5, 1.0 + eps * 0.5)), // close but within tolerance
+            arcseg(point(0.0, 0.0), point(1.0, 1.0)),
+            arcseg(point(0.0, 0.0), point(1.0 + eps * 0.5, 1.0 + eps * 0.5)), // close but within tolerance
         ];
         remove_bridge_arcs(&mut arcs);
         assert_eq!(arcs.len(), 0); // should remove both as they're close enough
@@ -1016,7 +1016,7 @@ mod test_remove_bridge_arcs {
         let mut arcs = vec![
             arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, 1.0), 1.0),
             arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, 1.0), 1.5), // different radius
-            arcline(point(3.0, 3.0), point(4.0, 4.0)),
+            arcseg(point(3.0, 3.0), point(4.0, 4.0)),
         ];
         let original_len = arcs.len();
         remove_bridge_arcs(&mut arcs);

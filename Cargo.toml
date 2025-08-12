@@ -12,7 +12,7 @@ repository = "https://github.com/radevgit/offroad"
 
 
 [dependencies]
-geom = { package = "basegeom", version = "0.2.0" }
+geom = { package = "basegeom", version = "0.2.4" }
 robust = "1.2.0"
 
 [lib]

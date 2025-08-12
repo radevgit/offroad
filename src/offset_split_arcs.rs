@@ -3,6 +3,8 @@
 
 use geom::prelude::*;
 
+use crate::offset_raw::OffsetRaw;
+
 static ZERO: f64 = 0.0;
 const EPSILON: f64 = 1e-10;
 pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
@@ -98,10 +100,10 @@ pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
         }
         SegmentSegmentConfig::OnePoint(sp, _, _) => {
             // split at one point
-            let mut line00 = arcline(sp, arc0.a);
-            let mut line01 = arcline(sp, arc0.b);
-            let mut line10 = arcline(sp, arc1.a);
-            let mut line11 = arcline(sp, arc1.b);
+            let mut line00 = arcseg(sp, arc0.a);
+            let mut line01 = arcseg(sp, arc0.b);
+            let mut line10 = arcseg(sp, arc1.a);
+            let mut line11 = arcseg(sp, arc1.b);
             line00.id(arc0.id);
             line01.id(arc0.id);
             line10.id(arc1.id);
@@ -114,9 +116,9 @@ pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
         }
         SegmentSegmentConfig::TwoPoints(p0, p1, p2, p3) => {
             // split at two points
-            let mut line00 = arcline(p0, p1);
-            let mut line01 = arcline(p1, p2);
-            let mut line10 = arcline(p2, p3);
+            let mut line00 = arcseg(p0, p1);
+            let mut line01 = arcseg(p1, p2);
+            let mut line10 = arcseg(p2, p3);
             line00.id(arc0.id);
             line01.id(arc0.id);
             line10.id(arc1.id);
@@ -300,8 +302,8 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             (res, 0)
         }
         SegmentArcConfig::OnePoint(point, _) => {
-            let mut line00 = arcline(line0.a, point);
-            let mut line01 = arcline(point, line0.b);
+            let mut line00 = arcseg(line0.a, point);
+            let mut line01 = arcseg(point, line0.b);
             let mut arc10 = arc(arc1.a, point, arc1.c, arc1.r);
             let mut arc11 = arc(point, arc1.b, arc1.c, arc1.r);
             line00.id(line0.id);
@@ -317,9 +319,9 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
         SegmentArcConfig::TwoPoints(point0, point1, _, _) => {
             let mut p0 = point0;
             let mut p1 = point1;
-            let mut line00 = arcline(line0.a, p0);
-            let mut line01 = arcline(p0, p1);
-            let mut line02 = arcline(p1, line0.b);
+            let mut line00 = arcseg(line0.a, p0);
+            let mut line01 = arcseg(p0, p1);
+            let mut line02 = arcseg(p1, line0.b);
             if points_order(arc1.a, p0, p1) < ZERO {
                 (p1, p0) = (p0, p1);
             }
@@ -360,10 +362,10 @@ mod test_offset_split_arcs {
     use super::*;
 
     fn show(arc0: &Arc, arc1: &Arc, arcs: &Vec<Arc>, svg: &mut SVG) {
-        svg.offset_segment(&arc0, "grey");
-        svg.offset_segment(&arc1, "grey");
+        svg.arcsegment(&arc0, "grey");
+        svg.arcsegment(&arc1, "grey");
         for arc in arcs.iter() {
-            svg.offset_segment(&arc, "blue");
+            svg.arcsegment(&arc, "blue");
             svg.circle(&circle(arc.a, 1.1), "red");
             svg.circle(&circle(arc.b, 1.1), "red");
         }
@@ -423,8 +425,8 @@ mod test_offset_split_arcs {
     #[test]
     fn test_overlaping_lines() {
         let mut svg = svg(200.0, 100.0);
-        let arc0 = arcline(point(50.0, 50.0), point(150.0, 50.0));
-        let arc1 = arcline(point(100.0, 50.0), point(200.0, 50.0));
+        let arc0 = arcseg(point(50.0, 50.0), point(150.0, 50.0));
+        let arc1 = arcseg(point(100.0, 50.0), point(200.0, 50.0));
         let (res, count) = split_line_line(&arc0, &arc1);
         show(&arc0, &arc1, &res, &mut svg);
         assert_eq!(count, 3);
@@ -565,7 +567,7 @@ mod test_offset_split_arcs {
     fn test_split_segment_arc_issue_01() {
         let mut svg = svg(200.0, 300.0);
         let arc0 = arc(point(51.538461538461533, 246.30769230769232), point(-23.494939167562663, 105.0), point(100.0, 130.0), 126.0);
-        let seg1 = arcline(point(-25.599999999999994, -0.80000000000001137), point(-25.599999999999994, 150.80000000000001));
+        let seg1 = arcseg(point(-25.599999999999994, -0.80000000000001137), point(-25.599999999999994, 150.80000000000001));
         let (res, _) = split_segment_arc(&seg1, &arc0);
         show(&arc0, &seg1, &res, &mut svg);
         // assert_eq!(count, 4);

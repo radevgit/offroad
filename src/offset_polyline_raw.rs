@@ -2,6 +2,8 @@
 
 use geom::prelude::*;
 
+use crate::offset_raw::OffsetRaw;
+
 const ZERO: f64 = 0f64;
 
 pub fn offset_polyline_raw(plines: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<OffsetRaw>> {
@@ -36,7 +38,7 @@ fn line_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
     let perp = seg.b - seg.a;
     let (perp, _) = point(perp.y, -perp.x).normalize();
     let offset_vec = perp * off;
-    let mut arc = arcline(seg.a + offset_vec, seg.b + offset_vec);
+    let mut arc = arcseg(seg.a + offset_vec, seg.b + offset_vec);
     arc.id(seg.id);
     return OffsetRaw {
         arc,
@@ -62,7 +64,7 @@ fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
         || arc_is_collapsed_ends(a, b, EPS_COLLAPSED)
     {
         // Collapsed arc is now line
-        let mut arc = arcline(b, a);
+        let mut arc = arcseg(b, a);
         arc.id(seg.id);
         return OffsetRaw {
             arc: arc,
@@ -123,9 +125,57 @@ pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     offs
 }
 
+
+pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
+    let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
+    for arcs in arcss {
+        varcs.push(arcs_to_raws_single(arcs));
+    }
+    varcs
+}
+
+pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
+    let mut offs = Vec::with_capacity(arcs.len() + 1);
+ 
+    for i in 0..arcs.len() - 1 {
+        let seg = arcs[i];
+        let check = arc_check(&seg, EPS_COLLAPSED);
+        if !check {
+            continue;
+        }
+        let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
+        let orig = if bulge < ZERO { seg.a } else { seg.b };
+        let off = OffsetRaw {
+            arc: seg,
+            orig: orig,
+            g: bulge,
+        };
+        offs.push(off);
+    }
+    // last segment
+    let seg = arcs.last().unwrap();
+    let check = arc_check(&seg, EPS_COLLAPSED);
+    if check {
+        let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
+        let orig = if bulge < ZERO { seg.a } else { seg.b };
+        let off = OffsetRaw {
+            arc: *seg,
+            orig: orig,
+            g: bulge,
+        };
+        offs.push(off);
+    }
+
+    offs
+}
+
+
+
 #[cfg(test)]
 mod test_offset_polyline_raw {
     use geom::prelude::*;
+
+    use crate::offset_raw::offsetraw;
 
     use super::*;
 
@@ -259,7 +309,7 @@ mod test_offset_polyline_raw {
         svg.circle(&circle0, "blue");
 
         let offsetraw = offset_segment(&arc0, point(-52.0, 250.0), -0.6068148963145962, 16.0);
-        svg.offset_segment(&offsetraw.arc, "green");
+        svg.arcsegment(&offsetraw.arc, "green");
         let circle1 = circle(point(offsetraw.arc.c.x, offsetraw.arc.c.y), 0.1);
         svg.circle(&circle1, "blue");
 
