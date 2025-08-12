@@ -2,7 +2,7 @@
 name = "offroad"
 version = "0.0.5"
 description = "2D offsetting for arc polylines/polygons."
-rust-version = "1.89"
+rust-version = "1.88"
 edition = "2024"
 categories = ["algorithms", "data-structures", "graphics", "mathematics"]
 keywords = ["offset", "arc", "polyline", "cnc", "polygon"]
