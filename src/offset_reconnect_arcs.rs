@@ -371,8 +371,11 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
     let mut all_vertices = HashSet::new();
     
     for &(u, v) in graph {
-        adj_list.entry(u).or_insert_with(Vec::new).push(v);
-        adj_list.entry(v).or_insert_with(Vec::new).push(u);
+            // Skip self-loops as they don't contribute to cycle structure
+        if u != v {
+            adj_list.entry(u).or_insert_with(Vec::new).push(v);
+            adj_list.entry(v).or_insert_with(Vec::new).push(u);
+        }
         all_vertices.insert(u);
         all_vertices.insert(v);
     }
@@ -381,27 +384,34 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
     for neighbors in adj_list.values_mut() {
         neighbors.sort();
     }
-    
+
+    println!("DEBUG: Adjacency list: {:?}", adj_list);
+    println!("DEBUG: All vertices: {:?}", all_vertices);
+
     let mut visited = HashSet::new();
     let mut cycles = Vec::new();
-    
+
     // Find cycles in each connected component
     for &start_vertex in &all_vertices {
         if visited.contains(&start_vertex) {
             continue;
         }
-        
+
+        println!("DEBUG: Finding component starting from vertex {}", start_vertex);
         // Find connected component starting from this vertex
         let component_vertices = find_component_vertices(start_vertex, &adj_list, &mut visited);
-        
+        println!("DEBUG: Found component with {} vertices: {:?}", component_vertices.len(), component_vertices);
+
         if component_vertices.len() >= 3 {
+            println!("DEBUG: Looking for cycles in component with {} vertices", component_vertices.len());
             // Find cycles in this component using iterative DFS (no recursion)
             let component_cycles = find_cycles_iterative(&component_vertices, &adj_list);
+            println!("DEBUG: Found {} cycles in component", component_cycles.len());
             cycles.extend(component_cycles);
+        } else {
+            println!("DEBUG: Skipping component with {} vertices (need >= 3)", component_vertices.len());
         }
-    }
-    
-    cycles
+    }    cycles
 }
 
 #[doc(hidden)]
@@ -415,13 +425,17 @@ fn find_cycles_iterative(
     if component.len() < 3 {
         return Vec::new();
     }
-    
+
+    println!("DEBUG: find_cycles_iterative called with {} vertices", component.len());
+
     let mut cycles = Vec::new();
     let component_set: HashSet<usize> = component.iter().cloned().collect();
-    
+
     // Try to find cycles starting from each vertex using iterative DFS
     for &start in component {
+        println!("DEBUG: Looking for cycles starting from vertex {}", start);
         let found_cycles = find_cycles_from_vertex_iterative(start, adj_list, &component_set);
+        println!("DEBUG: Found {} cycles starting from vertex {}", found_cycles.len(), start);
         for cycle in found_cycles {
             // Normalize and check for duplicates
             let mut normalized_cycle = cycle;
@@ -430,12 +444,13 @@ fn find_cycles_iterative(
             }
             
             if !is_duplicate_cycle(&normalized_cycle, &cycles) {
+                println!("DEBUG: Adding new cycle of length {}: {:?}", normalized_cycle.len(), normalized_cycle);
                 cycles.push(normalized_cycle);
+            } else {
+                println!("DEBUG: Skipping duplicate cycle of length {}", normalized_cycle.len());
             }
         }
-    }
-    
-    // Sort cycles by length for deterministic results
+    }    // Sort cycles by length for deterministic results
     cycles.sort_by(|a, b| a.len().cmp(&b.len()));
     
     cycles
