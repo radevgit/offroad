@@ -10,9 +10,9 @@ checksum = "862ed96ca487e809f1c8e5a8447f6ee2cf102f846893800b20cebdf541fc6bbd"
 
 [[package]]
 name = "basegeom"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6275c348c61dfc2c342d3fb57f64dcd290f4f1791d27b8e309f4ba79d58bc944"
+checksum = "5e0b415cfe21ec51c8352a5ac4f37dc60d923e06116f606dde1c1bec020c970b"
 dependencies = [
  "robust",
 ]

@@ -450,7 +450,7 @@ pub fn svg_offset_raws(svg: &mut SVG, offset_raws: &Vec<Vec<OffsetRaw>>, color: 
         for seg in raw {
             if seg.arc.is_line() {
                 let segment = segment(seg.arc.a, seg.arc.b);
-                svg.line(&segment, color);
+                svg.segment(&segment, color);
             } else {
                 svg.arc(&seg.arc, color);
             }
