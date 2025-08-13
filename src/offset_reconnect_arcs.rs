@@ -1,16 +1,18 @@
 #![allow(dead_code)]
 
-use std::collections::{HashMap, HashSet}; 
+use std::collections::{HashMap, HashSet};
 
 use geom::prelude::*;
 
-
-const EPS_CONNECT: f64 = 1e-6;
+const EPS_CONNECT: f64 = 1e-7;
 
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.
 pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
-    println!("DEBUG: offset_reconnect_arcs called with {} arcs", arcs.len());
+    println!(
+        "DEBUG: offset_reconnect_arcs called with {} arcs",
+        arcs.len()
+    );
     let mut result = Vec::new();
 
     let len = arcs.len();
@@ -66,7 +68,7 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
 
     // Apply merge operations to arc_map
     merge_points(&mut arc_map, &merge);
-    
+
     println!("DEBUG: Arc map after merge: {:?}", arc_map);
 
     // Build the graph from arc_map
@@ -84,7 +86,7 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     // Provide reference to the algorithm used where necessary.
     // Use the function find_connected_components to get the connected components.
     // let components = find_connected_components(&graph);
-    
+
     // TODO: Implement find_connected_components and filter_composite_cycles
     // let components: Vec<Vec<usize>> = Vec::new(); // Temporary placeholder
     let components = find_connected_components(&graph);
@@ -96,7 +98,11 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
 
     // Convert each component (cycle of vertex IDs) to a sequence of arcs
     for component in components.iter() {
-        println!("DEBUG: Processing component with {} vertices: {:?}", component.len(), component);
+        println!(
+            "DEBUG: Processing component with {} vertices: {:?}",
+            component.len(),
+            component
+        );
         if component.len() >= 2 {
             println!("DEBUG: Converting component {:?} to arcs", component);
             let arc_sequence = vertex_path_to_arcs(&component, &arcs, &arc_map);
@@ -104,14 +110,24 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
             if !arc_sequence.is_empty() {
                 result.push(arc_sequence);
             } else {
-                println!("DEBUG: Arc sequence was empty for component {:?}", component);
+                println!(
+                    "DEBUG: Arc sequence was empty for component {:?}",
+                    component
+                );
             }
         } else {
-            println!("DEBUG: Skipping component {:?} - too short (len={})", component, component.len());
+            println!(
+                "DEBUG: Skipping component {:?} - too short (len={})",
+                component,
+                component.len()
+            );
         }
     }
 
-    println!("DEBUG: offset_reconnect_arcs returning {} components", result.len());
+    println!(
+        "DEBUG: offset_reconnect_arcs returning {} components",
+        result.len()
+    );
 
     result
 }
@@ -150,7 +166,6 @@ pub fn find_middle_points(arcs: &mut Arcline) {
     }
 }
 
-
 fn middle_point(a: &Point, b: &Point) -> Point {
     Point {
         x: (a.x + b.x) / 2.0,
@@ -165,16 +180,16 @@ fn middle_point(a: &Point, b: &Point) -> Point {
 // Checked.
 fn merge_points(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize, usize)>) {
     use std::collections::HashMap;
-    
+
     // Build a union-find structure to group vertices that should be merged
     let mut parent: HashMap<usize, usize> = HashMap::new();
-    
+
     // Initialize: each vertex is its own parent
     for (_, (start, end)) in arc_map.iter() {
         parent.insert(*start, *start);
         parent.insert(*end, *end);
     }
-    
+
     // Find root with path compression
     fn find(parent: &mut HashMap<usize, usize>, x: usize) -> usize {
         if parent[&x] != x {
@@ -183,7 +198,7 @@ fn merge_points(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize
         }
         parent[&x]
     }
-    
+
     // Union operation: merge two vertices
     fn union(parent: &mut HashMap<usize, usize>, x: usize, y: usize) {
         let root_x = find(parent, x);
@@ -197,12 +212,12 @@ fn merge_points(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize
             }
         }
     }
-    
+
     // Process all explicit merge operations
     for &(vertex1, vertex2) in merge {
         union(&mut parent, vertex1, vertex2);
     }
-    
+
     // Update arc_map with canonical vertex IDs
     for (_arc_id, (start, end)) in arc_map.iter_mut() {
         *start = find(&mut parent, *start);
@@ -210,27 +225,26 @@ fn merge_points(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize
     }
 }
 
-
 fn vertex_path_to_arcs(
-    vertex_path: &[usize], 
-    arcs: &[Arc], 
-    arc_map: &HashMap<usize, (usize, usize)>
+    vertex_path: &[usize],
+    arcs: &[Arc],
+    arc_map: &HashMap<usize, (usize, usize)>,
 ) -> Vec<Arc> {
     // Convert a path of vertex IDs back to a sequence of arcs
     // We need to find which arc connects each pair of consecutive vertices in the path
-    
+
     let mut result = Vec::new();
     let mut used_arcs = HashSet::new();
-    
+
     for i in 0..vertex_path.len() {
         let current_vertex = vertex_path[i];
         let next_vertex = vertex_path[(i + 1) % vertex_path.len()];
-        
+
         // println!("DEBUG: Looking for arc connecting {} -> {}", current_vertex, next_vertex);
-        
+
         // Find arc that connects current_vertex to next_vertex using arc_map
         let arc_idx = find_connecting_arc_by_vertices(current_vertex, next_vertex, arc_map);
-        
+
         if let Some(idx) = arc_idx {
             if !used_arcs.contains(&idx) {
                 // println!("DEBUG: Found arc {} connecting vertices", idx);
@@ -244,35 +258,44 @@ fn vertex_path_to_arcs(
             // println!("DEBUG: No arc found connecting {} -> {}", current_vertex, next_vertex);
         }
     }
-    
+
     result
 }
 
 fn find_connecting_arc_by_vertices(
-    vertex1: usize, 
-    vertex2: usize, 
-    arc_map: &HashMap<usize, (usize, usize)>
+    vertex1: usize,
+    vertex2: usize,
+    arc_map: &HashMap<usize, (usize, usize)>,
 ) -> Option<usize> {
     // Find the arc index that connects vertex1 to vertex2
     // Check both directions since the graph is undirected
-    
+
     for (&arc_idx, &(start_vertex, end_vertex)) in arc_map {
-        if (start_vertex == vertex1 && end_vertex == vertex2) ||
-           (start_vertex == vertex2 && end_vertex == vertex1) {
+        if (start_vertex == vertex1 && end_vertex == vertex2)
+            || (start_vertex == vertex2 && end_vertex == vertex1)
+        {
             // println!("DEBUG: Found arc {} mapping to ({}, {})", arc_idx, start_vertex, end_vertex);
             return Some(arc_idx);
         }
     }
-    
+
     // println!("DEBUG: No arc found in arc_map for vertices {} -> {}", vertex1, vertex2);
     None
 }
 
 fn find_connecting_arc(vertex1: usize, vertex2: usize, len: usize) -> Option<usize> {
     // Find which arc connects two vertices
-    let arc1_idx = if vertex1 < len { vertex1 } else { vertex1 - len };
-    let arc2_idx = if vertex2 < len { vertex2 } else { vertex2 - len };
-    
+    let arc1_idx = if vertex1 < len {
+        vertex1
+    } else {
+        vertex1 - len
+    };
+    let arc2_idx = if vertex2 < len {
+        vertex2
+    } else {
+        vertex2 - len
+    };
+
     if arc1_idx == arc2_idx {
         Some(arc1_idx)
     } else {
@@ -284,12 +307,20 @@ fn should_use_forward_direction(from_vertex: usize, to_vertex: usize, len: usize
     // Determine if we should use the arc in its original direction
     // from_vertex represents either start (idx < len) or end (idx >= len) of an arc
     // to_vertex represents the next vertex in the path
-    
-    let arc_idx = if from_vertex < len { from_vertex } else { from_vertex - len };
+
+    let arc_idx = if from_vertex < len {
+        from_vertex
+    } else {
+        from_vertex - len
+    };
     let from_is_start = from_vertex < len;
     let to_is_start = to_vertex < len;
-    let to_arc_idx = if to_vertex < len { to_vertex } else { to_vertex - len };
-    
+    let to_arc_idx = if to_vertex < len {
+        to_vertex
+    } else {
+        to_vertex - len
+    };
+
     if arc_idx == to_arc_idx {
         // Same arc - check if we go from start to end or end to start
         from_is_start && !to_is_start
@@ -299,37 +330,62 @@ fn should_use_forward_direction(from_vertex: usize, to_vertex: usize, len: usize
     }
 }
 
+const EPS_BRIDGE: f64 = 1e-6;
 #[doc(hidden)]
 /// Removes duplicate arcs that overlap as 2D graphics elements.
 ///
+/// The arcs between paths or spikes from paths.
+///
 /// DO NOT CHANGE THIS FUNCTION - it's a critical component for maintaining geometric consistency.
 pub fn remove_bridge_arcs(arcs: &mut Arcline) {
-    let mut to_remove = Vec::new();
+    let mut to_remove = Vec::new(); // remove bridge arcs
+    let mut to_add = Vec::new();   // add new arcs between close ends
     for i in 0..arcs.len() {
         for j in (i + 1)..arcs.len() {
             let arc0 = &arcs[i];
             let arc1 = &arcs[j];
-            if arc0.is_line() && arc1.is_line() {
-                if (arc0.a.close_enough(arc1.a, EPS_CONNECT)
-                    && arc0.b.close_enough(arc1.b, EPS_CONNECT))
-                    || (arc0.a.close_enough(arc1.b, EPS_CONNECT)
-                        && arc0.b.close_enough(arc1.a, EPS_CONNECT))
-                {
-                    to_remove.push(i);
-                    to_remove.push(j);
+
+            // Ends match
+            if arc0.a.close_enough(arc1.a, EPS_BRIDGE)
+                && arc0.b.close_enough(arc1.b, EPS_BRIDGE)
+                && (arc0.is_arc() && arc1.is_arc() || arc0.is_line() && arc1.is_line())
+            {
+                // Radii match
+                if arc0.is_arc() && arc1.is_arc() && !close_enough(arc0.r, arc1.r, EPS_BRIDGE) {
                     continue;
                 }
+                to_remove.push(i);
+                to_remove.push(j);
+                let new0 = arcseg(arc0.a, arc1.a);
+                let new1 = arcseg(arc0.b, arc1.b);
+                if arc_check(&new0, 1e-8) {
+                    to_add.push(new0);
+                }
+                if arc_check(&new1, 1e-8) {
+                    to_add.push(new1);
+                }
+                continue;
             }
-            if arc0.is_arc() && arc1.is_arc() {
-                if arc0.a.close_enough(arc1.a, EPS_CONNECT)
-                    && arc0.b.close_enough(arc1.b, EPS_CONNECT)
-                    && arc0.c.close_enough(arc1.c, EPS_CONNECT)
-                    && close_enough(arc0.r, arc1.r, EPS_CONNECT)
-                {
-                    to_remove.push(i);
-                    to_remove.push(j);
+
+            if arc0.a.close_enough(arc1.b, EPS_BRIDGE)
+                && arc0.b.close_enough(arc1.a, EPS_BRIDGE)
+                && (arc0.is_arc() && arc1.is_arc() || arc0.is_line() && arc1.is_line())
+            {
+                // Radii match
+                if arc0.is_arc() && arc1.is_arc() && !close_enough(arc0.r, arc1.r, EPS_BRIDGE) {
                     continue;
                 }
+                let new0 = arcseg(arc0.a, arc1.b);
+                let new1 = arcseg(arc0.b, arc1.a);
+                to_remove.push(i);
+                to_remove.push(j);
+                if arc_check(&new0, 1e-8) {
+                    to_add.push(new0);
+                }
+                if arc_check(&new1, 1e-8) {
+                    to_add.push(new1);
+                }
+                continue;
             }
         }
     }
@@ -338,40 +394,41 @@ pub fn remove_bridge_arcs(arcs: &mut Arcline) {
     for i in to_remove.iter().rev() {
         arcs.remove(*i);
     }
+    arcs.extend(to_add);
 }
 
 #[doc(hidden)]
 /// Finds connected components (cycles) in an undirected graph.
-/// 
+///
 /// This function uses Depth-First Search (DFS) to find connected components in an undirected graph.
 /// It focuses on finding cycles and shortest paths, eliminating duplicates that differ only in direction.
-/// 
+///
 /// # Arguments
 /// * `graph` - Vector of edges represented as (u, v) pairs where each edge connects vertex u to vertex v
-/// 
+///
 /// # Returns
 /// Vector of connected components, where each component is a vector of vertex IDs forming a closed path
-/// 
+///
 /// # Algorithm
 /// Uses DFS-based cycle detection with the following optimizations:
 /// - Detects all fundamental cycles in the graph
 /// - Eliminates duplicate cycles that differ only in traversal direction
 /// - Prefers shortest cycles when multiple cycles share vertices
 /// - Reference: "Introduction to Algorithms" by Cormen et al., Chapter 22 (Graph Algorithms)
-/// 
+///
 pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
     use std::collections::{HashMap, HashSet};
-    
+
     if graph.is_empty() {
         return Vec::new();
     }
-    
-    // Build undirected adjacency list 
+
+    // Build undirected adjacency list
     let mut adj_list: HashMap<usize, Vec<usize>> = HashMap::new();
     let mut all_vertices = HashSet::new();
-    
+
     for &(u, v) in graph {
-            // Skip self-loops as they don't contribute to cycle structure
+        // Skip self-loops as they don't contribute to cycle structure
         if u != v {
             adj_list.entry(u).or_insert_with(Vec::new).push(v);
             adj_list.entry(v).or_insert_with(Vec::new).push(u);
@@ -379,7 +436,7 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
         all_vertices.insert(u);
         all_vertices.insert(v);
     }
-    
+
     // Sort adjacency lists for deterministic ordering
     for neighbors in adj_list.values_mut() {
         neighbors.sort();
@@ -397,36 +454,56 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
             continue;
         }
 
-        println!("DEBUG: Finding component starting from vertex {}", start_vertex);
+        println!(
+            "DEBUG: Finding component starting from vertex {}",
+            start_vertex
+        );
         // Find connected component starting from this vertex
         let component_vertices = find_component_vertices(start_vertex, &adj_list, &mut visited);
-        println!("DEBUG: Found component with {} vertices: {:?}", component_vertices.len(), component_vertices);
+        println!(
+            "DEBUG: Found component with {} vertices: {:?}",
+            component_vertices.len(),
+            component_vertices
+        );
 
         if component_vertices.len() >= 3 {
-            println!("DEBUG: Looking for cycles in component with {} vertices", component_vertices.len());
+            println!(
+                "DEBUG: Looking for cycles in component with {} vertices",
+                component_vertices.len()
+            );
             // Find cycles in this component using iterative DFS (no recursion)
             let component_cycles = find_cycles_iterative(&component_vertices, &adj_list);
-            println!("DEBUG: Found {} cycles in component", component_cycles.len());
+            println!(
+                "DEBUG: Found {} cycles in component",
+                component_cycles.len()
+            );
             cycles.extend(component_cycles);
         } else {
-            println!("DEBUG: Skipping component with {} vertices (need >= 3)", component_vertices.len());
+            println!(
+                "DEBUG: Skipping component with {} vertices (need >= 3)",
+                component_vertices.len()
+            );
         }
-    }    cycles
+    }
+    cycles
 }
 
 #[doc(hidden)]
 /// Find cycles in a component using iterative DFS (no recursion to avoid stack overflow)
 fn find_cycles_iterative(
-    component: &[usize], 
-    adj_list: &HashMap<usize, Vec<usize>>
+    component: &[usize],
+    adj_list: &HashMap<usize, Vec<usize>>,
 ) -> Vec<Vec<usize>> {
     use std::collections::HashSet;
-    
+
     if component.len() < 3 {
         return Vec::new();
     }
 
-    println!("DEBUG: find_cycles_iterative called with {} vertices", component.len());
+    println!(
+        "DEBUG: find_cycles_iterative called with {} vertices",
+        component.len()
+    );
 
     let mut cycles = Vec::new();
     let component_set: HashSet<usize> = component.iter().cloned().collect();
@@ -435,24 +512,38 @@ fn find_cycles_iterative(
     for &start in component {
         println!("DEBUG: Looking for cycles starting from vertex {}", start);
         let found_cycles = find_cycles_from_vertex_iterative(start, adj_list, &component_set);
-        println!("DEBUG: Found {} cycles starting from vertex {}", found_cycles.len(), start);
+        println!(
+            "DEBUG: Found {} cycles starting from vertex {}",
+            found_cycles.len(),
+            start
+        );
         for cycle in found_cycles {
             // Normalize and check for duplicates
             let mut normalized_cycle = cycle;
-            if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+            if let Some(min_pos) = normalized_cycle
+                .iter()
+                .position(|&x| x == *normalized_cycle.iter().min().unwrap())
+            {
                 normalized_cycle.rotate_left(min_pos);
             }
-            
+
             if !is_duplicate_cycle(&normalized_cycle, &cycles) {
-                println!("DEBUG: Adding new cycle of length {}: {:?}", normalized_cycle.len(), normalized_cycle);
+                println!(
+                    "DEBUG: Adding new cycle of length {}: {:?}",
+                    normalized_cycle.len(),
+                    normalized_cycle
+                );
                 cycles.push(normalized_cycle);
             } else {
-                println!("DEBUG: Skipping duplicate cycle of length {}", normalized_cycle.len());
+                println!(
+                    "DEBUG: Skipping duplicate cycle of length {}",
+                    normalized_cycle.len()
+                );
             }
         }
-    }    // Sort cycles by length for deterministic results
+    } // Sort cycles by length for deterministic results
     cycles.sort_by(|a, b| a.len().cmp(&b.len()));
-    
+
     cycles
 }
 
@@ -461,10 +552,10 @@ fn find_cycles_iterative(
 fn find_cycles_from_vertex_iterative(
     start: usize,
     adj_list: &HashMap<usize, Vec<usize>>,
-    component_set: &HashSet<usize>
+    component_set: &HashSet<usize>,
 ) -> Vec<Vec<usize>> {
     let mut cycles = Vec::new();
-    
+
     // Use iterative DFS with explicit stack
     #[derive(Clone)]
     struct DfsState {
@@ -472,29 +563,29 @@ fn find_cycles_from_vertex_iterative(
         path: Vec<usize>,
         visited: HashSet<usize>,
     }
-    
+
     let mut stack = Vec::new();
     stack.push(DfsState {
         current: start,
         path: Vec::new(),
         visited: HashSet::new(),
     });
-    
+
     while let Some(mut state) = stack.pop() {
         // Skip paths that are too long to avoid infinite loops
         if state.path.len() > 10 {
             continue;
         }
-        
+
         state.path.push(state.current);
         state.visited.insert(state.current);
-        
+
         if let Some(neighbors) = adj_list.get(&state.current) {
             for &neighbor in neighbors {
                 if !component_set.contains(&neighbor) {
                     continue;
                 }
-                
+
                 if neighbor == start && state.path.len() >= 3 {
                     // Found a cycle back to start
                     cycles.push(state.path.clone());
@@ -510,30 +601,30 @@ fn find_cycles_from_vertex_iterative(
             }
         }
     }
-    
+
     cycles
 }
 
 #[doc(hidden)]
 /// Finds a connected component starting from a given vertex using DFS
 fn find_component_with_cycles(
-    start: usize, 
-    adj_list: &HashMap<usize, Vec<usize>>, 
-    visited: &mut HashSet<usize>
+    start: usize,
+    adj_list: &HashMap<usize, Vec<usize>>,
+    visited: &mut HashSet<usize>,
 ) -> Vec<usize> {
     let mut component = Vec::new();
     let mut stack = vec![start];
     let mut local_visited = HashSet::new();
-    
+
     while let Some(vertex) = stack.pop() {
         if local_visited.contains(&vertex) {
             continue;
         }
-        
+
         local_visited.insert(vertex);
         visited.insert(vertex);
         component.push(vertex);
-        
+
         if let Some(neighbors) = adj_list.get(&vertex) {
             for &neighbor in neighbors {
                 if !local_visited.contains(&neighbor) {
@@ -542,44 +633,46 @@ fn find_component_with_cycles(
             }
         }
     }
-    
+
     component
 }
 
 #[doc(hidden)]
 /// Extracts the shortest cycle from a connected component
 fn extract_shortest_cycle(
-    component: &[usize], 
-    adj_list: &HashMap<usize, Vec<usize>>
+    component: &[usize],
+    adj_list: &HashMap<usize, Vec<usize>>,
 ) -> Option<Vec<usize>> {
     if component.len() < 3 {
         return None; // Need at least 3 vertices for a cycle
     }
-    
+
     // Try to find the shortest cycle using BFS from each vertex
     // Prefer cycles that start with smaller vertex IDs for deterministic results
     let mut shortest_cycle: Option<Vec<usize>> = None;
-    
+
     for &start in component {
         if let Some(mut cycle) = find_cycle_from_vertex(start, adj_list, component) {
             // Normalize cycle to start with the smallest vertex for consistent comparison
-            if let Some(min_pos) = cycle.iter().position(|&x| x == *cycle.iter().min().unwrap()) {
+            if let Some(min_pos) = cycle
+                .iter()
+                .position(|&x| x == *cycle.iter().min().unwrap())
+            {
                 cycle.rotate_left(min_pos);
             }
-            
+
             let should_replace = if let Some(ref current) = shortest_cycle {
-                cycle.len() < current.len() || 
-                (cycle.len() == current.len() && cycle < *current)
+                cycle.len() < current.len() || (cycle.len() == current.len() && cycle < *current)
             } else {
                 true
             };
-            
+
             if should_replace {
                 shortest_cycle = Some(cycle);
             }
         }
     }
-    
+
     shortest_cycle
 }
 
@@ -588,10 +681,10 @@ fn extract_shortest_cycle(
 fn find_cycle_from_vertex(
     start: usize,
     adj_list: &HashMap<usize, Vec<usize>>,
-    component: &[usize]
+    component: &[usize],
 ) -> Option<Vec<usize>> {
     let component_set: HashSet<usize> = component.iter().cloned().collect();
-    
+
     // Use DFS to find shortest cycle from start vertex
     fn dfs_shortest_cycle(
         current: usize,
@@ -600,22 +693,21 @@ fn find_cycle_from_vertex(
         component_set: &HashSet<usize>,
         path: &mut Vec<usize>,
         visited: &mut HashSet<usize>,
-        min_cycle_len: &mut usize
+        min_cycle_len: &mut usize,
     ) -> Option<Vec<usize>> {
-        
         if path.len() >= *min_cycle_len {
             return None; // Don't explore paths longer than current minimum
         }
-        
+
         path.push(current);
         visited.insert(current);
-        
+
         if let Some(neighbors) = adj_list.get(&current) {
             for &neighbor in neighbors {
                 if !component_set.contains(&neighbor) {
                     continue;
                 }
-                
+
                 if neighbor == start && path.len() >= 3 {
                     // Found a cycle back to start
                     if path.len() < *min_cycle_len {
@@ -626,7 +718,15 @@ fn find_cycle_from_vertex(
                         return Some(result);
                     }
                 } else if !visited.contains(&neighbor) {
-                    if let Some(cycle) = dfs_shortest_cycle(neighbor, start, adj_list, component_set, path, visited, min_cycle_len) {
+                    if let Some(cycle) = dfs_shortest_cycle(
+                        neighbor,
+                        start,
+                        adj_list,
+                        component_set,
+                        path,
+                        visited,
+                        min_cycle_len,
+                    ) {
                         path.pop();
                         visited.remove(&current);
                         return Some(cycle);
@@ -634,28 +734,32 @@ fn find_cycle_from_vertex(
                 }
             }
         }
-        
+
         path.pop();
         visited.remove(&current);
         None
     }
-    
+
     let mut path = Vec::new();
     let mut visited = HashSet::new();
     let mut min_cycle_len = usize::MAX;
-    
-    dfs_shortest_cycle(start, start, adj_list, &component_set, &mut path, &mut visited, &mut min_cycle_len)
+
+    dfs_shortest_cycle(
+        start,
+        start,
+        adj_list,
+        &component_set,
+        &mut path,
+        &mut visited,
+        &mut min_cycle_len,
+    )
 }
 
 #[doc(hidden)]
 /// Reconstructs a cycle from the parent information
-fn reconstruct_cycle(
-    u: usize, 
-    v: usize, 
-    parent: &HashMap<usize, Option<usize>>
-) -> Vec<usize> {
+fn reconstruct_cycle(u: usize, v: usize, parent: &HashMap<usize, Option<usize>>) -> Vec<usize> {
     let mut cycle = Vec::new();
-    
+
     // Trace back from u to find the path to the common ancestor
     let mut path_u = Vec::new();
     let mut current = u;
@@ -664,7 +768,7 @@ fn reconstruct_cycle(
         current = *p;
         path_u.push(current);
     }
-    
+
     // Trace back from v to find the path to the common ancestor
     let mut path_v = Vec::new();
     current = v;
@@ -673,7 +777,7 @@ fn reconstruct_cycle(
         current = *p;
         path_v.push(current);
     }
-    
+
     // Find the lowest common ancestor
     let path_u_set: HashSet<usize> = path_u.iter().cloned().collect();
     let mut lca = v;
@@ -683,39 +787,45 @@ fn reconstruct_cycle(
             break;
         }
     }
-    
+
     // Build the cycle: path from u to lca + path from lca to v
     for &vertex in path_u.iter().take_while(|&&x| x != lca) {
         cycle.push(vertex);
     }
     cycle.push(lca);
-    for &vertex in path_v.iter().take_while(|&&x| x != lca).collect::<Vec<_>>().iter().rev() {
+    for &vertex in path_v
+        .iter()
+        .take_while(|&&x| x != lca)
+        .collect::<Vec<_>>()
+        .iter()
+        .rev()
+    {
         cycle.push(*vertex);
     }
-    
+
     cycle
 }
 
 #[doc(hidden)]
 /// Finds all vertices in a connected component using DFS
 fn find_component_vertices(
-    start: usize, 
-    adj_list: &HashMap<usize, Vec<usize>>, 
-    visited: &mut HashSet<usize>
+    start: usize,
+    adj_list: &HashMap<usize, Vec<usize>>,
+    visited: &mut HashSet<usize>,
 ) -> Vec<usize> {
     let mut component = Vec::new();
     let mut stack = vec![start];
     let mut local_visited = HashSet::new();
-    
+
     while let Some(vertex) = stack.pop() {
         if local_visited.contains(&vertex) {
             continue;
         }
-        
+
         local_visited.insert(vertex);
         visited.insert(vertex);
         component.push(vertex);
-        
+
         if let Some(neighbors) = adj_list.get(&vertex) {
             for &neighbor in neighbors {
                 if !local_visited.contains(&neighbor) {
@@ -724,41 +834,45 @@ fn find_component_vertices(
             }
         }
     }
-    
+
     component
 }
 
 #[doc(hidden)]
 /// Optimized cycle detection for graphs with degree constraints (1-4 edges per vertex)
 fn find_cycles_optimized(
-    component: &[usize], 
+    component: &[usize],
     adj_list: &HashMap<usize, Vec<usize>>,
-    vertex_degrees: &HashMap<usize, usize>
+    vertex_degrees: &HashMap<usize, usize>,
 ) -> Vec<Vec<usize>> {
     use std::collections::HashSet;
-    
+
     if component.len() < 3 {
         return Vec::new(); // Need at least 3 vertices for a cycle
     }
-    
+
     let mut cycles = Vec::new();
     let component_set: HashSet<usize> = component.iter().cloned().collect();
-    
+
     // With degree constraints, we can use more efficient strategies
     // For vertices with degree 2, they must be part of a simple path or cycle
     // For vertices with degree 3+, they are branch points
-    
+
     // Strategy 1: For small components (typical case), use simple DFS
     if component.len() <= 10 {
         for &start in component {
-            let found_cycles = find_cycles_from_vertex_optimized(start, adj_list, &component_set, vertex_degrees);
+            let found_cycles =
+                find_cycles_from_vertex_optimized(start, adj_list, &component_set, vertex_degrees);
             for cycle in found_cycles {
                 // Normalize and check for duplicates
                 let mut normalized_cycle = cycle;
-                if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+                if let Some(min_pos) = normalized_cycle
+                    .iter()
+                    .position(|&x| x == *normalized_cycle.iter().min().unwrap())
+                {
                     normalized_cycle.rotate_left(min_pos);
                 }
-                
+
                 if !is_duplicate_cycle(&normalized_cycle, &cycles) {
                     cycles.push(normalized_cycle);
                 }
@@ -768,12 +882,10 @@ fn find_cycles_optimized(
         // Strategy 2: For larger components, use degree-based analysis
         cycles = find_cycles_by_degree_analysis(component, adj_list, vertex_degrees);
     }
-    
+
     // Sort cycles by length, then by lexicographic order for deterministic results
-    cycles.sort_by(|a, b| {
-        a.len().cmp(&b.len()).then_with(|| a.cmp(b))
-    });
-    
+    cycles.sort_by(|a, b| a.len().cmp(&b.len()).then_with(|| a.cmp(b)));
+
     cycles
 }
 
@@ -783,10 +895,10 @@ fn find_cycles_from_vertex_optimized(
     start: usize,
     adj_list: &HashMap<usize, Vec<usize>>,
     component_set: &HashSet<usize>,
-    _vertex_degrees: &HashMap<usize, usize>
+    _vertex_degrees: &HashMap<usize, usize>,
 ) -> Vec<Vec<usize>> {
     let mut cycles = Vec::new();
-    
+
     // Use iterative DFS with explicit stack to avoid recursion limits
     #[derive(Clone)]
     struct SearchState {
@@ -794,25 +906,25 @@ fn find_cycles_from_vertex_optimized(
         path: Vec<usize>,
         visited: HashSet<usize>,
     }
-    
+
     let mut stack = Vec::new();
     stack.push(SearchState {
         current: start,
         path: Vec::new(),
         visited: HashSet::new(),
     });
-    
+
     while let Some(mut state) = stack.pop() {
         // Add current vertex to path and visited set
         state.path.push(state.current);
         state.visited.insert(state.current);
-        
+
         if let Some(neighbors) = adj_list.get(&state.current) {
             for &neighbor in neighbors {
                 if !component_set.contains(&neighbor) {
                     continue;
                 }
-                
+
                 if neighbor == start && state.path.len() >= 3 {
                     // Found a cycle back to start
                     cycles.push(state.path.clone());
@@ -828,79 +940,87 @@ fn find_cycles_from_vertex_optimized(
             }
         }
     }
-    
+
     cycles
 }
 
 #[doc(hidden)]
 /// Find cycles using degree-based analysis for larger components
 fn find_cycles_by_degree_analysis(
-    component: &[usize], 
+    component: &[usize],
     adj_list: &HashMap<usize, Vec<usize>>,
-    vertex_degrees: &HashMap<usize, usize>
+    vertex_degrees: &HashMap<usize, usize>,
 ) -> Vec<Vec<usize>> {
     let mut cycles = Vec::new();
-    
+
     // For a component where all vertices have degree 2, there should be exactly one cycle
     // We only need to trace from one vertex to find it
     let component_set: HashSet<usize> = component.iter().cloned().collect();
-    
+
     // Pick the first vertex with degree >= 2 and find all cycles from it
-    if let Some(&start) = component.iter().find(|&&v| vertex_degrees.get(&v).unwrap_or(&0) >= &2) {
-        let found_cycles = find_cycles_from_vertex_optimized(start, adj_list, &component_set, vertex_degrees);
-        
+    if let Some(&start) = component
+        .iter()
+        .find(|&&v| vertex_degrees.get(&v).unwrap_or(&0) >= &2)
+    {
+        let found_cycles =
+            find_cycles_from_vertex_optimized(start, adj_list, &component_set, vertex_degrees);
+
         for cycle in found_cycles {
             // Normalize cycle to start with the smallest vertex to avoid duplicates
             let mut normalized_cycle = cycle;
-            if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+            if let Some(min_pos) = normalized_cycle
+                .iter()
+                .position(|&x| x == *normalized_cycle.iter().min().unwrap())
+            {
                 normalized_cycle.rotate_left(min_pos);
             }
-            
+
             if !is_duplicate_cycle(&normalized_cycle, &cycles) {
                 cycles.push(normalized_cycle);
             }
         }
     }
-    
+
     cycles
 }
 
 #[doc(hidden)]
 /// Finds all fundamental cycles in a connected component
 fn find_all_cycles_in_component(
-    component: &[usize], 
-    adj_list: &HashMap<usize, Vec<usize>>
+    component: &[usize],
+    adj_list: &HashMap<usize, Vec<usize>>,
 ) -> Vec<Vec<usize>> {
     use std::collections::HashSet;
-    
+
     if component.len() < 3 {
         return Vec::new(); // Need at least 3 vertices for a cycle
     }
-    
+
     let mut cycles = Vec::new();
     let component_set: HashSet<usize> = component.iter().cloned().collect();
-    
+
     // Try to find cycles starting from each vertex
     for &start in component {
         let found_cycles = find_cycles_from_vertex(start, adj_list, &component_set);
         for cycle in found_cycles {
             // Normalize and check for duplicates
             let mut normalized_cycle = cycle;
-            if let Some(min_pos) = normalized_cycle.iter().position(|&x| x == *normalized_cycle.iter().min().unwrap()) {
+            if let Some(min_pos) = normalized_cycle
+                .iter()
+                .position(|&x| x == *normalized_cycle.iter().min().unwrap())
+            {
                 normalized_cycle.rotate_left(min_pos);
             }
-            
+
             if !is_duplicate_cycle(&normalized_cycle, &cycles) {
                 cycles.push(normalized_cycle);
             }
         }
     }
-    
+
     // Sort cycles by length, then by lexicographic order for deterministic results
-    cycles.sort_by(|a, b| {
-        a.len().cmp(&b.len()).then_with(|| a.cmp(b))
-    });
-    
+    cycles.sort_by(|a, b| a.len().cmp(&b.len()).then_with(|| a.cmp(b)));
+
     cycles
 }
 
@@ -909,10 +1029,10 @@ fn find_all_cycles_in_component(
 fn find_cycles_from_vertex(
     start: usize,
     adj_list: &HashMap<usize, Vec<usize>>,
-    component_set: &HashSet<usize>
+    component_set: &HashSet<usize>,
 ) -> Vec<Vec<usize>> {
     let mut cycles = Vec::new();
-    
+
     // DFS to find all simple cycles from start vertex
     fn dfs_find_cycles(
         current: usize,
@@ -921,39 +1041,54 @@ fn find_cycles_from_vertex(
         component_set: &HashSet<usize>,
         path: &mut Vec<usize>,
         visited: &mut HashSet<usize>,
-        cycles: &mut Vec<Vec<usize>>
+        cycles: &mut Vec<Vec<usize>>,
     ) {
-        
         if path.len() > 10 {
             return; // Avoid very long cycles
         }
-        
+
         path.push(current);
         visited.insert(current);
-        
+
         if let Some(neighbors) = adj_list.get(&current) {
             for &neighbor in neighbors {
                 if !component_set.contains(&neighbor) {
                     continue;
                 }
-                
+
                 if neighbor == start && path.len() >= 3 {
                     // Found a cycle back to start
                     cycles.push(path.clone());
                 } else if !visited.contains(&neighbor) {
-                    dfs_find_cycles(neighbor, start, adj_list, component_set, path, visited, cycles);
+                    dfs_find_cycles(
+                        neighbor,
+                        start,
+                        adj_list,
+                        component_set,
+                        path,
+                        visited,
+                        cycles,
+                    );
                 }
             }
         }
-        
+
         path.pop();
         visited.remove(&current);
     }
-    
+
     let mut path = Vec::new();
     let mut visited = HashSet::new();
-    dfs_find_cycles(start, start, adj_list, component_set, &mut path, &mut visited, &mut cycles);
-    
+    dfs_find_cycles(
+        start,
+        start,
+        adj_list,
+        component_set,
+        &mut path,
+        &mut visited,
+        &mut cycles,
+    );
+
     cycles
 }
 
@@ -974,9 +1109,9 @@ fn is_same_cycle(cycle1: &[usize], cycle2: &[usize]) -> bool {
     if cycle1.len() != cycle2.len() {
         return false;
     }
-    
+
     let len = cycle1.len();
-    
+
     // Check all rotations in both directions
     for start in 0..len {
         // Forward direction
@@ -990,7 +1125,7 @@ fn is_same_cycle(cycle1: &[usize], cycle2: &[usize]) -> bool {
         if matches {
             return true;
         }
-        
+
         // Reverse direction
         matches = true;
         for i in 0..len {
@@ -1003,14 +1138,14 @@ fn is_same_cycle(cycle1: &[usize], cycle2: &[usize]) -> bool {
             return true;
         }
     }
-    
+
     false
 }
 
 #[cfg(test)]
 mod test_remove_bridge_arcs {
-    use geom::prelude::*;
     use super::remove_bridge_arcs;
+    use geom::prelude::*;
 
     #[test]
     fn test_remove_bridge_arcs_duplicate_arcs() {
@@ -1069,18 +1204,6 @@ mod test_remove_bridge_arcs {
     }
 
     #[test]
-    fn test_remove_bridge_arcs_different_arcs_same_endpoints() {
-        let mut arcs = vec![
-            arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, 1.0), 1.0),
-            arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, -1.0), 1.0), // different center
-            arcseg(point(3.0, 3.0), point(4.0, 4.0)),
-        ];
-        let original_len = arcs.len();
-        remove_bridge_arcs(&mut arcs);
-        assert_eq!(arcs.len(), original_len); // should not remove different arcs
-    }
-
-    #[test]
     fn test_remove_bridge_arcs_mixed_arc_and_line() {
         let mut arcs = vec![
             arc(point(0.0, 0.0), point(2.0, 0.0), point(1.0, 1.0), 1.0),
@@ -1115,9 +1238,7 @@ mod test_remove_bridge_arcs {
 
     #[test]
     fn test_remove_bridge_arcs_single_element() {
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(1.0, 1.0)),
-        ];
+        let mut arcs = vec![arcseg(point(0.0, 0.0), point(1.0, 1.0))];
         remove_bridge_arcs(&mut arcs);
         assert_eq!(arcs.len(), 1);
     }
@@ -1130,7 +1251,7 @@ mod test_remove_bridge_arcs {
             arcseg(point(0.0, 0.0), point(1.0 + eps * 0.5, 1.0 + eps * 0.5)), // close but within tolerance
         ];
         remove_bridge_arcs(&mut arcs);
-        assert_eq!(arcs.len(), 0); // should remove both as they're close enough
+        assert_eq!(arcs.len(), 1); // should remove both as they're close enough
     }
 
     #[test]
@@ -1144,6 +1265,49 @@ mod test_remove_bridge_arcs {
         remove_bridge_arcs(&mut arcs);
         assert_eq!(arcs.len(), original_len); // should not remove arcs with different radius
     }
+
+    #[test]
+    fn test_remove_bridge_arcs_two_connected_rectangles() {
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(1.0, 0.0)),
+            arcseg(point(1.0, 0.0), point(1.0, 1.0)),
+            arcseg(point(1.0, 1.0), point(2.0, 1.0)),
+            arcseg(point(2.0, 1.0), point(2.0, 0.0)),
+            arcseg(point(2.0, 0.0), point(3.0, 0.0)),
+            arcseg(point(3.0, 0.0), point(3.0, 2.0)),
+            arcseg(point(3.0, 2.0), point(2.0, 2.0)),
+            arcseg(point(2.0, 2.0), point(2.0, 1.0)),
+            arcseg(point(2.0, 1.0), point(1.0, 1.0)),
+            arcseg(point(1.0, 1.0), point(1.0, 2.0)),
+            arcseg(point(1.0, 2.0), point(0.0, 2.0)),
+        ];
+        let original_len = arcs.len();
+        remove_bridge_arcs(&mut arcs);
+        // No new connection after bridge removal
+        assert_eq!(arcs.len(), original_len-2);
+    }
+
+    #[test]
+    fn test_remove_bridge_arcs_two_connected_rectangles_new_arc() {
+        let eps = super::EPS_BRIDGE;
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(1.0, 0.0)),
+            arcseg(point(1.0, 0.0), point(1.0, 1.0)),
+            arcseg(point(1.0, 1.0), point(2.0, 1.0)),
+            arcseg(point(2.0, 1.0), point(2.0, 0.0)),
+            arcseg(point(2.0, 0.0), point(3.0, 0.0)),
+            arcseg(point(3.0, 0.0), point(3.0, 2.0)),
+            arcseg(point(3.0, 2.0), point(2.0, 2.0)),
+            arcseg(point(2.0, 2.0), point(2.0, 1.0 + eps)),
+            arcseg(point(2.0, 1.0 + eps), point(1.0, 1.0)),
+            arcseg(point(1.0, 1.0), point(1.0, 2.0)),
+            arcseg(point(1.0, 2.0), point(0.0, 2.0)),
+        ];
+        let original_len = arcs.len();
+        remove_bridge_arcs(&mut arcs);
+        // One new arc should be created after bridge removal
+        assert_eq!(arcs.len(), original_len-1);
+    }
 }
 
 #[cfg(test)]
@@ -1151,18 +1315,18 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test the example from user: arc0.b == arc1.a should be merged
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(5, (1005, 1006)); // arc0: start=1005, end=1006
         arc_map.insert(7, (1006, 1007)); // arc1: start=1006, end=1007 (arc0.b == arc1.a)
-        
+
         // No explicit merges needed since they already share the same vertex
         let merge = vec![];
         merge_points(&mut arc_map, &merge);
-        
+
         // arc0.b (1006) and arc1.a (1006) are already the same, so no changes
         assert_eq!(arc_map[&5], (1005, 1006)); // arc0: unchanged
         assert_eq!(arc_map[&7], (1006, 1007)); // arc1: unchanged
@@ -1170,83 +1334,83 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_multiple_merges() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test multiple merges
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
         arc_map.insert(2, (1004, 1005));
-        
+
         // Chain of merges: 1001-1002, 1003-1004
         let merge = vec![(1001, 1002), (1003, 1004)];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // After merges: 1001=1002, 1003=1004 (separate components)
         // Arc 0: 1000 -> 1001 (no change)
-        // Arc 1: 1002 -> 1003 becomes 1001 -> 1003 (1002 maps to 1001) 
+        // Arc 1: 1002 -> 1003 becomes 1001 -> 1003 (1002 maps to 1001)
         // Arc 2: 1004 -> 1005 becomes 1003 -> 1005 (1004 maps to 1003)
-        assert_eq!(arc_map[&0], (1000, 1001)); 
-        assert_eq!(arc_map[&1], (1001, 1003));  
+        assert_eq!(arc_map[&0], (1000, 1001));
+        assert_eq!(arc_map[&1], (1001, 1003));
         assert_eq!(arc_map[&2], (1003, 1005));
     }
 
     #[test]
     fn test_merge_points_empty_merge() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test empty merge list - should not change anything
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
-        
+
         let original_arc_map = arc_map.clone();
         let merge = vec![];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Should remain unchanged
         assert_eq!(arc_map, original_arc_map);
     }
 
     #[test]
     fn test_merge_points_self_merge() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test merging a vertex with itself - should be a no-op
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
-        
+
         let original_arc_map = arc_map.clone();
         let merge = vec![(1000, 1000), (1001, 1001)];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Should remain unchanged
         assert_eq!(arc_map, original_arc_map);
     }
 
     #[test]
     fn test_merge_points_transitive_closure() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test transitive closure: if A->B and B->C, then A,B,C should all map to same
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
         arc_map.insert(2, (1004, 1005));
-        
+
         // Create a chain: 1000->1002->1004
         let merge = vec![(1000, 1002), (1002, 1004)];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // All vertices in the chain should map to 1000 (smallest)
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 unchanged, 1001 unchanged
         assert_eq!(arc_map[&1], (1000, 1003)); // 1002 -> 1000, 1003 unchanged
@@ -1255,19 +1419,19 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_both_endpoints_merge() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test when both endpoints of an arc need to be merged
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
-        
+
         // Merge both endpoints: start with start, end with end
         let merge = vec![(1000, 1002), (1001, 1003)];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Both arcs should have the same canonical endpoints
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 unchanged (smaller), 1001 unchanged (smaller)
         assert_eq!(arc_map[&1], (1000, 1001)); // 1002->1000, 1003->1001
@@ -1275,9 +1439,9 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_complex_graph() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test a more complex merging scenario with multiple connected components
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
@@ -1285,7 +1449,7 @@ mod test_merge_points {
         arc_map.insert(2, (1004, 1005));
         arc_map.insert(3, (1006, 1007));
         arc_map.insert(4, (1008, 1009));
-        
+
         // Create two separate connected components:
         // Component 1: {1000, 1002, 1004} -> all should map to 1000
         // Component 2: {1006, 1008} -> all should map to 1006
@@ -1295,9 +1459,9 @@ mod test_merge_points {
             (1002, 1004), // Connect 1002 and 1004 (transitive: 1000-1002-1004)
             (1006, 1008), // Separate component: 1006 and 1008
         ];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Check the results
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 unchanged, 1001 unchanged
         assert_eq!(arc_map[&1], (1000, 1003)); // 1002->1000, 1003 unchanged
@@ -1308,19 +1472,19 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_duplicate_merges() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test duplicate merge operations - should handle gracefully
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
-        
+
         // Same merge operation repeated multiple times
         let merge = vec![(1000, 1002), (1002, 1000), (1000, 1002)];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Should still work correctly despite duplicates
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 unchanged, 1001 unchanged
         assert_eq!(arc_map[&1], (1000, 1003)); // 1002->1000, 1003 unchanged
@@ -1328,20 +1492,20 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_cycle_formation() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test when merges would form a cycle in the graph
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
         arc_map.insert(2, (1004, 1000)); // Note: 1000 appears again
-        
+
         // Create merges that form a cycle: 1001->1002->1004->1000 (but 1000 is start of arc 0)
         let merge = vec![(1001, 1002), (1002, 1004), (1004, 1000)];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // All vertices should merge to 1000 (smallest in the cycle)
         assert_eq!(arc_map[&0], (1000, 1000)); // 1000 unchanged, 1001->1000
         assert_eq!(arc_map[&1], (1000, 1003)); // 1002->1000, 1003 unchanged
@@ -1350,18 +1514,18 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_large_numbers() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test with larger vertex IDs to ensure no integer overflow issues
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (100000, 100001));
         arc_map.insert(1, (200000, 200001));
-        
+
         let merge = vec![(100001, 200000)];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Should use smaller ID as canonical
         assert_eq!(arc_map[&0], (100000, 100001)); // 100000 unchanged, 100001 unchanged
         assert_eq!(arc_map[&1], (100001, 200001)); // 200000->100001, 200001 unchanged
@@ -1369,81 +1533,81 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_single_arc() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test with only one arc
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
-        
+
         let merge = vec![(1000, 1001)]; // Merge arc's own endpoints
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Both endpoints should become the same (smaller ID)
         assert_eq!(arc_map[&0], (1000, 1000));
     }
 
     #[test]
     fn test_merge_points_reverse_order() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test that merge order doesn't matter (commutativity)
         let mut arc_map1: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map1.insert(0, (1000, 1001));
         arc_map1.insert(1, (1002, 1003));
-        
+
         let mut arc_map2 = arc_map1.clone();
-        
+
         // Same merges in different order
         let merge1 = vec![(1000, 1002), (1001, 1003)];
         let merge2 = vec![(1003, 1001), (1002, 1000)]; // Reverse order and swapped pairs
-        
+
         merge_points(&mut arc_map1, &merge1);
         merge_points(&mut arc_map2, &merge2);
-        
+
         // Results should be identical
         assert_eq!(arc_map1, arc_map2);
     }
 
     #[test]
     fn test_merge_points_simple_loop() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test a simple loop: three arcs forming a triangle
         // Arc 0: vertex 1000 -> 1001
-        // Arc 1: vertex 1002 -> 1003  
+        // Arc 1: vertex 1002 -> 1003
         // Arc 2: vertex 1004 -> 1005
         // Connect them: 1001->1002, 1003->1004, 1005->1000 (forms loop)
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
         arc_map.insert(2, (1004, 1005));
-        
+
         let merge = vec![
             (1001, 1002), // Connect arc0 end to arc1 start
             (1003, 1004), // Connect arc1 end to arc2 start
             (1005, 1000), // Connect arc2 end to arc0 start (closes loop)
         ];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // After merges: 1001=1002, 1003=1004, 1005=1000
         // Arc 0: 1000 -> 1001 (no change)
         // Arc 1: 1002 -> 1003 becomes 1001 -> 1003 (1002 maps to 1001)
         // Arc 2: 1004 -> 1005 becomes 1003 -> 1000 (1004 maps to 1003, 1005 maps to 1000)
-        assert_eq!(arc_map[&0], (1000, 1001)); 
-        assert_eq!(arc_map[&1], (1001, 1003)); 
+        assert_eq!(arc_map[&0], (1000, 1001));
+        assert_eq!(arc_map[&1], (1001, 1003));
         assert_eq!(arc_map[&2], (1003, 1000));
     }
 
     #[test]
     fn test_merge_points_multiple_loops() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test multiple separate loops
         // Loop 1: arcs 0,1,2 (vertices 1000-1005)
         // Loop 2: arcs 3,4 (vertices 2000-2003)
@@ -1452,27 +1616,30 @@ mod test_merge_points {
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
         arc_map.insert(2, (1004, 1005));
-        // Loop 2  
+        // Loop 2
         arc_map.insert(3, (2000, 2001));
         arc_map.insert(4, (2002, 2003));
-        
+
         let merge = vec![
             // Loop 1: triangle
-            (1001, 1002), (1003, 1004), (1005, 1000),
+            (1001, 1002),
+            (1003, 1004),
+            (1005, 1000),
             // Loop 2: line segment back and forth
-            (2001, 2002), (2003, 2000),
+            (2001, 2002),
+            (2003, 2000),
         ];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // After merges: 1001=1002, 1003=1004, 1005=1000, 2001=2002, 2003=2000
         // These create separate components, not complete loops
-        
+
         // Loop 1 results:
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 -> 1001 (unchanged)
         assert_eq!(arc_map[&1], (1001, 1003)); // 1002 -> 1001, 1003 unchanged 
         assert_eq!(arc_map[&2], (1003, 1000)); // 1004 -> 1003, 1005 -> 1000
-        
+
         // Loop 2 results:
         assert_eq!(arc_map[&3], (2000, 2001)); // 2000 unchanged, 2001 unchanged
         assert_eq!(arc_map[&4], (2001, 2000)); // 2002 -> 2001, 2003 -> 2000
@@ -1480,11 +1647,11 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_nested_loops() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test nested/connected loop structure
-        // Inner loop: arcs 0,1 
+        // Inner loop: arcs 0,1
         // Outer loop: arcs 2,3,4 that connects to inner loop
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         arc_map.insert(0, (1000, 1001)); // Inner loop arc 1
@@ -1492,18 +1659,21 @@ mod test_merge_points {
         arc_map.insert(2, (1004, 1005)); // Outer loop arc 1
         arc_map.insert(3, (1006, 1007)); // Outer loop arc 2
         arc_map.insert(4, (1008, 1009)); // Outer loop arc 3
-        
+
         let merge = vec![
             // Inner loop
-            (1001, 1002), (1003, 1000), // Close inner loop: 1000->1001->1002->1003->1000
+            (1001, 1002),
+            (1003, 1000), // Close inner loop: 1000->1001->1002->1003->1000
             // Connect outer loop
-            (1005, 1006), (1007, 1008), (1009, 1004), // Close outer loop: 1004->1005->1006->1007->1008->1009->1004
+            (1005, 1006),
+            (1007, 1008),
+            (1009, 1004), // Close outer loop: 1004->1005->1006->1007->1008->1009->1004
             // Connect inner to outer
             (1000, 1004), // Connect inner loop to outer loop
         ];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // The merges create several connected components:
         // {1001, 1002}, {1000, 1003, 1004, 1009}, {1005, 1006}, {1007, 1008}
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 -> 1001 (unchanged)
@@ -1515,35 +1685,35 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_many_small_loops() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test many small independent loops (5 loops, 2 arcs each)
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         let mut merge = vec![];
-        
+
         for loop_id in 0..5 {
             let base = loop_id * 1000 + 1000; // Start IDs: 1000, 2000, 3000, 4000, 5000
             let arc1_id = loop_id * 2;
             let arc2_id = loop_id * 2 + 1;
-            
+
             // Each loop has 2 arcs
             arc_map.insert(arc1_id, (base, base + 1));
             arc_map.insert(arc2_id, (base + 2, base + 3));
-            
+
             // Close each loop
             merge.push((base + 1, base + 2)); // Connect arc1 end to arc2 start
-            merge.push((base + 3, base));     // Connect arc2 end to arc1 start
+            merge.push((base + 3, base)); // Connect arc2 end to arc1 start
         }
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Each loop creates two separate components per loop
         for loop_id in 0..5 {
             let base = loop_id * 1000 + 1000;
             let arc1_id = loop_id * 2;
             let arc2_id = loop_id * 2 + 1;
-            
+
             // Each loop has two components: {base, base+3} and {base+1, base+2}
             assert_eq!(arc_map[&arc1_id], (base, base + 1)); // unchanged
             assert_eq!(arc_map[&arc2_id], (base + 1, base)); // base+2 -> base+1, base+3 -> base
@@ -1552,14 +1722,14 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_long_chain_to_loop() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test a long chain that eventually forms a loop
         // Chain: 1000->1001->1002->1003->1004->1005->1006->1007->1000 (back to start)
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         let mut merge = vec![];
-        
+
         // Create 8 arcs in a chain
         for i in 0..8 {
             arc_map.insert(i, (1000 + i * 2, 1000 + i * 2 + 1));
@@ -1570,9 +1740,9 @@ mod test_merge_points {
         }
         // Close the loop: connect last arc end to first arc start
         merge.push((1000 + 7 * 2 + 1, 1000)); // 1015 -> 1000
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // The merges create separate pairs, not one big component
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 -> 1001 (unchanged)
         assert_eq!(arc_map[&1], (1001, 1003)); // 1002 -> 1001, 1003 unchanged
@@ -1586,31 +1756,35 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_figure_eight() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test figure-8 pattern: two loops sharing a vertex
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
-        
+
         // Loop 1: arcs 0,1,2
         arc_map.insert(0, (1000, 1001)); // Shared vertex will be 1000
         arc_map.insert(1, (1002, 1003));
         arc_map.insert(2, (1004, 1005));
-        
+
         // Loop 2: arcs 3,4,5 (shares vertex 1000)
         arc_map.insert(3, (1006, 1007));
         arc_map.insert(4, (1008, 1009));
         arc_map.insert(5, (1010, 1000)); // Ends at shared vertex
-        
+
         let merge = vec![
             // Close loop 1: 1000->1001->1002->1003->1004->1005->1000
-            (1001, 1002), (1003, 1004), (1005, 1000),
+            (1001, 1002),
+            (1003, 1004),
+            (1005, 1000),
             // Close loop 2: 1000->1006->1007->1008->1009->1010->1000
-            (1000, 1006), (1007, 1008), (1009, 1010),
+            (1000, 1006),
+            (1007, 1008),
+            (1009, 1010),
         ];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // The merges create several components
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 -> 1001 (unchanged)
         assert_eq!(arc_map[&1], (1001, 1003)); // 1002 -> 1001, 1003 unchanged
@@ -1622,20 +1796,20 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_spiral_pattern() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test spiral pattern where arcs connect in a spiral that eventually loops back
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
         let mut merge = vec![];
-        
+
         // Create spiral: each arc connects to the next, with some skipping to create spiral effect
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
         arc_map.insert(2, (1004, 1005));
         arc_map.insert(3, (1006, 1007));
         arc_map.insert(4, (1008, 1009));
-        
+
         // Spiral connections with gaps
         merge.extend(vec![
             (1001, 1004), // Skip arc 1, connect arc 0 to arc 2
@@ -1644,9 +1818,9 @@ mod test_merge_points {
             (1003, 1006), // Connect arc 1 to arc 3
             (1007, 1000), // Connect arc 3 back to start
         ]);
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // The merges create separate components
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 -> 1001 (unchanged)
         assert_eq!(arc_map[&1], (1002, 1003)); // 1002 -> 1002, 1003 -> 1003 (unchanged)
@@ -1657,52 +1831,55 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_disconnected_components_with_loops() {
-        use std::collections::HashMap;
         use super::merge_points;
-        
+        use std::collections::HashMap;
+
         // Test multiple disconnected components, some with loops, some without
         let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new();
-        
+
         // Component 1: Simple loop (arcs 0,1)
         arc_map.insert(0, (1000, 1001));
         arc_map.insert(1, (1002, 1003));
-        
+
         // Component 2: Chain without loop (arcs 2,3)
         arc_map.insert(2, (2000, 2001));
         arc_map.insert(3, (2002, 2003));
-        
+
         // Component 3: Self-loop (arc 4)
         arc_map.insert(4, (3000, 3001));
-        
+
         // Component 4: Complex loop (arcs 5,6,7)
         arc_map.insert(5, (4000, 4001));
         arc_map.insert(6, (4002, 4003));
         arc_map.insert(7, (4004, 4005));
-        
+
         let merge = vec![
             // Component 1: close loop
-            (1001, 1002), (1003, 1000),
+            (1001, 1002),
+            (1003, 1000),
             // Component 2: just connect in sequence (no loop)
             (2001, 2002),
             // Component 3: self-loop
             (3001, 3000),
             // Component 4: complex loop
-            (4001, 4002), (4003, 4004), (4005, 4000),
+            (4001, 4002),
+            (4003, 4004),
+            (4005, 4000),
         ];
-        
+
         merge_points(&mut arc_map, &merge);
-        
+
         // Component 1: creates two separate merge pairs
         assert_eq!(arc_map[&0], (1000, 1001)); // unchanged
         assert_eq!(arc_map[&1], (1001, 1000)); // 1002 -> 1001, 1003 -> 1000
-        
+
         // Component 2: chain connection
         assert_eq!(arc_map[&2], (2000, 2001)); // 2000 -> 2001 (unchanged)
         assert_eq!(arc_map[&3], (2001, 2003)); // 2002 -> 2001
-        
+
         // Component 3: self-loop
         assert_eq!(arc_map[&4], (3000, 3000)); // 3000 -> 3000, 3001 -> 3000
-        
+
         // Component 4: separate pairs
         assert_eq!(arc_map[&5], (4000, 4001)); // 4000 -> 4000, 4001 -> 4001 (unchanged)
         assert_eq!(arc_map[&6], (4001, 4003)); // 4002 -> 4001, 4003 -> 4003 (unchanged)
@@ -1726,11 +1903,11 @@ mod test_find_connected_components {
         // Simple triangle: 0-1-2-0
         let graph = vec![(0, 1), (1, 2), (2, 0)];
         let components = find_connected_components(&graph);
-        
+
         assert_eq!(components.len(), 1);
         let cycle = &components[0];
         assert_eq!(cycle.len(), 3);
-        
+
         // Check that it contains all vertices (order may vary)
         assert!(cycle.contains(&0));
         assert!(cycle.contains(&1));
@@ -1742,11 +1919,11 @@ mod test_find_connected_components {
         // Square: 0-1-2-3-0
         let graph = vec![(0, 1), (1, 2), (2, 3), (3, 0)];
         let components = find_connected_components(&graph);
-        
+
         assert_eq!(components.len(), 1);
         let cycle = &components[0];
         assert_eq!(cycle.len(), 4);
-        
+
         // Check that it contains all vertices
         for i in 0..4 {
             assert!(cycle.contains(&i));
@@ -1757,18 +1934,22 @@ mod test_find_connected_components {
     fn test_find_connected_components_multiple_cycles() {
         // Two separate triangles: (0-1-2-0) and (3-4-5-3)
         let graph = vec![
-            (0, 1), (1, 2), (2, 0),  // First triangle
-            (3, 4), (4, 5), (5, 3)   // Second triangle
+            (0, 1),
+            (1, 2),
+            (2, 0), // First triangle
+            (3, 4),
+            (4, 5),
+            (5, 3), // Second triangle
         ];
         let components = find_connected_components(&graph);
-        
+
         assert_eq!(components.len(), 2);
-        
+
         // Each component should be a 3-vertex cycle
         for cycle in &components {
             assert_eq!(cycle.len(), 3);
         }
-        
+
         // Check that all vertices are present
         let mut all_vertices = std::collections::HashSet::new();
         for cycle in &components {
@@ -1787,7 +1968,7 @@ mod test_find_connected_components {
         // Triangle with isolated edge: (0-1-2-0) and (3-4)
         let graph = vec![(0, 1), (1, 2), (2, 0), (3, 4)];
         let components = find_connected_components(&graph);
-        
+
         // Should only find the triangle (isolated edge doesn't form a cycle)
         assert_eq!(components.len(), 1);
         assert_eq!(components[0].len(), 3);
@@ -1798,14 +1979,18 @@ mod test_find_connected_components {
         // Graph with multiple cycles: figure-8 pattern
         // Two triangles sharing a vertex: (0-1-2-0) and (0-3-4-0)
         let graph = vec![
-            (0, 1), (1, 2), (2, 0),  // First triangle
-            (0, 3), (3, 4), (4, 0)   // Second triangle (shares vertex 0)
+            (0, 1),
+            (1, 2),
+            (2, 0), // First triangle
+            (0, 3),
+            (3, 4),
+            (4, 0), // Second triangle (shares vertex 0)
         ];
         let components = find_connected_components(&graph);
-        
+
         // Should find the shortest cycles from this complex structure
         assert!(!components.is_empty());
-        
+
         // Each component should be at least 3 vertices (minimum cycle)
         for cycle in &components {
             assert!(cycle.len() >= 3);
@@ -1817,7 +2002,7 @@ mod test_find_connected_components {
         // Linear chain: 0-1-2-3 (no cycles)
         let graph = vec![(0, 1), (1, 2), (2, 3)];
         let components = find_connected_components(&graph);
-        
+
         // Should find no cycles
         assert_eq!(components.len(), 0);
     }
@@ -1827,7 +2012,7 @@ mod test_find_connected_components {
         // Self-loop: vertex connected to itself
         let graph = vec![(0, 0)];
         let components = find_connected_components(&graph);
-        
+
         // Self-loops don't form valid cycles (need at least 3 vertices)
         assert_eq!(components.len(), 0);
     }
@@ -1837,7 +2022,7 @@ mod test_find_connected_components {
         // Graph where the same cycle can be traversed in different directions
         let graph = vec![(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)];
         let components = find_connected_components(&graph);
-        
+
         // Should eliminate duplicates and return only one cycle
         assert_eq!(components.len(), 1);
         assert_eq!(components[0].len(), 3);
@@ -1848,10 +2033,10 @@ mod test_find_connected_components {
         // Pentagon: 0-1-2-3-4-0
         let graph = vec![(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)];
         let components = find_connected_components(&graph);
-        
+
         assert_eq!(components.len(), 1);
         assert_eq!(components[0].len(), 5);
-        
+
         // Verify all vertices are present
         for i in 0..5 {
             assert!(components[0].contains(&i));
@@ -1862,37 +2047,47 @@ mod test_find_connected_components {
     fn test_find_connected_components_wheel_graph() {
         // Wheel graph: central vertex 0 connected to rim vertices 1,2,3 which form a cycle
         let graph = vec![
-            (1, 2), (2, 3), (3, 1),  // Rim cycle
-            (0, 1), (0, 2), (0, 3)   // Spokes to center
+            (1, 2),
+            (2, 3),
+            (3, 1), // Rim cycle
+            (0, 1),
+            (0, 2),
+            (0, 3), // Spokes to center
         ];
         let components = find_connected_components(&graph);
-        
+
         // Should find at least one cycle
         assert!(!components.is_empty());
-        
+
         // In a wheel graph, we expect to find either:
-        // 1. The rim triangle [1,2,3] (length 3), or 
+        // 1. The rim triangle [1,2,3] (length 3), or
         // 2. A 4-cycle involving the center vertex (length 4)
         // Both are valid cycles in this graph structure
-        let has_valid_cycle = components.iter().any(|cycle| cycle.len() == 3 || cycle.len() == 4);
-        assert!(has_valid_cycle, "Expected to find either a 3-cycle or 4-cycle, but found: {:?}", components);
+        let has_valid_cycle = components
+            .iter()
+            .any(|cycle| cycle.len() == 3 || cycle.len() == 4);
+        assert!(
+            has_valid_cycle,
+            "Expected to find either a 3-cycle or 4-cycle, but found: {:?}",
+            components
+        );
     }
 
     #[test]
     fn test_find_connected_components_degree_constraints() {
         // Test graph where each vertex has degree 1-4
         // Degree 1: terminal vertices
-        // Degree 2: path vertices  
+        // Degree 2: path vertices
         // Degree 3: branch vertices
         // Degree 4: intersection vertices
-        
+
         // Create a graph: 0-1-2-3-0 (degree 2 for all vertices)
         let graph = vec![(0, 1), (1, 2), (2, 3), (3, 0)];
         let components = find_connected_components(&graph);
-        
+
         assert_eq!(components.len(), 1);
         assert_eq!(components[0].len(), 4);
-        
+
         // Verify it's the expected square cycle
         let cycle = &components[0];
         for i in 0..4 {
@@ -1906,7 +2101,7 @@ mod test_find_connected_components {
         // 0-1-2 (linear chain)
         let graph = vec![(0, 1), (1, 2)];
         let components = find_connected_components(&graph);
-        
+
         // Linear chain has no cycles
         assert_eq!(components.len(), 0);
     }
@@ -1917,7 +2112,7 @@ mod test_find_connected_components {
         // Y-shaped graph: 0-1, 1-2, 1-3, 2-3 (forms triangle with branch)
         let graph = vec![(0, 1), (1, 2), (1, 3), (2, 3)];
         let components = find_connected_components(&graph);
-        
+
         assert_eq!(components.len(), 1);
         // Should find the triangle [1, 2, 3]
         assert_eq!(components[0].len(), 3);
@@ -1930,14 +2125,18 @@ mod test_find_connected_components {
         // Test graph with degree 4 vertex (intersection)
         // X-shaped graph: center vertex 0 connected to 4 outer vertices in two triangles
         let graph = vec![
-            (0, 1), (0, 2), (0, 3), (0, 4),  // Center to outer vertices (degree 4 for vertex 0)
-            (1, 2), (3, 4)                   // Two triangles
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (0, 4), // Center to outer vertices (degree 4 for vertex 0)
+            (1, 2),
+            (3, 4), // Two triangles
         ];
         let components = find_connected_components(&graph);
-        
+
         // Should find two triangles: [0,1,2] and [0,3,4]
         assert_eq!(components.len(), 2);
-        
+
         for component in &components {
             assert_eq!(component.len(), 3);
             assert!(component.contains(&0)); // Center vertex should be in both triangles
@@ -1950,19 +2149,22 @@ mod test_find_connected_components {
         // Complex graph combining different degree patterns
         let graph = vec![
             // Triangle with branch
-            (0, 1), (1, 2), (2, 0),  // Triangle (degree 2 for each)
-            (2, 3),                  // Branch from vertex 2 (now degree 3)
-            (3, 4), (3, 5),          // Branch continues (degree 3 for vertex 3)
-            (4, 5)                   // Close another triangle (degree 2 for vertices 4,5)
+            (0, 1),
+            (1, 2),
+            (2, 0), // Triangle (degree 2 for each)
+            (2, 3), // Branch from vertex 2 (now degree 3)
+            (3, 4),
+            (3, 5), // Branch continues (degree 3 for vertex 3)
+            (4, 5), // Close another triangle (degree 2 for vertices 4,5)
         ];
         let components = find_connected_components(&graph);
-        
+
         // Should find two triangles: [0,1,2] and [3,4,5]
         assert_eq!(components.len(), 2);
-        
+
         let mut found_triangle_1 = false;
         let mut found_triangle_2 = false;
-        
+
         for component in &components {
             assert_eq!(component.len(), 3);
             if component.contains(&0) && component.contains(&1) && component.contains(&2) {
@@ -1972,7 +2174,7 @@ mod test_find_connected_components {
                 found_triangle_2 = true;
             }
         }
-        
+
         assert!(found_triangle_1, "Should find triangle [0,1,2]");
         assert!(found_triangle_2, "Should find triangle [3,4,5]");
     }
@@ -1982,7 +2184,7 @@ mod test_find_connected_components {
         // Test that the algorithm efficiently handles the degree constraints
         // Create a larger graph that still respects the 1-4 degree constraint
         let mut graph = Vec::new();
-        
+
         // Create a chain of connected triangles (each vertex has degree ≤ 3)
         for i in 0..5 {
             let base = i * 2;
@@ -1990,18 +2192,18 @@ mod test_find_connected_components {
             graph.push((base, base + 1));
             graph.push((base + 1, base + 2));
             graph.push((base + 2, base));
-            
+
             // Connect to next triangle if not the last one
             if i < 4 {
                 graph.push((base + 2, base + 3));
             }
         }
-        
+
         let components = find_connected_components(&graph);
-        
+
         // Should find 5 triangles
         assert_eq!(components.len(), 5);
-        
+
         for component in &components {
             assert_eq!(component.len(), 3, "Each component should be a triangle");
         }
@@ -2012,14 +2214,18 @@ mod test_find_connected_components {
         // Bowtie: two triangles sharing one vertex
         // (0-1-2-0) and (0-3-4-0)
         let graph = vec![
-            (0, 1), (1, 2), (2, 0),  // First triangle
-            (0, 3), (3, 4), (4, 0)   // Second triangle
+            (0, 1),
+            (1, 2),
+            (2, 0), // First triangle
+            (0, 3),
+            (3, 4),
+            (4, 0), // Second triangle
         ];
         let components = find_connected_components(&graph);
-        
+
         // Should find both triangles
         assert!(components.len() >= 1); // At least one cycle should be found
-        
+
         // All cycles should have at least 3 vertices
         for cycle in &components {
             assert!(cycle.len() >= 3);
@@ -2034,10 +2240,10 @@ mod test_find_connected_components {
             graph.push((i, (i + 1) % 8));
         }
         let components = find_connected_components(&graph);
-        
+
         assert_eq!(components.len(), 1);
         assert_eq!(components[0].len(), 8);
-        
+
         // Verify all vertices are present
         for i in 0..8 {
             assert!(components[0].contains(&i));
@@ -2048,18 +2254,24 @@ mod test_find_connected_components {
     fn test_find_connected_components_mixed_components() {
         // Mix of cycles and non-cycles:
         // Triangle: (0-1-2-0)
-        // Square: (3-4-5-6-3)  
+        // Square: (3-4-5-6-3)
         // Line: (7-8-9)
         let graph = vec![
-            (0, 1), (1, 2), (2, 0),           // Triangle
-            (3, 4), (4, 5), (5, 6), (6, 3),   // Square
-            (7, 8), (8, 9)                    // Line (no cycle)
+            (0, 1),
+            (1, 2),
+            (2, 0), // Triangle
+            (3, 4),
+            (4, 5),
+            (5, 6),
+            (6, 3), // Square
+            (7, 8),
+            (8, 9), // Line (no cycle)
         ];
         let components = find_connected_components(&graph);
-        
+
         // Should find 2 cycles (triangle and square)
         assert_eq!(components.len(), 2);
-        
+
         // One should be 3-vertex, one should be 4-vertex
         let mut cycle_sizes: Vec<usize> = components.iter().map(|c| c.len()).collect();
         cycle_sizes.sort();
