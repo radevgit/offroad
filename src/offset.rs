@@ -338,18 +338,37 @@ pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
 
 const EPS_REMOVE_DUPLICATES: f64 = 1e-8;
 #[doc(hidden)]
+/// Remove consecutive duplicate points from a polyline
 fn poly_remove_duplicates(pline: &Polyline) -> Polyline {
+    if pline.len() < 2 {
+        return pline.clone();
+    }
+    
+    let mut res: Polyline = Vec::new();
     let size = pline.len();
-    let mut res = pline.clone();
+
+    let mut old_p: Option<Point> = None;
+    let mut flag = false;
 
     for i in 0..size {
-        let cur = i % size;
+        let cur = i;
         let next = (i + 1) % size;
         let p1 = pline[cur].p;
         let p2 = pline[next].p;
         if p1.close_enough(p2, EPS_REMOVE_DUPLICATES) {
-            res[next].p = p1;
-            let _ = res.remove(cur);
+            old_p = Some(p1);
+            flag = true;
+        } else {
+            if flag {
+                // If we had a duplicate, add the last unique point
+                if let Some(point) = old_p {
+                    res.push(pvertex(point, pline[cur].b));
+                }
+                flag = false;
+            } else {
+                // If no duplicates, just add the current point
+                res.push(pline[cur]);
+            }
         }
     }
     res
@@ -2442,5 +2461,236 @@ mod test_offset {
         // // svg.offset_segments(&offset_final, "blue");
 
         // svg.write();
+    }
+}
+
+#[cfg(test)]
+mod test_poly_remove_duplicates {
+    use super::*;
+
+    #[test]
+    fn test_empty_polyline() {
+        let pline: Polyline = vec![];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_single_vertex() {
+        let pline = vec![pvertex(point(1.0, 2.0), 0.0)];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].p, point(1.0, 2.0));
+        assert_eq!(result[0].b, 0.0);
+    }
+
+    #[test]
+    fn test_no_duplicates() {
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(1.0, 0.0), 0.5),
+            pvertex(point(1.0, 1.0), -0.2),
+            pvertex(point(0.0, 1.0), 0.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 4);
+        // Should be unchanged
+        assert_eq!(result[0].p, point(0.0, 0.0));
+        assert_eq!(result[1].p, point(1.0, 0.0));
+        assert_eq!(result[2].p, point(1.0, 1.0));
+        assert_eq!(result[3].p, point(0.0, 1.0));
+    }
+
+    #[test]
+    fn test_consecutive_duplicates() {
+        // Two consecutive vertices with same point (within tolerance)
+        let eps = EPS_REMOVE_DUPLICATES / 2.0; // Half the tolerance - should be considered duplicate
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(1.0, 0.0), 0.5),
+            pvertex(point(1.0 + eps, 0.0), -0.2), // Very close to previous point
+            pvertex(point(0.0, 1.0), 0.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 3); // One vertex should be removed
+        assert_eq!(result[0].p, point(0.0, 0.0));
+        assert_eq!(result[1].p, point(1.0, 0.0)); // First point should be kept
+        assert_eq!(result[2].p, point(0.0, 1.0));
+    }
+
+    #[test]
+    fn test_exact_duplicates() {
+        // Exactly identical consecutive points
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(1.0, 0.0), 0.5),
+            pvertex(point(1.0, 0.0), -0.2), // Exact duplicate
+            pvertex(point(0.0, 1.0), 0.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 3); // One vertex should be removed
+        assert_eq!(result[0].p, point(0.0, 0.0));
+        assert_eq!(result[1].p, point(1.0, 0.0)); // First point should be kept
+        assert_eq!(result[2].p, point(0.0, 1.0));
+    }
+
+    #[test]
+    fn test_closing_duplicates() {
+        // Last and first vertices are duplicates (polyline closure)
+        let eps = EPS_REMOVE_DUPLICATES / 2.0;
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(1.0, 0.0), 0.5),
+            pvertex(point(1.0, 1.0), -0.2),
+            pvertex(point(eps, eps), 0.0), // Very close to first point
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 3); // Last vertex should be removed
+        assert_eq!(result[0].p, point(0.0, 0.0));
+        assert_eq!(result[1].p, point(1.0, 0.0));
+        assert_eq!(result[2].p, point(1.0, 1.0));
+    }
+
+    #[test]
+    fn test_multiple_consecutive_duplicates() {
+        // Multiple consecutive duplicates
+        let eps = EPS_REMOVE_DUPLICATES / 3.0;
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(1.0, 0.0), 0.5),
+            pvertex(point(1.0 + eps, eps), 0.1), // Close to previous
+            pvertex(point(1.0 - eps, -eps), -0.2), // Close to previous
+            pvertex(point(0.0, 1.0), 0.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        // Should remove duplicates iteratively
+        assert!(result.len() == 3);
+        assert_eq!(result[1].b, -0.2);
+    }
+
+    #[test]
+    fn test_just_outside_tolerance() {
+        // Points just outside the tolerance - should NOT be removed
+        let eps = EPS_REMOVE_DUPLICATES * 2.0; // Double the tolerance
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(1.0, 0.0), 0.5),
+            pvertex(point(1.0 + eps, 0.0), -0.2), // Just outside tolerance
+            pvertex(point(0.0, 1.0), 0.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 4); // No vertices should be removed
+        assert_eq!(result[0].p, point(0.0, 0.0));
+        assert_eq!(result[1].p, point(1.0, 0.0));
+        assert_eq!(result[2].p, point(1.0 + eps, 0.0));
+        assert_eq!(result[3].p, point(0.0, 1.0));
+    }
+
+    #[test]
+    fn test_preserves_bulge_values() {
+        // Ensure bulge values are preserved correctly when removing duplicates
+        let eps = EPS_REMOVE_DUPLICATES / 2.0;
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 1.5),
+            pvertex(point(1.0, 0.0), 0.5),
+            pvertex(point(1.0 + eps, 0.0), -0.8), // Duplicate point, different bulge
+            pvertex(point(0.0, 1.0), -2.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].b, 1.5);
+        assert_eq!(result[1].b, -0.8); // Original bulge should be kept
+        assert_eq!(result[2].b, -2.0);
+    }
+
+    #[test]
+    fn test_all_duplicates_except_one() {
+        // All vertices are duplicates of the first one
+        let eps = EPS_REMOVE_DUPLICATES / 3.0;
+        let pline = vec![
+            pvertex(point(5.0, 5.0), 0.0),
+            pvertex(point(5.0 + eps, 5.0), 0.5),
+            pvertex(point(5.0, 5.0 + eps), -0.2),
+            pvertex(point(5.0 - eps, 5.0 - eps), 1.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert!(result.len() == 0);
+    }
+
+    #[test]
+    fn test_alternating_close_points() {
+        // Points that are close to non-consecutive vertices (should not be removed)
+        let eps = EPS_REMOVE_DUPLICATES / 2.0;
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(10.0, 0.0), 0.5),
+            pvertex(point(eps, eps), -0.2), // Close to first, but not consecutive
+            pvertex(point(10.0 + eps, eps), 0.3), // Close to second, but not consecutive
+        ];
+        let result = poly_remove_duplicates(&pline);
+        // Only consecutive duplicates should be removed
+        assert_eq!(result.len(), 4); // No removals as these aren't consecutive
+    }
+
+    #[test]
+    fn test_very_small_coordinates() {
+        // Test with very small coordinate values
+        let tiny = 1e-12;
+        let pline = vec![
+            pvertex(point(tiny, tiny), 0.0),
+            pvertex(point(tiny * 2.0, tiny), 0.5),
+            pvertex(point(tiny * 2.0 + EPS_REMOVE_DUPLICATES / 2.0, tiny), -0.2),
+            pvertex(point(tiny, tiny * 3.0), 0.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn test_large_coordinates() {
+        // Test with large coordinate values
+        let large = 1e6;
+        let eps = EPS_REMOVE_DUPLICATES / 2.0;
+        let pline = vec![
+            pvertex(point(large, large), 0.0),
+            pvertex(point(large + 100.0, large), 0.5),
+            pvertex(point(large + 100.0 + eps, large), -0.2), // Duplicate
+            pvertex(point(large, large + 100.0), 0.0),
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 3); // One duplicate should be removed
+    }
+
+    #[test]
+    fn test_triangle_with_duplicate_vertex() {
+        // Realistic triangle case with one duplicate vertex
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(3.0, 0.0), 0.0),
+            pvertex(point(3.0, 0.0), 0.0), // Exact duplicate
+            pvertex(point(1.5, 2.6), 0.0), // Triangle apex
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].p, point(0.0, 0.0));
+        assert_eq!(result[1].p, point(3.0, 0.0));
+        assert_eq!(result[2].p, point(1.5, 2.6));
+    }
+
+    #[test]
+    fn test_square_with_mixed_duplicates() {
+        // Square with some duplicate vertices
+        let eps = EPS_REMOVE_DUPLICATES / 2.0;
+        let pline = vec![
+            pvertex(point(0.0, 0.0), 0.0),
+            pvertex(point(1.0, 0.0), 0.0),
+            pvertex(point(1.0 + eps, eps), 0.0), // Duplicate of corner
+            pvertex(point(1.0, 1.0), 0.0),
+            pvertex(point(0.0, 1.0), 0.0),
+            pvertex(point(eps, 1.0 + eps), 0.0), // Close to previous
+        ];
+        let result = poly_remove_duplicates(&pline);
+        assert!(result.len() < pline.len()); // Some duplicates should be removed
+        assert!(result.len() >= 4); // Should have at least the 4 corners of square
     }
 }
