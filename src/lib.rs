@@ -54,7 +54,7 @@ mod offset_reconnect_arcs;
 // For public API
 pub mod prelude {
     pub use crate::offset::{offset_polyline, offset_arcline, OffsetCfg};
-    pub use crate::offset::{example_polyline_01, pline_02, pline_03, pline_04};
+    pub use crate::offset::{example_polyline_01, example_polyline_02, example_polyline_03, example_polylines_04};
 }
 // For internal use
 // pub use crate::offset_polyline_raw::{offset_polyline_raw, poly_to_raws};

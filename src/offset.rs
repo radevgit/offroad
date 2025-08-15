@@ -1739,7 +1739,7 @@ pub fn example_polyline_01() -> Polyline {
 
 /// Test polyline for offseting.
 #[must_use]
-pub fn pline_02() -> Polyline {
+pub fn example_polyline_02() -> Polyline {
     vec![
         pvertex(point(50.0, 50.0), ZERO),
         pvertex(point(200.0, 50.0), ZERO),
@@ -1770,7 +1770,7 @@ pub fn pline_02() -> Polyline {
 
 /// Test polyline for offseting.
 #[must_use]
-pub fn pline_03() -> Polyline {
+pub fn example_polyline_03() -> Polyline {
     vec![
         pvertex(point(0.0, 0.0), ZERO),
         pvertex(point(200.0, 0.0), ZERO),
@@ -1783,7 +1783,7 @@ pub fn pline_03() -> Polyline {
 
 /// Test polyline for offseting.
 #[must_use]
-pub fn pline_04() -> Vec<Polyline> {
+pub fn example_polylines_04() -> Vec<Polyline> {
     let outer = vec![
         pvertex(point(50.0, 50.0), 0.2),
         pvertex(point(100.0, 50.0), -0.5),
