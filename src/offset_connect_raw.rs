@@ -148,7 +148,7 @@ fn arc_connect_new(
 #[cfg(test)]
 mod test_offset_connect_raw {
     use crate::{
-        offset::{pline_01, svg_offset_raws}, offset_polyline_raw::{offset_polyline_raw, poly_to_raws}
+        offset::{pline_01, poly_to_raws, svg_offset_raws}, offset_segments_raws::offset_segments_raws
     };
 
     use super::*;
@@ -166,7 +166,7 @@ mod test_offset_connect_raw {
 
         let off: f64 = 52.25;
 
-        let offset_raw = offset_polyline_raw(&poly_raws, off);
+        let offset_raw = offset_segments_raws(&poly_raws, off);
         svg_offset_raws(&mut svg, &offset_raw, "blue");
 
         let offset_connect = offset_connect_raw(&offset_raw, off);
@@ -193,7 +193,7 @@ mod test_offset_connect_raw {
 
         let off: f64 = 22.0;
 
-        let offset_raw = offset_polyline_raw(&poly_raws, off);
+        let offset_raw = offset_segments_raws(&poly_raws, off);
         svg_offset_raws(&mut svg, &offset_raw, "blue");
 
         let offset_connect = offset_connect_raw(&offset_raw, off);
@@ -260,7 +260,7 @@ mod test_offset_connect_raw {
 
         let off: f64 = 16.00;
         let poly_raws = poly_to_raws(&plines);
-        let offset_raw1 = offset_polyline_raw(&poly_raws, off);
+        let offset_raw1 = offset_segments_raws(&poly_raws, off);
         let offset_raw2 = offset_connect_raw(&offset_raw1, off);
 
         svg_offset_raws(&mut svg, &offset_raw1, "red");

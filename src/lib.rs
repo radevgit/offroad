@@ -6,7 +6,7 @@
 //!
 //! ```rust
 //! use geom::prelude::*;
-//! use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
+//! use offroad::prelude::{OffsetCfg, offset_polyline};
 //!
 //! // Create a simple L-shaped polyline
 //! let poly = vec![
@@ -19,7 +19,7 @@
 //! let mut cfg = OffsetCfg::default();
 //!
 //! // Offset by 2.0 units to the right
-//! let offset_polylines = offset_polyline_to_polyline(&poly, 2.0, &mut cfg);
+//! let offset_polylines = offset_polyline(&poly, 2.0, &mut cfg);
 //!
 //! // The function returns a vector of polylines
 //! assert!(offset_polylines.len() == 1);
@@ -35,7 +35,7 @@ pub mod offset;
 pub mod offset_raw;
 #[doc(hidden)]
 // raw offsetting components (lines, arcs)
-mod offset_polyline_raw;
+mod offset_segments_raws;
 #[doc(hidden)]
 // connect raw offsets with arcs
 mod offset_connect_raw;

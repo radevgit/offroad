@@ -1139,7 +1139,7 @@ mod test_remove_bridge_arcs {
             arcseg(point(0.0, 0.0), point(1.0 + eps * 0.5, 1.0 + eps * 0.5)), // close but within tolerance
         ];
         remove_bridge_arcs(&mut arcs);
-        assert_eq!(arcs.len(), 1); // should remove both as they're close enough
+        assert_eq!(arcs.len(), 0); // should remove both as they're close enough
     }
 
     #[test]

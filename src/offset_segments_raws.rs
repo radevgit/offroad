@@ -6,37 +6,46 @@ use crate::offset_raw::OffsetRaw;
 
 const ZERO: f64 = 0f64;
 
-pub fn offset_polyline_raw(plines: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<OffsetRaw>> {
+#[doc(hidden)]
+/// Offsets a `vec<vec<OffsetRaw>>`
+///
+/// Not intended for direct use
+pub fn offset_segments_raws(plines: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<OffsetRaw>> {
     let mut result = Vec::new();
-    for pline in plines.iter() {
-        result.push(offset_polyline_raw_single(pline, off));
+    for pline in plines {
+        result.push(offset_raws_single(pline, off));
     }
     result
 }
 
-fn offset_polyline_raw_single(pline: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
+#[doc(hidden)]
+/// Offsets a single `Vec<OffsetRaw>`
+pub fn offset_raws_single(pline: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
     let mut result = Vec::with_capacity(pline.len());
-    for p in pline.iter() {
-        let offset = offset_segment(&p.arc, p.orig, p.g, off);
+    for p in pline {
+        let offset = offset_arc_segment(&p.arc, p.orig, p.g, off);
         result.push(offset);
     }
     result
 }
 
-pub(crate) fn offset_segment(seg: &Arc, orig: Point, g: f64, off: f64) -> OffsetRaw {
+#[doc(hidden)]
+/// Offsets single Arc segment
+pub fn offset_arc_segment(seg: &Arc, orig: Point, g: f64, off: f64) -> OffsetRaw {
     if seg.is_line() {
-        line_offset(seg, orig, off)
+        seg_offset(seg, orig, off)
     } else {
         arc_offset(seg, orig, g, off)
     }
 }
 
-// Offsets line segment on right side
 // #00028
-fn line_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
+#[doc(hidden)]
+/// Offsets line segment on right side
+fn seg_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
     // line segment
     let perp = seg.b - seg.a;
-    let (perp, _) = point(perp.y, -perp.x).normalize();
+    let (perp, _) = point(perp.y, -perp.x).normalize(false);
     let offset_vec = perp * off;
     let mut arc = arcseg(seg.a + offset_vec, seg.b + offset_vec);
     arc.id(seg.id);
@@ -47,22 +56,27 @@ fn line_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
     };
 }
 
-const EPS_COLLAPSED: f64 = 1E-10; // TODO: what should be the exact value.
-// Offsets arc on right side
+const EPS_COLLAPSED: f64 = 1E-8; // TODO: what should be the exact value.
 // #00028
-fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
-    // Arc is always CCW
-    //let seg = arc_circle_parametrization(seg.a, seg.b, bulge);
-    let (v0_to_center, _) = (seg.a - seg.c).normalize();
-    let (v1_to_center, _) = (seg.b - seg.c).normalize();
+/// Offsets arc on right side
+#[doc(hidden)]
+pub fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
+    let (v0_to_center, _) = (seg.a - seg.c).normalize(false);
+    let (v1_to_center, _) = (seg.b - seg.c).normalize(false);
 
     let off = if bulge < 0.0 { -offset } else { offset };
     let offset_radius = seg.r + off;
     let a = seg.a + v0_to_center * off;
     let b = seg.b + v1_to_center * off;
-    if arc_is_collapsed_radius(offset_radius, EPS_COLLAPSED)
-        || arc_is_collapsed_ends(a, b, EPS_COLLAPSED)
-    {
+    if arc_check(seg, EPS_COLLAPSED) {
+        let mut arc = arc(a, b, seg.c, offset_radius);
+        arc.id(seg.id);
+        return OffsetRaw {
+            arc: arc,
+            orig: orig,
+            g: bulge,
+        };
+    } else {
         // Collapsed arc is now line
         let mut arc = arcseg(b, a);
         arc.id(seg.id);
@@ -71,104 +85,8 @@ fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
             orig: orig,
             g: ZERO,
         };
-    } else {
-        let mut arc = arc(a, b, seg.c, offset_radius);
-        arc.id(seg.id);
-        return OffsetRaw {
-            arc: arc,
-            orig: orig,
-            g: bulge,
-        };
     }
 }
-
-pub fn poly_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>> {
-    let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
-    for pline in plines {
-        varcs.push(poly_to_raws_single(pline));
-    }
-    varcs
-}
-
-pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
-    let mut offs = Vec::with_capacity(pline.len() + 1);
-    //let last = pline.len() - 1;
-    for i in 0..pline.len() - 1 {
-        let bulge = pline[i].b;
-        let seg = arc_circle_parametrization(pline[i].p, pline[i + 1].p, bulge);
-        let check = arc_check(&seg, EPS_COLLAPSED);
-        if !check {
-            continue;
-        }
-        let orig = if bulge < ZERO { seg.a } else { seg.b };
-        let off = OffsetRaw {
-            arc: seg,
-            orig: orig,
-            g: bulge,
-        };
-        offs.push(off);
-    }
-    // last segment
-    let bulge = pline.last().unwrap().b;
-    let seg = arc_circle_parametrization(pline.last().unwrap().p, pline[0].p, bulge);
-    let check = arc_check(&seg, EPS_COLLAPSED);
-    if check {
-        let orig = if bulge < ZERO { seg.a } else { seg.b };
-        let off = OffsetRaw {
-            arc: seg,
-            orig: orig,
-            g: bulge,
-        };
-        offs.push(off);
-    }
-
-    offs
-}
-
-
-pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
-    let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
-    for arcs in arcss {
-        varcs.push(arcs_to_raws_single(arcs));
-    }
-    varcs
-}
-
-pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
-    let mut offs = Vec::with_capacity(arcs.len() + 1);
- 
-    for i in 0..arcs.len() - 1 {
-        let seg = arcs[i];
-        let check = arc_check(&seg, EPS_COLLAPSED);
-        if !check {
-            continue;
-        }
-        let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
-        let orig = if bulge < ZERO { seg.a } else { seg.b };
-        let off = OffsetRaw {
-            arc: seg,
-            orig: orig,
-            g: bulge,
-        };
-        offs.push(off);
-    }
-    // last segment
-    let seg = arcs.last().unwrap();
-    let check = arc_check(&seg, EPS_COLLAPSED);
-    if check {
-        let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
-        let orig = if bulge < ZERO { seg.a } else { seg.b };
-        let off = OffsetRaw {
-            arc: *seg,
-            orig: orig,
-            g: bulge,
-        };
-        offs.push(off);
-    }
-
-    offs
-}
-
 
 
 #[cfg(test)]
@@ -308,7 +226,7 @@ mod test_offset_polyline_raw {
         let circle0 = circle(point(arc0.c.x, arc0.c.y), 0.1);
         svg.circle(&circle0, "blue");
 
-        let offsetraw = offset_segment(&arc0, point(-52.0, 250.0), -0.6068148963145962, 16.0);
+        let offsetraw = offset_arc_segment(&arc0, point(-52.0, 250.0), -0.6068148963145962, 16.0);
         svg.arcsegment(&offsetraw.arc, "green");
         let circle1 = circle(point(offsetraw.arc.c.x, offsetraw.arc.c.y), 0.1);
         svg.circle(&circle1, "blue");
