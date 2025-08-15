@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use geom::prelude::*;
 
-const EPS_CONNECT: f64 = 1e-7;
+const EPS_CONNECT: f64 = 1e-8;
 
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.
@@ -16,118 +16,6 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     let mut result = Vec::new();
 
     let len = arcs.len();
-
-    // Initialize the edge list: each arc contributes 2 vertices
-    let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new(); // map arcs to end vertices
-    let mut merge: Vec<(usize, usize)> = Vec::new(); // coincident vertices
-    let mut k = 1000; // TODO: use 0
-    // arc orientation is always from small id to large id
-    for i in 0..len {
-        arc_map.insert(i, (k, k + 1));
-        k += 2;
-    }
-
-    // find where the arcs are touching at ends
-    for i in 0..arcs.len() {
-        for j in 0..arcs.len() {
-            if i == j {
-                continue; // skip self
-            }
-
-            // close points are already merged
-            // here we just track them
-            if arcs[i].a.close_enough(arcs[j].a, EPS_CONNECT) {
-                // track merge
-                let x = arc_map.get(&i).unwrap().0;
-                let y = arc_map.get(&j).unwrap().0;
-                merge.push((x, y));
-            }
-            if arcs[i].a.close_enough(arcs[j].b, EPS_CONNECT) {
-                // track merge
-                let x = arc_map.get(&i).unwrap().0;
-                let y = arc_map.get(&j).unwrap().1;
-                merge.push((x, y));
-            }
-            if arcs[i].b.close_enough(arcs[j].a, EPS_CONNECT) {
-                // track merge
-                let x = arc_map.get(&i).unwrap().1;
-                let y = arc_map.get(&j).unwrap().0;
-                merge.push((x, y));
-            }
-            if arcs[i].b.close_enough(arcs[j].b, EPS_CONNECT) {
-                // track merge
-                let x = arc_map.get(&i).unwrap().1;
-                let y = arc_map.get(&j).unwrap().1;
-                merge.push((x, y));
-            }
-        }
-    }
-
-    // println!("DEBUG: Merge operations: {:?}", merge);
-    // println!("DEBUG: Arc map after merge: {:?}", arc_map);
-
-    // Apply merge operations to arc_map
-    merge_points(&mut arc_map, &merge);
-
-    println!("DEBUG: Arc map after merge: {:?}", arc_map);
-
-    // Build the graph from arc_map
-    let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
-
-    println!("DEBUG: Graph edges after merge: {:?}", graph);
-    println!("DEBUG: Merge operations count: {}", merge.len());
-
-    // Find connected components (cycles) in the undirected graph defined by edges in "graph" vector.
-    // Where each component is a closed path of vertices Ids.
-    // If there are large paths with repeated vertices, larger paths will be split and the shortest paths will be used.
-    // Eliminate duplicate components that differ only in path direction.
-    // Use most effective algorithm to find connected components.
-    // Write tests covering various cases of connected components.
-    // Provide reference to the algorithm used where necessary.
-    // Use the function find_connected_components to get the connected components.
-    // let components = find_connected_components(&graph);
-
-    // TODO: Implement find_connected_components and filter_composite_cycles
-    // let components: Vec<Vec<usize>> = Vec::new(); // Temporary placeholder
-    let components = find_connected_components(&graph);
-
-    println!("DEBUG: Found {} components", components.len());
-    for (i, component) in components.iter().enumerate() {
-        println!("DEBUG: Component {}: {:?}", i, component);
-    }
-
-    // Convert each component (cycle of vertex IDs) to a sequence of arcs
-    for component in components.iter() {
-        println!(
-            "DEBUG: Processing component with {} vertices: {:?}",
-            component.len(),
-            component
-        );
-        if component.len() >= 2 {
-            println!("DEBUG: Converting component {:?} to arcs", component);
-            let arc_sequence = vertex_path_to_arcs(&component, &arcs, &arc_map);
-            println!("DEBUG: Arc sequence length: {}", arc_sequence.len());
-            if !arc_sequence.is_empty() {
-                result.push(arc_sequence);
-            } else {
-                println!(
-                    "DEBUG: Arc sequence was empty for component {:?}",
-                    component
-                );
-            }
-        } else {
-            println!(
-                "DEBUG: Skipping component {:?} - too short (len={})",
-                component,
-                component.len()
-            );
-        }
-    }
-
-    println!(
-        "DEBUG: offset_reconnect_arcs returning {} components",
-        result.len()
-    );
 
     result
 }

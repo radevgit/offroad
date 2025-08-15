@@ -53,7 +53,7 @@ mod offset_reconnect_arcs;
 // Re-export main offsetting functions
 // For public API
 pub mod prelude {
-    pub use crate::offset::{offset_polyline_to_polyline, offset_arcline_to_arcline, OffsetCfg};
+    pub use crate::offset::{offset_polyline, offset_arcline, OffsetCfg};
     pub use crate::offset::{pline_01, pline_02, pline_03, pline_04};
 }
 // For internal use

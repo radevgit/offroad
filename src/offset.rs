@@ -15,8 +15,9 @@ use crate::{
 /// Configuration options for offsetting operations.
 pub struct OffsetCfg<'a> {
     /// Optional SVG context for rendering
-    pub svg: Option<&'a mut SVG>, 
-    /// Flag to indicate if reconnecting arcs is needed
+    pub svg: Option<&'a mut SVG>,
+    /// Flag to indicate if reconnecting arcs is needed after offsetting
+    /// otherwise, a "soup of unordered arcs" is returned
     pub reconnect: bool,
     /// Flag to enable writing in svg original polyline
     pub svg_orig: bool,
@@ -100,7 +101,7 @@ impl<'a> Default for OffsetCfg<'a> {
 ///
 /// - The function is intended to handle closed polylines.
 /// - Offset direction follows the right-hand rule relative to polyline direction.
-pub fn offset_polyline_to_polyline(
+pub fn offset_polyline(
     poly: &Polyline,
     off: f64,
     cfg: &mut OffsetCfg,
@@ -110,7 +111,7 @@ pub fn offset_polyline_to_polyline(
     {
         svg.polyline(poly, "red");
     }
-    let mut offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);
+    let mut offset_arcs = offset_polyline_impl(poly, off, cfg);
 
     remove_bridge_arcs(&mut offset_arcs);
 
@@ -126,7 +127,7 @@ pub fn offset_polyline_to_polyline(
     //     println!("DEBUG: Component {}: {} arcs", i, component.len());
     // }
 
-    let final_poly = arcs_to_polylines(&reconnect_arcs);
+    let final_poly = arclines_to_polylines(&reconnect_arcs);
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
         if cfg.svg_final {
@@ -188,13 +189,13 @@ pub fn offset_polyline_to_polyline(
 /// 4. Prune invalid segments that are too close to the original
 /// 5. Reconnect valid segments into continuous arc-paths
 ///
-pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arcline> {
+pub fn offset_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arcline> {
     if let Some(svg) = cfg.svg.as_deref_mut()
         && cfg.svg_orig
     {
         svg.arcline(arcs, "red");
     }
-    let mut offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
+    let mut offset_arcs = offset_arcline_impl(arcs, off, cfg);
 
     remove_bridge_arcs(&mut offset_arcs);
 
@@ -223,7 +224,7 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     final_arcs
 }
 
-fn offset_polyline_to_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
+fn offset_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
     let mut plines = Vec::new();
     plines.push(poly.clone());
     let poly_raws = poly_to_raws(&plines);
@@ -231,7 +232,7 @@ fn offset_polyline_to_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetC
     offset_arcs
 }
 
-fn offset_arcline_to_arcline_impl(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
+fn offset_arcline_impl(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
     let mut alines = Vec::new();
     alines.push(arcs.clone());
     let poly_raws = arcs_to_raws(&alines);
@@ -241,10 +242,10 @@ fn offset_arcline_to_arcline_impl(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg)
 
 #[doc(hidden)]
 /// Converts a vector of arcs into a vector of polylines.
-pub fn arcs_to_polylines(reconnect_arcs: &Vec<Vec<Arc>>) -> Vec<Polyline> {
+pub fn arclines_to_polylines(reconnect_arcs: &Vec<Arcline>) -> Vec<Polyline> {
     let mut polylines = Vec::with_capacity(reconnect_arcs.len());
     for arcs in reconnect_arcs.iter() {
-        let polyline = arcs_to_polylines_single(arcs);
+        let polyline = arclines_to_polylines_single(arcs);
         polylines.push(polyline);
     }
     polylines
@@ -254,7 +255,7 @@ pub fn arcs_to_polylines(reconnect_arcs: &Vec<Vec<Arc>>) -> Vec<Polyline> {
 /// function to convert from Vec<Arc> to Polyline
 /// Note: arcs is a loop of arcs and when converting to PVertex,
 /// some Arc can be either "a" to "b" or "b" to "a" oriented
-pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
+pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
     let mut polyline = Vec::new();
 
     if arcs.is_empty() {
@@ -324,7 +325,7 @@ mod test_arcs_to_polylines {
         ];
 
         // Convert to polyline
-        let polyline = arcs_to_polylines_single(&arcs);
+        let polyline = arclines_to_polylines_single(&arcs);
 
         // Should have 3 vertices (one for each arc start point)
         assert_eq!(polyline.len(), 3);
@@ -354,7 +355,7 @@ mod test_arcs_to_polylines {
         ];
 
         // Convert to polyline
-        let polyline = arcs_to_polylines_single(&arcs);
+        let polyline = arclines_to_polylines_single(&arcs);
 
         // Should have 2 vertices
         assert_eq!(polyline.len(), 2);
@@ -373,7 +374,7 @@ mod test_arcs_to_polylines {
     #[test]
     fn test_arcs_to_polylines_single_empty() {
         let arcs = vec![];
-        let polyline = arcs_to_polylines_single(&arcs);
+        let polyline = arclines_to_polylines_single(&arcs);
         assert_eq!(polyline.len(), 0);
     }
 
@@ -381,7 +382,7 @@ mod test_arcs_to_polylines {
     fn test_arcs_to_polylines_single_single_arc() {
         let arcs = vec![arcseg(point(0.0, 0.0), point(1.0, 0.0))];
 
-        let polyline = arcs_to_polylines_single(&arcs);
+        let polyline = arclines_to_polylines_single(&arcs);
 
         // Should have 1 vertex
         assert_eq!(polyline.len(), 1);
@@ -402,7 +403,7 @@ pub fn offset_polyline_multiple(
     let mut off = start;
     let mut polylines = Vec::new();
     while off < end {
-        let offset_polylines = offset_polyline_to_polyline(&poly, off, config);
+        let offset_polylines = offset_polyline(&poly, off, config);
         polylines.extend(offset_polylines);
         off += step;
     }

@@ -1,5 +1,5 @@
 use geom::prelude::*;
-use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
+use offroad::prelude::{OffsetCfg, offset_polyline};
 
 fn main() {
     // Configuration for offsetting
@@ -21,7 +21,7 @@ fn main() {
 
     // Internal offsetting
     let poly = polyline_reverse(&poly);
-    let offset_polylines = offset_polyline_to_polyline(&poly, 15.0, &mut cfg);
+    let offset_polylines = offset_polyline(&poly, 15.0, &mut cfg);
 
     println!("Input polyline has {} vertices", poly.len());
     println!("Output has {} polylines", offset_polylines.len());

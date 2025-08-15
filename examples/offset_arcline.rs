@@ -1,5 +1,5 @@
 use geom::prelude::*;
-use offroad::{offset::offset_arcline_to_arcline, prelude::OffsetCfg};
+use offroad::{offset::offset_arcline, prelude::OffsetCfg};
 
 fn main() {
     // Configuration for offsetting
@@ -21,7 +21,7 @@ fn main() {
 
     // Internal offsetting
     //let poly = polyline_reverse(&poly);
-    let offset_arclines = offset_arcline_to_arcline(&arcs_orig, 15.0, &mut cfg);
+    let offset_arclines = offset_arcline(&arcs_orig, 15.0, &mut cfg);
 
     println!("Input arcline has {} vertices", arcs_orig.len());
     println!("Output has {} arclines", offset_arclines.len());
