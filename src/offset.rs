@@ -223,7 +223,7 @@ pub fn offset_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arcl
 fn offset_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
     let mut plines = Vec::new();
     plines.push(poly.clone());
-    let poly_raws = poly_to_raws(&plines);
+    let poly_raws = polyline_to_raws(&plines);
     let offset_arcs = offset_algo(&poly_raws, off, cfg);
     offset_arcs
 }
@@ -305,17 +305,17 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
 }
 
 #[doc(hidden)]
-pub fn poly_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>> {
+pub fn polyline_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>> {
     let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
     for pline in plines {
-        varcs.push(poly_to_raws_single(pline));
+        let pline = poly_remove_duplicates(pline);
+        varcs.push(polyline_to_raws_single(&pline));
     }
     varcs
 }
 
 #[doc(hidden)]
-pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
-    let pline = poly_remove_duplicates(pline);
+pub fn polyline_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     let size = pline.len();
     let mut offs = Vec::with_capacity(size + 1);
     for i in 0..size {
@@ -339,7 +339,7 @@ pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
 const EPS_REMOVE_DUPLICATES: f64 = 1e-8;
 #[doc(hidden)]
 /// Remove consecutive duplicate points from a polyline
-fn poly_remove_duplicates(pline: &Polyline) -> Polyline {
+pub fn poly_remove_duplicates(pline: &Polyline) -> Polyline {
     if pline.len() < 2 {
         return pline.clone();
     }
@@ -519,13 +519,19 @@ pub fn offset_polyline_multiple(
     polylines
 }
 
+#[doc(hidden)]
 /// Offset algorithm:
 /// 1. Compute the raw offset polylines
 /// 2. Connect the offset segments
 /// 3. Split the arcs
 /// 4. Prune invalid segments
-fn offset_algo(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
-    let offset_raw = offset_segments_raws(&poly_raws, off);
+pub fn offset_algo(raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
+    // TODO: What to return on off == 0.0
+    if off < ZERO {
+        // Negative offset
+        return vec![];
+    }
+    let offset_raw = offset_segments_raws(&raws, off);
     if let Some(svg) = cfg.svg.as_deref_mut()
         && cfg.svg_raw
     {
@@ -547,7 +553,7 @@ fn offset_algo(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) -
         svg.offset_segments_single_points(&offset_split, "violet");
     }
 
-    let offset_prune = offset_prune_invalid(&poly_raws, &mut offset_split, off);
+    let offset_prune = offset_prune_invalid(&raws, &mut offset_split, off);
 
     if let Some(svg) = cfg.svg.as_deref_mut()
         && cfg.svg_prune

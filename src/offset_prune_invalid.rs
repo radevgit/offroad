@@ -4,7 +4,8 @@ use geom::prelude::*;
 
 use crate::offset_raw::OffsetRaw;
 
-// Prune arcs that are close to any of the arcs in the polyline.
+#[doc(hidden)]
+/// Prune arcs that are close to any of the arcs in the original polyline.
 const PRUNE_EPSILON: f64 = 1e-8;
 pub fn offset_prune_invalid(
     polyraws: &Vec<Vec<OffsetRaw>>,
@@ -12,20 +13,21 @@ pub fn offset_prune_invalid(
     off: f64,
 ) -> Vec<Arc> {
     let mut valid = Vec::new();
-    let polyarcs: Vec<Arc> = polyraws
+    let arcs: Vec<Arc> = polyraws
         .iter()
         .flatten()
-        .map(|offset_raw| offset_raw.arc.clone())
-        .filter(|arc| arc_check(arc, PRUNE_EPSILON))
+        .map(|offset_raw| offset_raw.arc)
+        //.filter(|arc| arc_check(arc, PRUNE_EPSILON))
         .collect();
-    let _zzz = polyarcs.len();
 
     while offsets.len() > 0 {
         let offset = offsets.pop().unwrap();
         valid.push(offset.clone());
-        for p in polyarcs.iter() {
+        for p in arcs.iter() {
             if p.id == offset.id {
-                continue; // skip self ofsets
+                // skip self offsets
+                // self offsets are always on `off` distance
+                continue;
             }
             let dist = distance_element_element(&p, &offset);
             if dist < off - PRUNE_EPSILON {
@@ -48,10 +50,5 @@ fn distance_element_element(seg0: &Arc, seg1: &Arc) -> f64 {
     } else if seg0.is_arc() && seg1.is_line() {
         dist = dist_segment_arc(&segment(seg1.a, seg1.b), seg0);
     }
-    if seg1.id == 0 && dist < 16.0 {
-        let _xxx = seg0.id;
-        let _yyy = seg1.id;
-        return dist;
-    }
-    return dist;
+    dist
 }

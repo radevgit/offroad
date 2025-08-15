@@ -19,25 +19,24 @@ pub fn offset_connect_raw(raws: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<Arc>>
     res
 }
 
+pub const ID_PADDING: usize = 100000; // Large enough to avoid collisions
 #[doc(hidden)]
-pub const ID_PADDING: usize = 100000;
+/// Connects the ends of the raw offset segments with arcs.
+/// If the angle between raw segments is concave, do not create connection arc.
 pub fn offset_connect_raw_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<Arc> {
     let mut res = Vec::with_capacity(raws.len() + 1);
-    if off < ZERO {
-        // Negative offset, no connection
-        return res;
-    }
     if raws.is_empty() {
         return res;
     }
-    let last = raws.len() - 1;
-    for i in 0..last {
+
+    let size = raws.len();
+    for i in 0..size {
         // make arcs ccw
-        let old = raws[i].arc;
-        let old_next = raws[i + 1].arc;
-        let g0 = raws[i].g;
-        let g1 = raws[i + 1].g;
-        let orig = raws[i].orig;
+        let old = raws[i % size].arc;
+        let old_next = raws[(i + 1) % size].arc;
+        let g0 = raws[i % size].g;
+        let g1 = raws[(i + 1) % size].g;
+        let orig = raws[i % size].orig;
         //let mut connect = arc(old.b, old_next.a, orig, off);
         let (mut connect, check, convex) = arc_connect_new(old, old_next, g0, g1, orig, off);
         connect.id(ID_PADDING + old.id);
@@ -47,34 +46,11 @@ pub fn offset_connect_raw_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<Arc> {
                 // only add valid arcs
                 res.push(connect);
             } else {
-                // Small arc replaced by line
+                // Instead add a small line segment
                 let mut small = arcseg(connect.a, connect.b);
                 small.id(ID_PADDING + old.id);
                 res.push(small);
             }
-        }
-    }
-    // close end of line
-    let last = raws.last().unwrap();
-    let old = last.arc;
-    let raw_next = raws.first().unwrap();
-    let old_next = raw_next.arc;
-    let g0 = last.g;
-    let g1 = raw_next.g;
-    let orig = last.orig;
-    // let mut connect = arc(old.b, old_next.a, orig, off);
-    let (mut connect, check, convex) = arc_connect_new(old, old_next, g0, g1, orig, off);
-    connect.id(ID_PADDING + old.id);
-    if convex {
-        // only add connecting arcs between convex arcs formation
-        if check {
-            // only add valid arcs
-            res.push(connect);
-        } else {
-            // Small arc replaced by line
-            let mut small = arcseg(connect.a, connect.b);
-            small.id(ID_PADDING + old.id);
-            res.push(small);
         }
     }
     res
@@ -141,14 +117,14 @@ fn arc_connect_new(
         convex = orient2d(a, b, c) < ZERO;
     }
     // We only create new arc if the arcs to be connected form convex angle.
-    // In concave case, we do not need connection because it will be removed as invalid latter
+    // In concave case, we do not need connection because it will be removed as invalid.
     (seg, arc_check(&seg, EPS_CONNECT_RAW), convex)
 }
 
 #[cfg(test)]
 mod test_offset_connect_raw {
     use crate::{
-        offset::{pline_01, poly_to_raws, svg_offset_raws}, offset_segments_raws::offset_segments_raws
+        offset::{pline_01, polyline_to_raws, svg_offset_raws}, offset_segments_raws::offset_segments_raws
     };
 
     use super::*;
@@ -160,7 +136,7 @@ mod test_offset_connect_raw {
             pvertex(point(100.0, 100.0), 0.5),
             pvertex(point(200.0, 200.0), 0.5),
         ]];
-        let poly_raws = poly_to_raws(&pline);
+        let poly_raws = polyline_to_raws(&pline);
         let mut svg = svg(300.0, 350.0);
         svg_offset_raws(&mut svg, &poly_raws, "red");
 
@@ -187,7 +163,7 @@ mod test_offset_connect_raw {
             pvertex(point(100.0, 300.0), 0.5),
             pvertex(point(0.0, 200.0), 0.5),
         ]];
-        let poly_raws = poly_to_raws(&pline);
+        let poly_raws = polyline_to_raws(&pline);
         let mut svg = svg(300.0, 400.0);
         svg_offset_raws(&mut svg, &poly_raws, "red");
 
@@ -259,7 +235,7 @@ mod test_offset_connect_raw {
         svg.polyline(&plines[0], "grey");
 
         let off: f64 = 16.00;
-        let poly_raws = poly_to_raws(&plines);
+        let poly_raws = polyline_to_raws(&plines);
         let offset_raw1 = offset_segments_raws(&poly_raws, off);
         let offset_raw2 = offset_connect_raw(&offset_raw1, off);
 

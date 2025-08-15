@@ -20,10 +20,10 @@ pub fn offset_segments_raws(plines: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<O
 
 #[doc(hidden)]
 /// Offsets a single `Vec<OffsetRaw>`
-pub fn offset_raws_single(pline: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
-    let mut result = Vec::with_capacity(pline.len());
-    for p in pline {
-        let offset = offset_arc_segment(&p.arc, p.orig, p.g, off);
+pub fn offset_raws_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
+    let mut result = Vec::with_capacity(raws.len());
+    for raw in raws {
+        let offset = offset_arc_segment(&raw.arc, raw.orig, raw.g, off);
         result.push(offset);
     }
     result
