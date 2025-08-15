@@ -14,7 +14,7 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
         "DEBUG: offset_reconnect_arcs called with {} arcs",
         arcs.len()
     );
-    let mut result = Vec::new();
+    let result = Vec::new();
 
     let len = arcs.len();
 
