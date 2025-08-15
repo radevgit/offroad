@@ -10,6 +10,7 @@ const ZERO: f64 = 0f64;
 /// Offsets a `vec<vec<OffsetRaw>>`
 ///
 /// Not intended for direct use
+#[must_use]
 pub fn offset_segments_raws(plines: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<OffsetRaw>> {
     let mut result = Vec::new();
     for pline in plines {
@@ -20,6 +21,7 @@ pub fn offset_segments_raws(plines: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<O
 
 #[doc(hidden)]
 /// Offsets a single `Vec<OffsetRaw>`
+#[must_use]
 pub fn offset_raws_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
     let mut result = Vec::with_capacity(raws.len());
     for raw in raws {
@@ -31,6 +33,7 @@ pub fn offset_raws_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
 
 #[doc(hidden)]
 /// Offsets single Arc segment
+#[must_use]
 pub fn offset_arc_segment(seg: &Arc, orig: Point, g: f64, off: f64) -> OffsetRaw {
     if seg.is_line() {
         seg_offset(seg, orig, off)
@@ -51,7 +54,7 @@ fn seg_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
     arc.id(seg.id);
     return OffsetRaw {
         arc,
-        orig: orig,
+        orig,
         g: ZERO,
     };
 }
@@ -60,6 +63,7 @@ const EPS_COLLAPSED: f64 = 1E-8; // TODO: what should be the exact value.
 // #00028
 /// Offsets arc on right side
 #[doc(hidden)]
+#[must_use]
 pub fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
     let (v0_to_center, _) = (seg.a - seg.c).normalize(false);
     let (v1_to_center, _) = (seg.b - seg.c).normalize(false);
@@ -71,20 +75,20 @@ pub fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw 
     if arc_check(seg, EPS_COLLAPSED) {
         let mut arc = arc(a, b, seg.c, offset_radius);
         arc.id(seg.id);
-        return OffsetRaw {
-            arc: arc,
-            orig: orig,
+        OffsetRaw {
+            arc,
+            orig,
             g: bulge,
-        };
+        }
     } else {
         // Collapsed arc is now line
         let mut arc = arcseg(b, a);
         arc.id(seg.id);
-        return OffsetRaw {
-            arc: arc,
-            orig: orig,
+        OffsetRaw {
+            arc,
+            orig,
             g: ZERO,
-        };
+        }
     }
 }
 

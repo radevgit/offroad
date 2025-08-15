@@ -19,10 +19,11 @@ pub fn offset_connect_raw(raws: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<Arc>>
     res
 }
 
-pub const ID_PADDING: usize = 100000; // Large enough to avoid collisions
+pub const ID_PADDING: usize = 100_000; // Large enough to avoid collisions
 #[doc(hidden)]
 /// Connects the ends of the raw offset segments with arcs.
 /// If the angle between raw segments is concave, do not create connection arc.
+#[must_use]
 pub fn offset_connect_raw_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<Arc> {
     let mut res = Vec::with_capacity(raws.len() + 1);
     if raws.is_empty() {
@@ -124,7 +125,8 @@ fn arc_connect_new(
 #[cfg(test)]
 mod test_offset_connect_raw {
     use crate::{
-        offset::{pline_01, polyline_to_raws, svg_offset_raws}, offset_segments_raws::offset_segments_raws
+        offset::{example_polyline_01, polyline_to_raws, svg_offset_raws},
+        offset_segments_raws::offset_segments_raws,
     };
 
     use super::*;
@@ -205,37 +207,37 @@ mod test_offset_connect_raw {
     #[test]
     #[ignore = "svg output"]
     fn test_offset_connect_segments_02() {
-            // let pline = vec![
-            //     pvertex(point(100.0, 100.0), -0.4),
-            //     pvertex(point(200.0, 100.0), -0.4),
-            //     pvertex(point(200.0, 200.0), -0.4),
-            //     pvertex(point(100.0, 200.0), -0.4),
-            // ];
-            // let plines = vec![pline.clone()];
-            // let mut svg = svg(400.0, 600.0);
-            // //let pline = polyline_translate(&pline, point(0.0, 100.0));
-            // svg.polyline(&pline, "grey");
+        // let pline = vec![
+        //     pvertex(point(100.0, 100.0), -0.4),
+        //     pvertex(point(200.0, 100.0), -0.4),
+        //     pvertex(point(200.0, 200.0), -0.4),
+        //     pvertex(point(100.0, 200.0), -0.4),
+        // ];
+        // let plines = vec![pline.clone()];
+        // let mut svg = svg(400.0, 600.0);
+        // //let pline = polyline_translate(&pline, point(0.0, 100.0));
+        // svg.polyline(&pline, "grey");
 
-            // //let pline = polyline_reverse(&pline);
-            // //let off: f64 = 52.25;
-            // let off: f64 = 62.00;
-            // let offset_raw1 = offset_polyline_raw(&plines, off);
-            // let offset_raw2 = offset_connect_raw(&offset_raw1, off);
+        // //let pline = polyline_reverse(&pline);
+        // //let off: f64 = 52.25;
+        // let off: f64 = 62.00;
+        // let offset_raw1 = offset_polyline_raw(&plines, off);
+        // let offset_raw2 = offset_connect_raw(&offset_raw1, off);
 
-            // svg.offset_raws(&offset_raw1, "red");
-            // svg.offset_segments(&offset_raw2, "blue");
-            // svg.write();
+        // svg.offset_raws(&offset_raw1, "red");
+        // svg.offset_segments(&offset_raw2, "blue");
+        // svg.write();
     }
 
     #[test]
     //#[ignore = "svg output"]
     fn test_offset_connect_segments_03() {
-        let plines = pline_01();
+        let plines = example_polyline_01();
         let mut svg = svg(400.0, 600.0);
-        svg.polyline(&plines[0], "grey");
+        svg.polyline(&plines, "grey");
 
         let off: f64 = 16.00;
-        let poly_raws = polyline_to_raws(&plines);
+        let poly_raws = polyline_to_raws(&vec![plines]);
         let offset_raw1 = offset_segments_raws(&poly_raws, off);
         let offset_raw2 = offset_connect_raw(&offset_raw1, off);
 
@@ -273,8 +275,8 @@ mod test_offset_connect_raw_single {
         // Two line segments with realistic gap
         // Simulates offset segments from a 90-degree turn
         let offset_dist = 0.5;
-        
-        // First segment: horizontal, offset upward  
+
+        // First segment: horizontal, offset upward
         let arc1 = arcseg(point(0.0, offset_dist), point(2.0, offset_dist));
         // Second segment: vertical, offset rightward (gap at corner)
         let arc2 = arcseg(point(2.0 + offset_dist, 0.5), point(2.0 + offset_dist, 2.5));
@@ -292,7 +294,7 @@ mod test_offset_connect_raw_single {
 
     #[test]
     fn test_two_line_segments_mixed_g() {
-        // Two segments with gaps and mixed g values 
+        // Two segments with gaps and mixed g values
         let arc1 = arcseg(point(0.0, 1.0), point(2.5, 1.0));
         let arc2 = arcseg(point(3.5, 1.2), point(6.0, 1.2)); // Gap + slight offset change
 
@@ -329,18 +331,24 @@ mod test_offset_connect_raw_single {
     fn test_square_path() {
         // Four offset segments from a square path - with realistic gaps at corners
         let offset_dist = 0.3;
-        
+
         // Offset segments: each moved outward from original square, creating gaps at corners
-        let arc1 = arcseg(point(-offset_dist, -offset_dist), point(1.0 + offset_dist, -offset_dist)); // bottom
+        let arc1 = arcseg(
+            point(-offset_dist, -offset_dist),
+            point(1.0 + offset_dist, -offset_dist),
+        ); // bottom
         let arc2 = arcseg(point(1.0 + offset_dist, 0.0), point(1.0 + offset_dist, 1.0)); // right
-        let arc3 = arcseg(point(1.0, 1.0 + offset_dist), point(-offset_dist, 1.0 + offset_dist)); // top
+        let arc3 = arcseg(
+            point(1.0, 1.0 + offset_dist),
+            point(-offset_dist, 1.0 + offset_dist),
+        ); // top
         let arc4 = arcseg(point(-offset_dist, 1.0), point(-offset_dist, 0.0)); // left
 
         // Line segments must have g = 0.0 (no curvature)
-        let raw1 = OffsetRaw::new(arc1, point(0.5, 0.0), 0.0);  // orig on bottom edge
-        let raw2 = OffsetRaw::new(arc2, point(1.0, 0.5), 0.0);  // orig on right edge
-        let raw3 = OffsetRaw::new(arc3, point(0.5, 1.0), 0.0);  // orig on top edge
-        let raw4 = OffsetRaw::new(arc4, point(0.0, 0.5), 0.0);  // orig on left edge
+        let raw1 = OffsetRaw::new(arc1, point(0.5, 0.0), 0.0); // orig on bottom edge
+        let raw2 = OffsetRaw::new(arc2, point(1.0, 0.5), 0.0); // orig on right edge
+        let raw3 = OffsetRaw::new(arc3, point(0.5, 1.0), 0.0); // orig on top edge
+        let raw4 = OffsetRaw::new(arc4, point(0.0, 0.5), 0.0); // orig on left edge
         let raws = vec![raw1, raw2, raw3, raw4];
 
         let result = offset_connect_raw_single(&raws, offset_dist);
@@ -420,7 +428,7 @@ mod test_offset_connect_raw_single {
         let offset = -1.0;
         let result = offset_connect_raw_single(&raws, offset);
 
-        // Negative offset - no connections should be made  
+        // Negative offset - no connections should be made
         assert_eq!(result.len(), 0);
     }
 
@@ -463,7 +471,7 @@ mod test_offset_connect_raw_single {
     fn test_realistic_offset_gaps_straight() {
         // Realistic scenario: offset segments from a straight path with gaps
         let offset_dist = 1.0;
-        
+
         // Simulate offset segments that would result from offsetting a straight line
         let arc1 = arcseg(point(1.0, offset_dist), point(3.0, offset_dist));
         let arc2 = arcseg(point(4.5, offset_dist), point(6.5, offset_dist));
@@ -485,7 +493,7 @@ mod test_offset_connect_raw_single {
     fn test_realistic_offset_gaps_corner() {
         // Realistic scenario: offset segments from a corner/bend
         let offset_dist = 1.0;
-        
+
         // First segment: horizontal, offset upward
         let arc1 = arcseg(point(0.0, offset_dist), point(2.0, offset_dist));
         // Second segment: vertical, offset rightward (gap due to corner)
@@ -519,7 +527,7 @@ mod test_offset_connect_raw_single {
         assert!(result.len() <= 2);
     }
 
-    #[test] 
+    #[test]
     fn test_realistic_curved_segments_with_gaps() {
         // Test with actual arc segments using valid parametrization
         let arc1 = arc_circle_parametrization(point(0.0, 0.0), point(2.0, 2.0), 0.5);
@@ -579,11 +587,11 @@ mod test_offset_connect_raw_single {
         // Test various g values with curved arcs (not line segments)
         let arc1 = arc_circle_parametrization(point(0.0, 0.0), point(1.0, 0.0), 0.5);
         let arc2 = arc_circle_parametrization(point(2.0, 0.0), point(3.0, 0.0), 0.5);
-        
+
         // Verify arcs are geometrically valid
         assert!(arc_check(&arc1, 1e-10));
         assert!(arc_check(&arc2, 1e-10));
-        
+
         let g_combinations = vec![
             (1.0, 1.0),   // both positive
             (1.0, -1.0),  // mixed
@@ -597,7 +605,7 @@ mod test_offset_connect_raw_single {
             let raws = vec![raw1, raw2];
 
             let result = offset_connect_raw_single(&raws, 1.0);
-            
+
             // Each combination should handle gracefully
             assert!(result.len() <= 2);
         }
@@ -611,7 +619,7 @@ mod test_offset_connect_raw_single {
 
         let mut raw1 = OffsetRaw::new(arc1, point(0.5, 0.0), 0.0);
         let mut raw2 = OffsetRaw::new(arc2, point(2.5, 0.0), 0.0);
-        
+
         // Set specific IDs to test padding
         raw1.arc.id(5);
         raw2.arc.id(10);

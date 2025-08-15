@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 #![deny(unused_results)]
 
+use std::vec;
+
 use geom::prelude::*;
 
 use crate::{
@@ -33,7 +35,7 @@ pub struct OffsetCfg<'a> {
     pub svg_final: bool,
 }
 
-impl<'a> Default for OffsetCfg<'a> {
+impl Default for OffsetCfg<'_> {
     fn default() -> Self {
         OffsetCfg {
             svg: None,
@@ -125,10 +127,10 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
 
     let final_poly = arclines_to_polylines(&reconnect_arcs);
 
-    if let Some(svg) = cfg.svg.as_deref_mut() {
-        if cfg.svg_final {
-            svg.polylines(&final_poly, "violet");
-        }
+    if let Some(svg) = cfg.svg.as_deref_mut()
+        && cfg.svg_final
+    {
+        svg.polylines(&final_poly, "violet");
     }
 
     final_poly
@@ -211,36 +213,33 @@ pub fn offset_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arcl
         final_arcs.push(offset_arcs);
     }
 
-    if let Some(svg) = cfg.svg.as_deref_mut() {
-        if cfg.svg_final {
-            svg.arclines(&final_arcs, "violet");
-        }
+    if let Some(svg) = cfg.svg.as_deref_mut()
+        && cfg.svg_final
+    {
+        svg.arclines(&final_arcs, "violet");
     }
 
     final_arcs
 }
 
 fn offset_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
-    let mut plines = Vec::new();
-    plines.push(poly.clone());
+    let plines = vec![poly.clone()];
     let poly_raws = polyline_to_raws(&plines);
-    let offset_arcs = offset_algo(&poly_raws, off, cfg);
-    offset_arcs
+    offset_algo(&poly_raws, off, cfg)
 }
 
 fn offset_arcline_impl(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
-    let mut alines = Vec::new();
-    alines.push(arcs.clone());
+    let alines = vec![arcs.clone()];
     let poly_raws = arcs_to_raws(&alines);
-    let offset_arcs = offset_algo(&poly_raws, off, cfg);
-    offset_arcs
+    offset_algo(&poly_raws, off, cfg)
 }
 
 #[doc(hidden)]
 /// Converts a vector of arcs into a vector of polylines.
+#[must_use]
 pub fn arclines_to_polylines(reconnect_arcs: &Vec<Arcline>) -> Vec<Polyline> {
     let mut polylines = Vec::with_capacity(reconnect_arcs.len());
-    for arcs in reconnect_arcs.iter() {
+    for arcs in reconnect_arcs {
         let polyline = arclines_to_polylines_single(arcs);
         polylines.push(polyline);
     }
@@ -251,6 +250,7 @@ pub fn arclines_to_polylines(reconnect_arcs: &Vec<Arcline>) -> Vec<Polyline> {
 /// function to convert from Vec<Arc> to Polyline
 /// Note: arcs is a loop of arcs and when converting to PVertex,
 /// some Arc can be either "a" to "b" or "b" to "a" oriented
+#[must_use]
 pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
     let mut polyline = Vec::new();
 
@@ -305,6 +305,7 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
 }
 
 #[doc(hidden)]
+#[must_use]
 pub fn polyline_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>> {
     let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
     for pline in plines {
@@ -315,6 +316,7 @@ pub fn polyline_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>> {
 }
 
 #[doc(hidden)]
+#[must_use]
 pub fn polyline_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     let size = pline.len();
     let mut offs = Vec::with_capacity(size + 1);
@@ -328,7 +330,7 @@ pub fn polyline_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
         let orig = if bulge < ZERO { seg.a } else { seg.b };
         let off = OffsetRaw {
             arc: seg,
-            orig: orig,
+            orig,
             g: bulge,
         };
         offs.push(off);
@@ -339,11 +341,12 @@ pub fn polyline_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
 const EPS_REMOVE_DUPLICATES: f64 = 1e-8;
 #[doc(hidden)]
 /// Remove consecutive duplicate points from a polyline
+#[must_use]
 pub fn poly_remove_duplicates(pline: &Polyline) -> Polyline {
     if pline.len() < 2 {
         return pline.clone();
     }
-    
+
     let mut res: Polyline = Vec::new();
     let size = pline.len();
 
@@ -374,6 +377,7 @@ pub fn poly_remove_duplicates(pline: &Polyline) -> Polyline {
     res
 }
 
+#[must_use]
 pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
     let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
     for arcs in arcss {
@@ -383,33 +387,20 @@ pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
 }
 
 const EPS_COLLAPSED: f64 = 1E-8; // TODO: what should be the exact value.
+#[must_use]
 pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
-    let mut offs = Vec::with_capacity(arcs.len() + 1);
+    let mut offs = Vec::with_capacity(arcs.len());
 
-    for i in 0..arcs.len() - 1 {
-        let seg = arcs[i];
-        let check = arc_check(&seg, EPS_COLLAPSED);
-        if !check {
-            continue;
-        }
-        let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
-        let orig = if bulge < ZERO { seg.a } else { seg.b };
-        let off = OffsetRaw {
-            arc: seg,
-            orig: orig,
-            g: bulge,
-        };
-        offs.push(off);
-    }
-    // last segment
-    let seg = arcs.last().unwrap();
-    let check = arc_check(&seg, EPS_COLLAPSED);
-    if check {
+    for seg in arcs {
+        // let check = arc_check(&seg, EPS_COLLAPSED);
+        // if !check {
+        //     continue;
+        // }
         let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
         let orig = if bulge < ZERO { seg.a } else { seg.b };
         let off = OffsetRaw {
             arc: *seg,
-            orig: orig,
+            orig,
             g: bulge,
         };
         offs.push(off);
@@ -512,7 +503,7 @@ pub fn offset_polyline_multiple(
     let mut off = start;
     let mut polylines = Vec::new();
     while off < end {
-        let offset_polylines = offset_polyline(&poly, off, config);
+        let offset_polylines = offset_polyline(poly, off, config);
         polylines.extend(offset_polylines);
         off += step;
     }
@@ -531,7 +522,7 @@ pub fn offset_algo(raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) ->
         // Negative offset
         return vec![];
     }
-    let offset_raw = offset_segments_raws(&raws, off);
+    let offset_raw = offset_segments_raws(raws, off);
     if let Some(svg) = cfg.svg.as_deref_mut()
         && cfg.svg_raw
     {
@@ -553,7 +544,7 @@ pub fn offset_algo(raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) ->
         svg.offset_segments_single_points(&offset_split, "violet");
     }
 
-    let offset_prune = offset_prune_invalid(&raws, &mut offset_split, off);
+    let offset_prune = offset_prune_invalid(raws, &mut offset_split, off);
 
     if let Some(svg) = cfg.svg.as_deref_mut()
         && cfg.svg_prune
@@ -1716,8 +1707,9 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 
 /// Test polyline for offseting.
 /// Has a mix of positive and negative offsets.
-pub fn pline_01() -> Vec<Polyline> {
-    let pline = vec![
+#[must_use]
+pub fn example_polyline_01() -> Polyline {
+    vec![
         pvertex(point(100.0, 100.0), 1.5),
         pvertex(point(100.0, 160.0), ZERO),
         pvertex(point(120.0, 200.0), ZERO),
@@ -1730,7 +1722,7 @@ pub fn pline_01() -> Vec<Polyline> {
         pvertex(point(78.0, 250.0), ZERO),
         pvertex(point(50.0, 250.0), -1.0), // zero radius after offset
         pvertex(point(38.0, 250.0), ZERO),
-        pvertex(point(0.001, 250.0), 100000.0), // almost circle
+        pvertex(point(0.001, 250.0), 100_000.0), // almost circle
         pvertex(point(0.0, 250.0), ZERO),
         pvertex(point(-52.0, 250.0), ZERO),
         //pvertex(point(-52.0, 150.0), -1.0),
@@ -1742,15 +1734,13 @@ pub fn pline_01() -> Vec<Polyline> {
         pvertex(point(50.0, 150.0), 1.0),
         pvertex(point(-20.0, 150.0), ZERO),
         pvertex(point(0.0, 100.0), ZERO),
-    ];
-    let pline2 = polyline_scale(&pline, 1.0);
-    let plines = vec![pline2.clone()];
-    return plines;
+    ]
 }
 
 /// Test polyline for offseting.
+#[must_use]
 pub fn pline_02() -> Polyline {
-    let pline = vec![
+    vec![
         pvertex(point(50.0, 50.0), ZERO),
         pvertex(point(200.0, 50.0), ZERO),
         pvertex(point(180.0, 55.0), ZERO),
@@ -1775,28 +1765,24 @@ pub fn pline_02() -> Polyline {
         pvertex(point(-30.0, 55.0), ZERO),
         pvertex(point(-50.0, 50.0), ZERO),
         pvertex(point(50.0, 50.0), ZERO),
-    ];
-    // let pline2 = polyline_scale(&pline, 1.0);
-    // let plines = vec![pline2.clone()];
-    return pline;
+    ]
 }
 
 /// Test polyline for offseting.
-pub fn pline_03() -> Vec<Polyline> {
-    let pline = vec![
+#[must_use]
+pub fn pline_03() -> Polyline {
+    vec![
         pvertex(point(0.0, 0.0), ZERO),
         pvertex(point(200.0, 0.0), ZERO),
         pvertex(point(200.0, 100.0), ZERO),
         pvertex(point(100.0, 100.0), ZERO),
         pvertex(point(100.0, 200.0), ZERO),
         pvertex(point(0.0, 200.0), ZERO),
-    ];
-    let pline2 = polyline_scale(&pline, 1.0);
-    let plines = vec![pline2.clone()];
-    return plines;
+    ]
 }
 
 /// Test polyline for offseting.
+#[must_use]
 pub fn pline_04() -> Vec<Polyline> {
     let outer = vec![
         pvertex(point(50.0, 50.0), 0.2),
@@ -1811,10 +1797,7 @@ pub fn pline_04() -> Vec<Polyline> {
         pvertex(point(70.0, 75.0), ZERO),
     ];
     let inner = polyline_reverse(&inner);
-    let mut plines = Vec::new();
-    plines.push(outer);
-    plines.push(inner);
-    return plines;
+    vec![outer, inner]
 }
 
 // #[cfg(test)]

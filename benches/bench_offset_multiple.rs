@@ -2,7 +2,7 @@
 // 
 
 use geom::prelude::*;
-use offroad::{offset::{offset_polyline, pline_01, OffsetCfg}};
+use offroad::{offset::{offset_polyline, example_polyline_01, OffsetCfg}};
 
 
 
@@ -19,7 +19,7 @@ fn main() {
 fn bench_offset_polyline_to_polyline(off: f64) {
     let mut cfg = OffsetCfg::default();
 
-    let mut p = pline_01()[0].clone();
+    let mut p = example_polyline_01();
     p = polyline_translate(&p, point(180.0, -60.0));
     p = polyline_scale(&p, 2.5);
     offset_polyline(&p, off, &mut cfg);

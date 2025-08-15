@@ -1,5 +1,5 @@
 use geom::prelude::*;
-use offroad::prelude::{OffsetCfg, offset_polyline, pline_01};
+use offroad::prelude::{OffsetCfg, offset_polyline, example_polyline_01};
 
 fn main() {
     let mut cfg = OffsetCfg::default();
@@ -9,9 +9,9 @@ fn main() {
     cfg.svg_orig = true;
     cfg.svg_final = true;
 
-    let poly_orig = pline_01()[0].clone();
+
     // Translate to fit in the SVG viewport
-    let poly = polyline_translate(&poly_orig, point(100.0, -50.0));
+    let poly = polyline_translate(&example_polyline_01(), point(100.0, -50.0));
 
     // Offset the polyline
     // let offset_polylines = offset_polyline_to_polyline(&poly, 15.0, &mut cfg);

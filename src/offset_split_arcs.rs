@@ -9,6 +9,7 @@ static ZERO: f64 = 0.0;
 const EPSILON: f64 = 1e-10;
 #[doc(hidden)]
 /// Split all arcs in intersection points
+#[must_use]
 pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
     // Merge offsets and offset connections, filter singular arcs
     let mut parts: Vec<Arc> = row
@@ -21,7 +22,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
 
     let mut parts_final = Vec::new();
     //let mut parts_final = Vec::new();
-    let steps = 100000; // TODO: make this configurable
+    let steps = 100_000; // TODO: make this configurable
     //let mut splits_count = 0;
 
     let mut kk = 0;
@@ -88,6 +89,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
 
 #[doc(hidden)]
 /// Split two line segments at intersection point
+#[must_use]
 pub fn split_seg_seg(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     let mut res = Vec::new();
     let seg0 = segment(arc0.a, arc0.b);
@@ -133,6 +135,9 @@ pub fn split_seg_seg(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     }
 }
 
+#[doc(hidden)]
+/// Split two circle arcs at intersection point
+#[must_use]
 pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     let mut res = Vec::new();
     let inter = int_arc_arc(&arc0, &arc1);
@@ -289,7 +294,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     }
 }
 
-// Split two lines at intersection point
+#[doc(hidden)]
+/// Split two lines at intersection point
+#[must_use]
 pub fn split_seg_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     debug_assert!(line0.is_line());
     debug_assert!(arc1.is_arc());
@@ -361,8 +368,8 @@ mod test_offset_split_arcs {
 
     use std::vec;
 
-    use geom::prelude::*;
     use super::*;
+    use geom::prelude::*;
 
     fn show(arc0: &Arc, arc1: &Arc, arcs: &Vec<Arc>, svg: &mut SVG) {
         svg.arcsegment(&arc0, "grey");
@@ -549,8 +556,18 @@ mod test_offset_split_arcs {
     #[test]
     fn test_cocircular_issue_91() {
         let mut svg = svg(200.0, 300.0);
-        let arc0 = arc(point(29.177446878757827, 250.0), point(-65.145657857171898, 211.46278163768008), point(15.0, 150.0), 101.0);
-        let arc1 = arc(point(0.82255312124217461, 250.0), point(29.177446878757827, 250.0), point(15.0, 150.0), 101.0);
+        let arc0 = arc(
+            point(29.177446878757827, 250.0),
+            point(-65.145657857171898, 211.46278163768008),
+            point(15.0, 150.0),
+            101.0,
+        );
+        let arc1 = arc(
+            point(0.82255312124217461, 250.0),
+            point(29.177446878757827, 250.0),
+            point(15.0, 150.0),
+            101.0,
+        );
         let (res, _) = split_arc_arc(&arc0, &arc1);
         show(&arc0, &arc1, &res, &mut svg);
         // assert_eq!(count, 4);
@@ -569,8 +586,16 @@ mod test_offset_split_arcs {
     #[test]
     fn test_split_segment_arc_issue_01() {
         let mut svg = svg(200.0, 300.0);
-        let arc0 = arc(point(51.538461538461533, 246.30769230769232), point(-23.494939167562663, 105.0), point(100.0, 130.0), 126.0);
-        let seg1 = arcseg(point(-25.599999999999994, -0.80000000000001137), point(-25.599999999999994, 150.80000000000001));
+        let arc0 = arc(
+            point(51.538461538461533, 246.30769230769232),
+            point(-23.494939167562663, 105.0),
+            point(100.0, 130.0),
+            126.0,
+        );
+        let seg1 = arcseg(
+            point(-25.599999999999994, -0.80000000000001137),
+            point(-25.599999999999994, 150.80000000000001),
+        );
         let (res, _) = split_seg_arc(&seg1, &arc0);
         show(&arc0, &seg1, &res, &mut svg);
         // assert_eq!(count, 4);

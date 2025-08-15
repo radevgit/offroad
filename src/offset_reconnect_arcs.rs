@@ -8,6 +8,7 @@ const EPS_CONNECT: f64 = 1e-8;
 
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.
+#[must_use]
 pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     println!(
         "DEBUG: offset_reconnect_arcs called with {} arcs",
