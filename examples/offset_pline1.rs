@@ -6,8 +6,9 @@ fn main() {
     // This will create an SVG file at /tmp/pline1.svg
     let mut svg = SVG::new(300.0, 300.0, "/tmp/pline1.svg");
     cfg.svg = Some(&mut svg);
-    cfg.svg_orig = true;
-    cfg.svg_final = true;
+    //cfg.svg_orig = true;
+    cfg.svg_remove_bridges = true;
+    //cfg.svg_final = true;
 
     // Translate to fit in the SVG viewport
     let poly = polyline_translate(&example_polyline_01(), point(100.0, -50.0));
@@ -25,6 +26,6 @@ fn main() {
 
     if let Some(svg) = cfg.svg.as_deref_mut() {
         // Write svg to file
-        svg.write_stroke_width(0.1);
+        svg.write_stroke_width(0.2);
     }
 }
