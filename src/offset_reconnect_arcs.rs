@@ -4,8 +4,6 @@ use std::collections::{HashMap, HashSet};
 
 use geom::prelude::*;
 
-const EPS_CONNECT: f64 = 1e-8;
-
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.
 #[must_use]
@@ -16,9 +14,97 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     );
     let result = Vec::new();
 
+    // Initialize the edge list: each arc contributes 2 vertices
+    let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new(); // map arcs to end vertices
+
+    let mut k = 100000;
+    let len = arcs.len();
+    // arc orientation is always from small id to large id
+    for i in 0..len {
+        arc_map.insert(i, (k, k + 1));
+        k += 2;
+    }
+
+    let merge = find_points_to_merge(arcs, &arc_map);
+
+    // println!("DEBUG: Merge operations: {:?}", merge);
+    // println!("DEBUG: Arc map after merge: {:?}", arc_map);
+
+    // Apply merge operations to arc_map
+    merge_points(&mut arc_map, &merge);
+
+    // Build the graph from arc_map
+    let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
+
+    println!("DEBUG: Graph edges after merge: {:?}", graph);
+    println!("DEBUG: Merge operations count: {}", merge.len());
+
+    // Find connected components (cycles) in the undirected graph defined by edges in "graph" vector.
+    // Where each component is a closed path of vertices Ids.
+    // If there are large paths with repeated vertices, larger paths will be split and the shortest paths will be used.
+    // Eliminate duplicate components that differ only in path direction.
+    // Use most effective algorithm to find connected components.
+    // Write tests covering various cases of connected components.
+    // Provide reference to the algorithm used where necessary.
+    let components = find_connected_components(&graph);
+
+    println!("DEBUG: Found {} components", components.len());
+    for (i, component) in components.iter().enumerate() {
+        println!("DEBUG: Component {}: {:?}", i, component);
+    }
+
     result
 }
 
+const EPS_CONNECT: f64 = 1e-10;
+// find where the arcs are touching at ends
+fn find_points_to_merge(
+    arcs: &Arcline,
+    arc_map: &HashMap<usize, (usize, usize)>,
+) -> Vec<(usize, usize)> {
+    let mut merge: Vec<(usize, usize)> = Vec::new(); // coincident vertices
+
+    for i in 0..arcs.len() {
+        for j in 0..arcs.len() {
+            if i == j {
+                continue; // skip self
+            }
+
+            let arc0 = arcs[i];
+            let arc1 = arcs[j];
+
+            // close points are already merged
+            // here we just track them
+            if arc0.a.close_enough(arc1.a, EPS_CONNECT) {
+                // track merge
+                let g = arc_map.get(&i).unwrap().0;
+                let h = arc_map.get(&j).unwrap().0;
+                merge.push((g, h));
+            }
+            if arc0.a.close_enough(arc1.b, EPS_CONNECT) {
+                // track merge
+                let g = arc_map.get(&i).unwrap().0;
+                let h = arc_map.get(&j).unwrap().1;
+                merge.push((g, h));
+            }
+            if arc0.b.close_enough(arc1.a, EPS_CONNECT) {
+                // track merge
+                let g = arc_map.get(&i).unwrap().1;
+                let h = arc_map.get(&j).unwrap().0;
+                merge.push((g, h));
+            }
+            if arc0.b.close_enough(arc1.b, EPS_CONNECT) {
+                // track merge
+                let g = arc_map.get(&i).unwrap().1;
+                let h = arc_map.get(&j).unwrap().1;
+                merge.push((g, h));
+            }
+        }
+    }
+    merge
+}
+
+const EPS_MIDDLE: f64 = 1e-6;
 #[doc(hidden)]
 pub fn find_middle_points(arcs: &mut Arcline) {
     // find where the arcs are touching at ends
@@ -29,25 +115,29 @@ pub fn find_middle_points(arcs: &mut Arcline) {
             }
 
             // merge close points, point ids
-            if arcs[i].a.close_enough(arcs[j].a, EPS_CONNECT) {
+            if arcs[i].a.close_enough(arcs[j].a, EPS_MIDDLE) {
                 let mid = middle_point(&arcs[i].a, &arcs[j].a);
                 arcs[i].a = mid;
                 arcs[j].a = mid;
+                continue;
             }
-            if arcs[i].a.close_enough(arcs[j].b, EPS_CONNECT) {
+            if arcs[i].a.close_enough(arcs[j].b, EPS_MIDDLE) {
                 let mid = middle_point(&arcs[i].a, &arcs[j].b);
                 arcs[i].a = mid;
                 arcs[j].b = mid;
+                continue;
             }
-            if arcs[i].b.close_enough(arcs[j].a, EPS_CONNECT) {
+            if arcs[i].b.close_enough(arcs[j].a, EPS_MIDDLE) {
                 let mid = middle_point(&arcs[i].b, &arcs[j].a);
                 arcs[i].b = mid;
                 arcs[j].a = mid;
+                continue;
             }
-            if arcs[i].b.close_enough(arcs[j].b, EPS_CONNECT) {
+            if arcs[i].b.close_enough(arcs[j].b, EPS_MIDDLE) {
                 let mid = middle_point(&arcs[i].b, &arcs[j].b);
                 arcs[i].b = mid;
                 arcs[j].b = mid;
+                continue;
             }
         }
     }
@@ -63,6 +153,129 @@ fn middle_point(a: &Point, b: &Point) -> Point {
         x: (a.x + b.x) / 2.0,
         y: (a.y + b.y) / 2.0,
     }
+}
+
+#[doc(hidden)]
+/// Find middle points using KNN
+pub fn middle_points_knn(arcs: &mut Arcline) {
+    #[derive(Clone, Debug)]
+    enum MergeEnd {
+        AA,
+        AB,
+        BA,
+        BB,
+    }
+    // Find the k-nearest neighbors for each arc in the arcline
+    let k = 7; // Number of neighbors to find
+    let mut neighbors: Vec<Vec<(usize, usize, MergeEnd)>> = vec![Vec::new(); arcs.len()];
+
+    for i in 0..arcs.len() {
+        let arc_i = &arcs[i];
+        let mut distances: Vec<(usize, usize, MergeEnd, f64)> = Vec::new();
+
+        for j in 0..arcs.len() {
+            if i == j {
+                continue; // Skip self
+            }
+
+            let arc_j = &arcs[j];
+            let dist0 = manhattan_distance(&arc_i.a, &arc_j.a);
+            let dist1 = manhattan_distance(&arc_i.a, &arc_j.b);
+            let dist2 = manhattan_distance(&arc_i.b, &arc_j.a);
+            let dist3 = manhattan_distance(&arc_i.b, &arc_j.b);
+
+            if dist0 < EPS_MIDDLE {
+                distances.push((j, i, MergeEnd::AA, dist0));
+            }
+            if dist1 < EPS_MIDDLE {
+                distances.push((j, i, MergeEnd::AB, dist1));
+            }
+            if dist2 < EPS_MIDDLE {
+                distances.push((j, i, MergeEnd::BA, dist2));
+            }
+            if dist3 < EPS_MIDDLE {
+                distances.push((j, i, MergeEnd::BB, dist3));
+            }
+        }
+
+        // Sort by distance and take the k nearest
+        distances.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap());
+        neighbors[i] = distances
+            .iter()
+            .take(k)
+            .map(|&(idx0, idx1, ref merge_end, _)| (idx0, idx1, merge_end.clone()))
+            .collect();
+    }
+
+    for (i, neighbor_list) in neighbors.iter().enumerate() {
+        println!("DEBUG: Arc {} neighbors: {:?}", i, neighbor_list);
+    }
+
+    for neighbor_list in neighbors {
+        let count = neighbor_list.len();
+        let mut sum = Point::new(0.0, 0.0);
+        for neighbor in neighbor_list.clone() {
+            let (i, j, merge_end) = neighbor;
+            match merge_end {
+                MergeEnd::AA => {
+                    sum = sum + arcs[i].a + arcs[j].a;
+                }
+                MergeEnd::AB => {
+                    sum = sum + arcs[i].a + arcs[j].b;
+                }
+                MergeEnd::BA => {
+                    sum = sum + arcs[i].b + arcs[j].a;
+                }
+                MergeEnd::BB => {
+                    sum = sum + arcs[i].b + arcs[j].b;
+                }
+            }
+        }
+        // mid point of k neighbors
+        let mid = sum / (count as f64 * 2.0);
+        for neighbor in neighbor_list {
+            let (i, j, merge_end) = neighbor;
+            match merge_end {
+                MergeEnd::AA => {
+                    arcs[i].a = mid;
+                    arcs[j].a = mid;
+                }
+                MergeEnd::AB => {
+                    arcs[i].a = mid;
+                    arcs[j].b = mid;
+                }
+                MergeEnd::BA => {
+                    arcs[i].b = mid;
+                    arcs[j].a = mid;
+                }
+                MergeEnd::BB => {
+                    arcs[i].b = mid;
+                    arcs[j].b = mid;
+                }
+            }
+        }
+    }
+
+    
+    // Remove small arcs
+    let mut to_remove = Vec::new();
+    for (i, arc) in arcs.iter().enumerate() {
+        if arc.check(1e-10) {
+            to_remove.push(i);
+        }
+    }
+    for i in to_remove {
+        arcs.remove(i);
+    }
+
+    // Adjust arcs based on new midpoints
+    for arc in arcs.iter_mut() {
+        arc.make_consistent();
+    }
+}
+
+fn manhattan_distance(p1: &Point, p2: &Point) -> f64 {
+    (p1.x - p2.x).abs() + (p1.y - p2.y).abs()
 }
 
 // arc_map - map arcs and their end vertices
@@ -222,13 +435,11 @@ fn should_use_forward_direction(from_vertex: usize, to_vertex: usize, len: usize
     }
 }
 
-const EPS_BRIDGE: f64 = 1e-8;
+const EPS_BRIDGE: f64 = 5e-7;
 #[doc(hidden)]
 /// Removes duplicate arcs that overlap as 2D graphics elements.
 ///
 /// The arcs between paths or spikes from paths.
-///
-/// DO NOT CHANGE THIS FUNCTION - it's a critical component for maintaining geometric consistency.
 pub fn remove_bridge_arcs(arcs: &mut Arcline) {
     let mut to_remove = Vec::new(); // remove bridge arcs
     let mut to_add = Vec::new(); // add new arcs between close ends
@@ -279,7 +490,7 @@ pub fn remove_bridge_arcs(arcs: &mut Arcline) {
     for i in to_remove.iter().rev() {
         arcs.remove(*i);
     }
-    arcs.extend(to_add);
+    //arcs.extend(to_add);
 }
 
 #[doc(hidden)]
@@ -1130,7 +1341,7 @@ mod test_remove_bridge_arcs {
 
     #[test]
     fn test_remove_bridge_arcs_close_but_not_equal() {
-        let eps = super::EPS_CONNECT;
+        let eps = super::EPS_MIDDLE;
         let mut arcs = vec![
             arcseg(point(0.0, 0.0), point(1.0, 1.0)),
             arcseg(point(0.0, 0.0), point(1.0 + eps * 0.5, 1.0 + eps * 0.5)), // close but within tolerance

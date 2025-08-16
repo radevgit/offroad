@@ -9,7 +9,7 @@ use crate::{
     offset_connect_raw::offset_connect_raw,
     offset_prune_invalid::offset_prune_invalid,
     offset_raw::OffsetRaw,
-    offset_reconnect_arcs::{find_middle_points, offset_reconnect_arcs, remove_bridge_arcs},
+    offset_reconnect_arcs::{find_middle_points, middle_points_knn, offset_reconnect_arcs, remove_bridge_arcs},
     offset_segments_raws::offset_segments_raws,
     offset_split_arcs::offset_split_arcs,
 };
@@ -31,6 +31,8 @@ pub struct OffsetCfg<'a> {
     pub svg_split: bool,
     /// Flag to enable writing in svg pruned offsets
     pub svg_prune: bool,
+    /// Flag to enable writing in svg remove bridge offsets
+    pub svg_remove_bridges: bool,
     /// Flag to enable writing in svg final offsets
     pub svg_final: bool,
 }
@@ -45,6 +47,7 @@ impl Default for OffsetCfg<'_> {
             svg_connect: false,
             svg_split: false,
             svg_prune: false,
+            svg_remove_bridges: false,
             svg_final: false,
         }
     }
@@ -111,9 +114,21 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
     }
     let mut offset_arcs = offset_polyline_impl(poly, off, cfg);
 
+    println!(
+        "DEBUG: remove_bridge_arcs called with {} arcs",
+        offset_arcs.len()
+    );
     remove_bridge_arcs(&mut offset_arcs);
 
-    find_middle_points(&mut offset_arcs);
+    if let Some(svg) = cfg.svg.as_deref_mut()
+        && cfg.svg_remove_bridges
+    {
+        svg.arcline(&offset_arcs, "violet");
+        svg.arcline_single_points(&offset_arcs, "green");
+    }
+
+    //find_middle_points(&mut offset_arcs);
+    middle_points_knn(&mut offset_arcs);
 
     // Always reconnect arcs
     let reconnect_arcs = offset_reconnect_arcs(&offset_arcs);

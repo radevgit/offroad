@@ -357,7 +357,7 @@ pub fn split_seg_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 
 // Check if the line-arc segments have 0.0 length
 fn check_and_push(res: &mut Vec<Arc>, seg: &Arc) {
-    let eps = 1e-9; // TODO: what should be the exact value
+    let eps = 1e-10; // TODO: what should be the exact value
     if seg.check(eps) {
         res.push(seg.clone())
     }
