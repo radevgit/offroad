@@ -11,10 +11,10 @@ const ZERO: f64 = 0f64;
 ///
 /// Not intended for direct use
 #[must_use]
-pub fn offset_segments_raws(plines: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<OffsetRaw>> {
+pub fn offset_segments_raws(raws: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<OffsetRaw>> {
     let mut result = Vec::new();
-    for pline in plines {
-        result.push(offset_raws_single(pline, off));
+    for raw in raws {
+        result.push(offset_raws_single(raw, off));
     }
     result
 }
@@ -25,7 +25,7 @@ pub fn offset_segments_raws(plines: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<O
 pub fn offset_raws_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
     let mut result = Vec::with_capacity(raws.len());
     for raw in raws {
-        let offset = offset_arc_segment(&raw.arc, raw.orig, raw.g, off);
+        let offset = offset_arc_segment(raw, off);
         result.push(offset);
     }
     result
@@ -34,27 +34,27 @@ pub fn offset_raws_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
 #[doc(hidden)]
 /// Offsets single Arc segment
 #[must_use]
-pub fn offset_arc_segment(seg: &Arc, orig: Point, g: f64, off: f64) -> OffsetRaw {
-    if seg.is_line() {
-        seg_offset(seg, orig, off)
+pub fn offset_arc_segment(raw: &OffsetRaw, off: f64) -> OffsetRaw {
+    if raw.arc.is_line() {
+        seg_offset(raw, off)
     } else {
-        arc_offset(seg, orig, g, off)
+        arc_offset(raw, off)
     }
 }
 
 // #00028
 #[doc(hidden)]
 /// Offsets line segment on right side
-fn seg_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
+fn seg_offset(raw: &OffsetRaw, off: f64) -> OffsetRaw {
     // line segment
-    let perp = seg.b - seg.a;
+    let perp = raw.arc.b - raw.arc.a;
     let (perp, _) = point(perp.y, -perp.x).normalize(false);
     let offset_vec = perp * off;
-    let mut arc = arcseg(seg.a + offset_vec, seg.b + offset_vec);
-    arc.id(seg.id);
+    let mut arc = arcseg(raw.arc.a + offset_vec, raw.arc.b + offset_vec);
+    arc.id(raw.arc.id);
     return OffsetRaw {
         arc,
-        orig,
+        orig: raw.orig,
         g: ZERO,
     };
 }
@@ -64,34 +64,35 @@ const EPS_COLLAPSED: f64 = 1E-8; // TODO: what should be the exact value.
 /// Offsets arc on right side
 #[doc(hidden)]
 #[must_use]
-pub fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
+pub fn arc_offset(raw: &OffsetRaw, offset: f64) -> OffsetRaw {
+    let seg = raw.arc;
     let (v0_to_center, _) = (seg.a - seg.c).normalize(false);
     let (v1_to_center, _) = (seg.b - seg.c).normalize(false);
 
-    let off = if bulge < 0.0 { -offset } else { offset };
+    let off = if raw.g < 0.0 { -offset } else { offset };
     let offset_radius = seg.r + off;
     let a = seg.a + v0_to_center * off;
     let b = seg.b + v1_to_center * off;
-    if arc_check(seg, EPS_COLLAPSED) {
-        let mut arc = arc(a, b, seg.c, offset_radius);
-        arc.id(seg.id);
+    let mut seg = arc(a, b, seg.c, offset_radius);
+
+    if seg.check(EPS_COLLAPSED) {
+        seg.id(raw.arc.id);
         OffsetRaw {
-            arc,
-            orig,
-            g: bulge,
+            arc: seg,
+            orig: raw.orig,
+            g: raw.g,
         }
     } else {
         // Collapsed arc is now line
-        let mut arc = arcseg(b, a);
-        arc.id(seg.id);
+        let mut seg = arcseg(b, a);
+        seg.id(raw.arc.id);
         OffsetRaw {
-            arc,
-            orig,
+            arc: seg,
+            orig: raw.orig,
             g: ZERO,
         }
     }
 }
-
 
 #[cfg(test)]
 mod test_offset_polyline_raw {
@@ -230,7 +231,9 @@ mod test_offset_polyline_raw {
         let circle0 = circle(point(arc0.c.x, arc0.c.y), 0.1);
         svg.circle(&circle0, "blue");
 
-        let offsetraw = offset_arc_segment(&arc0, point(-52.0, 250.0), -0.6068148963145962, 16.0);
+        let raw = offsetraw(arc0, point(-52.0, 250.0), -0.6068148963145962);
+
+        let offsetraw = offset_arc_segment(&raw, 16.0);
         svg.arcsegment(&offsetraw.arc, "green");
         let circle1 = circle(point(offsetraw.arc.c.x, offsetraw.arc.c.y), 0.1);
         svg.circle(&circle1, "blue");

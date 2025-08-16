@@ -1,7 +1,2 @@
-
-
-
 #[test]
-fn test_lib() {
-
-}
+fn test_lib() {}

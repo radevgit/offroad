@@ -230,7 +230,7 @@ fn offset_polyline_impl(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<A
 
 fn offset_arcline_impl(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
     let alines = vec![arcs.clone()];
-    let poly_raws = arcs_to_raws(&alines);
+    let poly_raws = arclines_to_raws(&alines);
     offset_algo(&poly_raws, off, cfg)
 }
 
@@ -322,14 +322,14 @@ pub fn polyline_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     let mut offs = Vec::with_capacity(size + 1);
     for i in 0..size {
         let bulge = pline[i % size].b;
-        let seg = arc_circle_parametrization(pline[i % size].p, pline[(i + 1) % size].p, bulge);
+        let arc = arc_circle_parametrization(pline[i % size].p, pline[(i + 1) % size].p, bulge);
         // let check = arc_check(&seg, EPS_COLLAPSED);
         // if !check {
         //     continue;
         // }
-        let orig = if bulge < ZERO { seg.a } else { seg.b };
+        let orig = if bulge < ZERO { arc.a } else { arc.b };
         let off = OffsetRaw {
-            arc: seg,
+            arc,
             orig,
             g: bulge,
         };
@@ -378,7 +378,7 @@ pub fn poly_remove_duplicates(pline: &Polyline) -> Polyline {
 }
 
 #[must_use]
-pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
+pub fn arclines_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
     let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
     for arcs in arcss {
         varcs.push(arcs_to_raws_single(arcs));
@@ -391,15 +391,15 @@ const EPS_COLLAPSED: f64 = 1E-8; // TODO: what should be the exact value.
 pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
     let mut offs = Vec::with_capacity(arcs.len());
 
-    for seg in arcs {
+    for arc in arcs {
         // let check = arc_check(&seg, EPS_COLLAPSED);
         // if !check {
         //     continue;
         // }
-        let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
-        let orig = if bulge < ZERO { seg.a } else { seg.b };
+        let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+        let orig = if bulge < ZERO { arc.a } else { arc.b };
         let off = OffsetRaw {
-            arc: *seg,
+            arc: *arc,
             orig,
             g: bulge,
         };

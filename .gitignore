@@ -17,3 +17,4 @@ target/
 #.idea/
 src/_*
 clippy.txt
+fmt.txt

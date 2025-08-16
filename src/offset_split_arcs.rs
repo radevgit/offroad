@@ -358,7 +358,7 @@ pub fn split_seg_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 // Check if the line-arc segments have 0.0 length
 fn check_and_push(res: &mut Vec<Arc>, seg: &Arc) {
     let eps = 1e-9; // TODO: what should be the exact value
-    if arc_check(seg, eps) {
+    if seg.check(eps) {
         res.push(seg.clone())
     }
 }
@@ -369,7 +369,6 @@ mod test_offset_split_arcs {
     use std::vec;
 
     use super::*;
-    use geom::prelude::*;
 
     fn show(arc0: &Arc, arc1: &Arc, arcs: &Vec<Arc>, svg: &mut SVG) {
         svg.arcsegment(&arc0, "grey");

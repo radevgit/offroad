@@ -1,21 +1,15 @@
 // https://nikolaivazquez.com/blog/divan/
-// 
+//
 
 use geom::prelude::*;
-use offroad::{offset::{offset_polyline, example_polyline_01, OffsetCfg}};
-
-
+use offroad::offset::{OffsetCfg, example_polyline_01, offset_polyline};
 
 fn main() {
     // Run registered benchmarks.
     divan::main();
 }
 
-
-#[divan::bench(args = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0], 
-    max_time = 1.0, // seconds
-    sample_size = 200, // 64 × 84 = 5376
-    )]
+#[divan::bench(args = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0], max_time = 1.0,  sample_size = 200 )]
 fn bench_offset_polyline_to_polyline(off: f64) {
     let mut cfg = OffsetCfg::default();
 

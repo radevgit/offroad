@@ -4,7 +4,7 @@ use geom::prelude::*;
 
 use crate::offset_raw::OffsetRaw;
 
-const PRUNE_EPSILON: f64 = 1e-8;
+const PRUNE_EPSILON: f64 = 1e-9;
 #[doc(hidden)]
 /// Prune arcs that are close to any of the arcs in the original polyline.
 #[must_use]

@@ -16,8 +16,6 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     );
     let result = Vec::new();
 
-    let len = arcs.len();
-
     result
 }
 
@@ -52,6 +50,11 @@ pub fn find_middle_points(arcs: &mut Arcline) {
                 arcs[j].b = mid;
             }
         }
+    }
+
+    for arc in arcs.iter_mut() {
+        // make arcs consistent
+        arc.make_consistent();
     }
 }
 
@@ -219,7 +222,7 @@ fn should_use_forward_direction(from_vertex: usize, to_vertex: usize, len: usize
     }
 }
 
-const EPS_BRIDGE: f64 = 1e-6;
+const EPS_BRIDGE: f64 = 1e-8;
 #[doc(hidden)]
 /// Removes duplicate arcs that overlap as 2D graphics elements.
 ///
@@ -228,7 +231,7 @@ const EPS_BRIDGE: f64 = 1e-6;
 /// DO NOT CHANGE THIS FUNCTION - it's a critical component for maintaining geometric consistency.
 pub fn remove_bridge_arcs(arcs: &mut Arcline) {
     let mut to_remove = Vec::new(); // remove bridge arcs
-    let mut to_add = Vec::new();   // add new arcs between close ends
+    let mut to_add = Vec::new(); // add new arcs between close ends
     for i in 0..arcs.len() {
         for j in (i + 1)..arcs.len() {
             let arc0 = &arcs[i];
@@ -245,14 +248,11 @@ pub fn remove_bridge_arcs(arcs: &mut Arcline) {
                 }
                 to_remove.push(i);
                 to_remove.push(j);
-                let new0 = arcseg(arc0.a, arc1.a);
-                let new1 = arcseg(arc0.b, arc1.b);
-                if arc_check(&new0, 1e-8) {
-                    to_add.push(new0);
-                }
-                if arc_check(&new1, 1e-8) {
-                    to_add.push(new1);
-                }
+
+                // add new arcs to patch holes
+                to_add.push(arcseg(arc0.a, arc1.a));
+                to_add.push(arcseg(arc0.b, arc1.b));
+
                 continue;
             }
 
@@ -264,16 +264,12 @@ pub fn remove_bridge_arcs(arcs: &mut Arcline) {
                 if arc0.is_arc() && arc1.is_arc() && !close_enough(arc0.r, arc1.r, EPS_BRIDGE) {
                     continue;
                 }
-                let new0 = arcseg(arc0.a, arc1.b);
-                let new1 = arcseg(arc0.b, arc1.a);
                 to_remove.push(i);
                 to_remove.push(j);
-                if arc_check(&new0, 1e-8) {
-                    to_add.push(new0);
-                }
-                if arc_check(&new1, 1e-8) {
-                    to_add.push(new1);
-                }
+
+                // add new arcs to patch holes
+                to_add.push(arcseg(arc0.a, arc1.b));
+                to_add.push(arcseg(arc0.b, arc1.a));
                 continue;
             }
         }
@@ -1173,7 +1169,7 @@ mod test_remove_bridge_arcs {
         let original_len = arcs.len();
         remove_bridge_arcs(&mut arcs);
         // No new connection after bridge removal
-        assert_eq!(arcs.len(), original_len-2);
+        assert_eq!(arcs.len(), original_len - 2);
     }
 
     #[test]
@@ -1195,7 +1191,7 @@ mod test_remove_bridge_arcs {
         let original_len = arcs.len();
         remove_bridge_arcs(&mut arcs);
         // One new arc should be created after bridge removal
-        assert_eq!(arcs.len(), original_len-1);
+        assert_eq!(arcs.len(), original_len - 1);
     }
 }
 

@@ -28,33 +28,33 @@
 //!
 //! Check "examples" directory for more usage examples.
 
-
 // Offsetting algorithm components
 pub mod offset;
-#[doc(hidden)]
-pub mod offset_raw;
-#[doc(hidden)]
-// raw offsetting components (lines, arcs)
-mod offset_segments_raws;
 #[doc(hidden)]
 // connect raw offsets with arcs
 mod offset_connect_raw;
 #[doc(hidden)]
-// split raw offsets into segments in intersection points
-mod offset_split_arcs;
-#[doc(hidden)]
 // prune invalid offsets that are close to original polylines
 mod offset_prune_invalid;
 #[doc(hidden)]
+pub mod offset_raw;
+#[doc(hidden)]
 // resulting soup of arcs is ordered and reconnected
 mod offset_reconnect_arcs;
-
+#[doc(hidden)]
+// raw offsetting components (lines, arcs)
+mod offset_segments_raws;
+#[doc(hidden)]
+// split raw offsets into segments in intersection points
+mod offset_split_arcs;
 
 // Re-export main offsetting functions
 // For public API
 pub mod prelude {
-    pub use crate::offset::{offset_polyline, offset_arcline, OffsetCfg};
-    pub use crate::offset::{example_polyline_01, example_polyline_02, example_polyline_03, example_polylines_04};
+    pub use crate::offset::{OffsetCfg, offset_arcline, offset_polyline};
+    pub use crate::offset::{
+        example_polyline_01, example_polyline_02, example_polyline_03, example_polylines_04,
+    };
 }
 // For internal use
 // pub use crate::offset_polyline_raw::{offset_polyline_raw, poly_to_raws};
