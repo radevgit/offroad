@@ -52,8 +52,8 @@ pub fn find_middle_points(arcs: &mut Arcline) {
         }
     }
 
+    // Adjust arcs
     for arc in arcs.iter_mut() {
-        // make arcs consistent
         arc.make_consistent();
     }
 }

@@ -541,7 +541,7 @@ pub fn offset_algo(raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) ->
         && cfg.svg_split
     {
         svg.arcline(&offset_split, "violet");
-        svg.offset_segments_single_points(&offset_split, "violet");
+        svg.arcline_single_points(&offset_split, "violet");
     }
 
     let offset_prune = offset_prune_invalid(raws, &mut offset_split, off);
@@ -550,7 +550,7 @@ pub fn offset_algo(raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) ->
         && cfg.svg_prune
     {
         svg.arcline(&offset_prune, "violet");
-        svg.offset_segments_single_points(&offset_prune, "violet");
+        svg.arcline_single_points(&offset_prune, "violet");
     }
     offset_prune
 }
