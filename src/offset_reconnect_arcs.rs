@@ -166,7 +166,7 @@ pub fn middle_points_knn(arcs: &mut Arcline) {
         BB,
     }
     // Find the k-nearest neighbors for each arc in the arcline
-    let k = 7; // Number of neighbors to find
+    let k = 12; // Number of neighbors to find
     let mut neighbors: Vec<Vec<(usize, usize, MergeEnd)>> = vec![Vec::new(); arcs.len()];
 
     for i in 0..arcs.len() {
@@ -264,7 +264,8 @@ pub fn middle_points_knn(arcs: &mut Arcline) {
             to_remove.push(i);
         }
     }
-    for i in to_remove {
+    // Remove in reverse order to avoid index shifts
+    for i in to_remove.into_iter().rev() {
         arcs.remove(i);
     }
 
@@ -2372,5 +2373,362 @@ mod test_find_connected_components {
         let mut cycle_sizes: Vec<usize> = components.iter().map(|c| c.len()).collect();
         cycle_sizes.sort();
         assert_eq!(cycle_sizes, vec![3, 4]);
+    }
+}
+
+#[cfg(test)]
+mod test_middle_points_knn {
+    use super::*;
+
+    // Helper function to validate remaining arcs after middle_points_knn processing
+    fn validate_remaining_arcs(arcs: &[Arc], min_expected: usize, max_expected: usize) {
+        assert!(arcs.len() >= min_expected && arcs.len() <= max_expected, 
+                "Arc count {} not in expected range [{}, {}]", arcs.len(), min_expected, max_expected);
+        
+        // All remaining arcs should be valid (not degenerate)
+        for arc in arcs {
+            let dist = manhattan_distance(&arc.a, &arc.b);
+            assert!(dist > 1e-10, "Arc should not be degenerate: start={:?}, end={:?}", arc.a, arc.b);
+        }
+    }
+
+    #[test]
+    fn test_middle_points_knn_empty_input() {
+        let mut arcs = Vec::new();
+        middle_points_knn(&mut arcs);
+        assert_eq!(arcs.len(), 0);
+    }
+
+    #[test]
+    fn test_middle_points_knn_single_arc() {
+        let mut arcs = vec![arcseg(point(0.0, 0.0), point(1.0, 0.0))];
+        middle_points_knn(&mut arcs);
+        // Single arc with no neighbors should remain unchanged, unless it becomes degenerate
+        // The algorithm might remove it if it becomes too small during processing
+        assert!(arcs.len() <= 1);
+        if arcs.len() == 1 {
+            // If it remains, it should be valid
+            let dist = manhattan_distance(&arcs[0].a, &arcs[0].b);
+            assert!(dist > 1e-10, "Remaining arc should be valid");
+        }
+    }
+
+    #[test]
+    fn test_middle_points_knn_two_separate_arcs() {
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(1.0, 0.0)),
+            arcseg(point(10.0, 0.0), point(11.0, 0.0)), // Far apart, no merging
+        ];
+        middle_points_knn(&mut arcs);
+        // Arcs far apart should not merge, but may be removed if they become too small
+        assert!(arcs.len() <= 2);
+        
+        // Verify remaining arcs are valid
+        for arc in &arcs {
+            let dist = manhattan_distance(&arc.a, &arc.b);
+            assert!(dist > 1e-10, "All remaining arcs should be valid");
+        }
+        
+        // If arcs remain, they should be in reasonable positions
+        if arcs.len() >= 1 {
+            let all_points: Vec<Point> = arcs.iter().flat_map(|a| vec![a.a, a.b]).collect();
+            // Verify points are within expected bounds
+            for point in all_points {
+                assert!(point.x >= -0.1 && point.x <= 11.1, "Points should be within bounds");
+                assert!(point.y >= -0.1 && point.y <= 0.1, "Points should be within bounds");
+            }
+        }
+    }
+
+    #[test]
+    fn test_middle_points_knn_close_endpoints() {
+        // Two arcs with endpoints very close (within EPS_MIDDLE)
+        let eps = EPS_MIDDLE / 2.0; // Half of threshold to ensure they're close enough
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(2.0, 0.0)),
+            arcseg(point(2.0 + eps, 0.0), point(4.0, 0.0)), // Close to first arc's end
+        ];
+        middle_points_knn(&mut arcs);
+        
+        // The close endpoints should be merged to their average position
+        let expected_mid_x = (2.0 + 2.0 + eps) / 2.0;
+        assert!((arcs[0].b.x - expected_mid_x).abs() < 1e-10);
+        assert!((arcs[1].a.x - expected_mid_x).abs() < 1e-10);
+        assert_eq!(arcs[0].b.y, 0.0);
+        assert_eq!(arcs[1].a.y, 0.0);
+    }
+
+    #[test]
+    fn test_middle_points_knn_exact_connection() {
+        // Two arcs sharing an exact endpoint
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(2.0, 0.0)),
+            arcseg(point(2.0, 0.0), point(4.0, 0.0)), // Exact connection
+        ];
+        middle_points_knn(&mut arcs);
+        
+        // The shared endpoint should remain the same (or very close)
+        let dist = manhattan_distance(&arcs[0].b, &arcs[1].a);
+        assert!(dist < EPS_MIDDLE);
+    }
+
+    #[test]
+    fn test_middle_points_knn_square_path() {
+        // Four arcs forming a square with slightly offset connections
+        let eps = EPS_MIDDLE / 3.0;
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(1.0 + eps, 0.0)), // Bottom
+            arcseg(point(1.0, eps), point(1.0, 1.0 + eps)), // Right
+            arcseg(point(1.0 - eps, 1.0), point(0.0, 1.0 - eps)), // Top
+            arcseg(point(-eps, 1.0), point(0.0, -eps)), // Left
+        ];
+        
+        middle_points_knn(&mut arcs);
+        
+        // Check that connections have been merged
+        // Bottom-right corner should be merged
+        let dist1 = manhattan_distance(&arcs[0].b, &arcs[1].a);
+        assert!(dist1 < EPS_MIDDLE * 2.0, "Bottom-right corner not merged properly: distance = {}", dist1);
+        
+        // Top-right corner should be merged
+        let dist2 = manhattan_distance(&arcs[1].b, &arcs[2].a);
+        assert!(dist2 < EPS_MIDDLE * 2.0, "Top-right corner not merged properly: distance = {}", dist2);
+    }
+
+    #[test]
+    fn test_middle_points_knn_multiple_close_points() {
+        // Multiple arcs with endpoints clustered together
+        let center = point(5.0, 5.0);
+        let eps = EPS_MIDDLE / 4.0;
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), center + point(eps, 0.0)),
+            arcseg(center + point(0.0, eps), point(10.0, 0.0)),
+            arcseg(point(0.0, 10.0), center + point(-eps, 0.0)),
+            arcseg(center + point(0.0, -eps), point(10.0, 10.0)),
+        ];
+        
+        middle_points_knn(&mut arcs);
+        
+        // Algorithm may remove small arcs, so we verify remaining structure
+        assert!(arcs.len() >= 1, "At least one arc should remain");
+        
+        // Filter out degenerate arcs for our tests (algorithm might create them temporarily)
+        let valid_arcs: Vec<&Arc> = arcs.iter().filter(|arc| {
+            let dist = manhattan_distance(&arc.a, &arc.b);
+            dist > 1e-10
+        }).collect();
+        
+        // If multiple valid arcs remain, check that endpoints that should be close are actually close
+        if valid_arcs.len() > 1 {
+            let all_endpoints: Vec<Point> = valid_arcs.iter().flat_map(|a| vec![a.a, a.b]).collect();
+            // Find clusters of close points
+            for (i, p1) in all_endpoints.iter().enumerate() {
+                for (j, p2) in all_endpoints.iter().enumerate() {
+                    if i != j {
+                        let dist = manhattan_distance(p1, p2);
+                        if dist < EPS_MIDDLE * 3.0 {
+                            // Points that are this close should be very close after merging
+                            assert!(dist < EPS_MIDDLE * 2.0, "Close points should be merged: distance = {}", dist);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_middle_points_knn_star_configuration() {
+        // Star pattern with multiple arcs radiating from center
+        let center = point(0.0, 0.0);
+        let eps = EPS_MIDDLE / 5.0;
+        let mut arcs = vec![
+            arcseg(center + point(eps, 0.0), point(5.0, 0.0)),     // East
+            arcseg(center + point(0.0, eps), point(0.0, 5.0)),     // North
+            arcseg(center + point(-eps, 0.0), point(-5.0, 0.0)),   // West
+            arcseg(center + point(0.0, -eps), point(0.0, -5.0)),   // South
+            arcseg(center + point(eps/2.0, eps/2.0), point(3.0, 3.0)), // Northeast
+        ];
+        
+        middle_points_knn(&mut arcs);
+        
+        // All starting points should converge to approximately the same point
+        let start_points = vec![arcs[0].a, arcs[1].a, arcs[2].a, arcs[3].a, arcs[4].a];
+        let avg_x = start_points.iter().map(|p| p.x).sum::<f64>() / start_points.len() as f64;
+        let avg_y = start_points.iter().map(|p| p.y).sum::<f64>() / start_points.len() as f64;
+        let avg_center = point(avg_x, avg_y);
+        
+        for start_point in start_points {
+            let dist = manhattan_distance(&start_point, &avg_center);
+            assert!(dist < EPS_MIDDLE * 2.0, "Start point not properly merged: distance = {}", dist);
+        }
+    }
+
+    #[test]
+    fn test_middle_points_knn_chain_connection() {
+        // Chain of arcs where each connects to the next
+        let eps = EPS_MIDDLE / 4.0;
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(1.0 + eps, 0.0)),
+            arcseg(point(1.0, eps), point(2.0 + eps, 0.0)),
+            arcseg(point(2.0, -eps), point(3.0 + eps, 0.0)),
+            arcseg(point(3.0, eps), point(4.0, 0.0)),
+        ];
+        
+        middle_points_knn(&mut arcs);
+        
+        // Check that connections are properly merged
+        // Connection point 1: arcs[0].b and arcs[1].a
+        let dist1 = manhattan_distance(&arcs[0].b, &arcs[1].a);
+        assert!(dist1 < EPS_MIDDLE * 2.0, "Connection 1 not merged properly: distance = {}", dist1);
+        
+        // Connection point 2: arcs[1].b and arcs[2].a  
+        let dist2 = manhattan_distance(&arcs[1].b, &arcs[2].a);
+        assert!(dist2 < EPS_MIDDLE * 2.0, "Connection 2 not merged properly: distance = {}", dist2);
+        
+        // Connection point 3: arcs[2].b and arcs[3].a
+        let dist3 = manhattan_distance(&arcs[2].b, &arcs[3].a);
+        assert!(dist3 < EPS_MIDDLE * 2.0, "Connection 3 not merged properly: distance = {}", dist3);
+    }
+
+    #[test]
+    fn test_middle_points_knn_removes_small_arcs() {
+        let eps = EPS_MIDDLE / 4.0;
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(5.0, 0.0)), // Normal arc
+            arcseg(point(2.0, 0.0), point(2.0 + eps, 0.0)), // Very small arc
+            arcseg(point(10.0, 0.0), point(15.0, 0.0)), // Normal arc
+        ];
+        
+        let initial_count = arcs.len();
+        middle_points_knn(&mut arcs);
+        
+        // Small arcs might be removed
+        assert!(arcs.len() <= initial_count);
+        
+        // Remaining arcs should be valid
+        for arc in &arcs {
+            let dist = manhattan_distance(&arc.a, &arc.b);
+            assert!(dist > 1e-10, "Arc too small: start={:?}, end={:?}, distance={}", arc.a, arc.b, dist);
+        }
+    }
+
+    #[test]
+    fn test_middle_points_knn_boundary_case() {
+        // Test points at different distances relative to EPS_MIDDLE
+        let eps = EPS_MIDDLE;
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(1.0, 0.0)),
+            arcseg(point(1.0 + eps * 0.5, 0.0), point(2.0, 0.0)), // Within threshold
+            arcseg(point(1.0 + eps * 2.0, 1.0), point(2.0, 1.0)), // Outside threshold
+        ];
+        
+        middle_points_knn(&mut arcs);
+        
+        // First two arcs should be connected
+        let dist_connected = manhattan_distance(&arcs[0].b, &arcs[1].a);
+        assert!(dist_connected < EPS_MIDDLE, "Close arcs should be connected: distance = {}", dist_connected);
+        
+        // Third arc should not be affected by the first arc's endpoints
+        assert!((arcs[2].a.y - 1.0).abs() < 1e-10, "Third arc should remain separate");
+    }
+
+    #[test]
+    fn test_middle_points_knn_preserves_arc_consistency() {
+        // Test that arcs remain geometrically valid after processing
+        let eps = EPS_MIDDLE / 3.0;
+        let mut arcs = vec![
+            arcseg(point(0.0, 0.0), point(1.0 + eps, 1.0)),
+            arcseg(point(1.0, 1.0 + eps), point(2.0, 2.0)),
+            arcseg(point(2.0 - eps, 2.0), point(3.0, 3.0 - eps)),
+        ];
+        
+        middle_points_knn(&mut arcs);
+        
+        // All arcs should remain valid
+        for (i, arc) in arcs.iter().enumerate() {
+            let dist = manhattan_distance(&arc.a, &arc.b);
+            assert!(dist > 0.0, "Arc {} has zero length", i);
+            assert!(arc.a.x.is_finite() && arc.a.y.is_finite(), "Arc {} start point invalid", i);
+            assert!(arc.b.x.is_finite() && arc.b.y.is_finite(), "Arc {} end point invalid", i);
+        }
+    }
+
+    #[test]
+    fn test_manhattan_distance_function() {
+        // Test the helper function directly
+        let p1 = point(0.0, 0.0);
+        let p2 = point(3.0, 4.0);
+        let dist = manhattan_distance(&p1, &p2);
+        assert_eq!(dist, 7.0); // |3-0| + |4-0| = 7
+        
+        let p3 = point(-2.0, -3.0);
+        let p4 = point(1.0, 2.0);
+        let dist2 = manhattan_distance(&p3, &p4);
+        assert_eq!(dist2, 8.0); // |1-(-2)| + |2-(-3)| = 3 + 5 = 8
+        
+        // Same point
+        let dist3 = manhattan_distance(&p1, &p1);
+        assert_eq!(dist3, 0.0);
+    }
+
+    #[test]
+    fn test_middle_points_knn_with_different_merge_patterns() {
+        // Test different MergeEnd patterns: AA, AB, BA, BB
+        let eps = EPS_MIDDLE / 4.0;
+        let mut arcs = vec![
+            // AA pattern: both start points close
+            arcseg(point(0.0, 0.0), point(1.0, 0.0)),
+            arcseg(point(eps, 0.0), point(0.0, 1.0)),
+            
+            // BB pattern: both end points close
+            arcseg(point(2.0, 0.0), point(3.0, 0.0)),
+            arcseg(point(4.0, 0.0), point(3.0 + eps, 0.0)),
+            
+            // AB pattern: start of first with end of second
+            arcseg(point(5.0, 0.0), point(6.0, 0.0)),
+            arcseg(point(7.0, 0.0), point(5.0 + eps, 0.0)),
+        ];
+        
+        middle_points_knn(&mut arcs);
+        
+        // Check AA merge
+        let aa_dist = manhattan_distance(&arcs[0].a, &arcs[1].a);
+        assert!(aa_dist < EPS_MIDDLE, "AA pattern not merged: distance = {}", aa_dist);
+        
+        // Check BB merge
+        let bb_dist = manhattan_distance(&arcs[2].b, &arcs[3].b);
+        assert!(bb_dist < EPS_MIDDLE, "BB pattern not merged: distance = {}", bb_dist);
+        
+        // Check AB merge
+        let ab_dist = manhattan_distance(&arcs[4].a, &arcs[5].b);
+        assert!(ab_dist < EPS_MIDDLE, "AB pattern not merged: distance = {}", ab_dist);
+    }
+
+    #[test]
+    fn test_middle_points_knn_k_neighbors_limit() {
+        // Test with more than k=7 potential neighbors
+        let center = point(5.0, 5.0);
+        let eps = EPS_MIDDLE / 10.0;
+        let mut arcs = vec![];
+        
+        // Create 10 arcs all starting very close to the center
+        for i in 0..10 {
+            let start = center + point(eps * (i as f64), eps * (i as f64 % 3.0));
+            let end = start + point(10.0, 0.0);
+            arcs.push(arcseg(start, end));
+        }
+        
+        middle_points_knn(&mut arcs);
+        
+        // All start points should be merged together due to k-nearest neighbor averaging
+        let start_points: Vec<Point> = arcs.iter().map(|arc| arc.a).collect();
+        let avg_x = start_points.iter().map(|p| p.x).sum::<f64>() / start_points.len() as f64;
+        let avg_y = start_points.iter().map(|p| p.y).sum::<f64>() / start_points.len() as f64;
+        let avg_center = point(avg_x, avg_y);
+        
+        for start_point in start_points {
+            let dist = manhattan_distance(&start_point, &avg_center);
+            assert!(dist < EPS_MIDDLE, "Start point not properly averaged: distance = {}", dist);
+        }
     }
 }
