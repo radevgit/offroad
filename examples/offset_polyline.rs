@@ -4,7 +4,8 @@ use offroad::prelude::{OffsetCfg, offset_polyline};
 fn main() {
     // Configuration for offsetting
     let mut cfg = OffsetCfg::default();
-    let mut svg = SVG::new(300.0, 300.0, "/tmp/polyline.svg");
+    // Prints SVG output to stdout
+    let mut svg = SVG::new(300.0, 300.0, None);
     cfg.svg = Some(&mut svg);
     // Show original polyline in SVG output
     cfg.svg_orig = true;

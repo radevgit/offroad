@@ -42,13 +42,13 @@ pub fn offset_prune_invalid(
 
 fn distance_element_element(seg0: &Arc, seg1: &Arc) -> f64 {
     let mut dist = std::f64::INFINITY;
-    if seg0.is_line() && seg1.is_line() {
+    if seg0.is_seg() && seg1.is_seg() {
         dist = dist_segment_segment(&segment(seg0.a, seg0.b), &segment(seg1.a, seg1.b));
     } else if seg0.is_arc() && seg1.is_arc() {
         dist = dist_arc_arc(seg0, seg1);
-    } else if seg0.is_line() && seg1.is_arc() {
+    } else if seg0.is_seg() && seg1.is_arc() {
         dist = dist_segment_arc(&segment(seg0.a, seg0.b), seg1);
-    } else if seg0.is_arc() && seg1.is_line() {
+    } else if seg0.is_arc() && seg1.is_seg() {
         dist = dist_segment_arc(&segment(seg1.a, seg1.b), seg0);
     }
     dist

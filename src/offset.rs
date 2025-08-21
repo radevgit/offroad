@@ -9,11 +9,12 @@ use crate::{
     offset_connect_raw::offset_connect_raw,
     offset_prune_invalid::offset_prune_invalid,
     offset_raw::OffsetRaw,
-    offset_reconnect_arcs::{find_middle_points, middle_points_knn, offset_reconnect_arcs, remove_bridge_arcs},
+    offset_reconnect_arcs::{offset_reconnect_arcs, remove_bridge_arcs},
     offset_segments_raws::offset_segments_raws,
     offset_split_arcs::offset_split_arcs,
 };
 
+const ZERO: f64 = 0.0;
 /// Configuration options for offsetting operations.
 pub struct OffsetCfg<'a> {
     /// Optional SVG context for rendering
@@ -118,6 +119,7 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
         "DEBUG: remove_bridge_arcs called with {} arcs",
         offset_arcs.len()
     );
+
     remove_bridge_arcs(&mut offset_arcs);
 
     if let Some(svg) = cfg.svg.as_deref_mut()
@@ -127,11 +129,10 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
         svg.arcline_single_points(&offset_arcs, "green");
     }
 
-    //find_middle_points(&mut offset_arcs);
-    middle_points_knn(&mut offset_arcs);
+    // find_middle_points(&mut offset_arcs);
 
     // Always reconnect arcs
-    let reconnect_arcs = offset_reconnect_arcs(&offset_arcs);
+    let reconnect_arcs = offset_reconnect_arcs(&mut offset_arcs);
     // println!(
     //     "DEBUG: offset_reconnect_arcs returned {} components",
     //     reconnect_arcs.len()
@@ -212,11 +213,16 @@ pub fn offset_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arcl
 
     remove_bridge_arcs(&mut offset_arcs);
 
-    find_middle_points(&mut offset_arcs);
+    if let Some(svg) = cfg.svg.as_deref_mut()
+        && cfg.svg_remove_bridges
+    {
+        svg.arcline(&offset_arcs, "violet");
+        svg.arcline_single_points(&offset_arcs, "green");
+    }
 
     let mut final_arcs = Vec::new();
     if cfg.reconnect {
-        final_arcs = offset_reconnect_arcs(&offset_arcs);
+        final_arcs = offset_reconnect_arcs(&mut offset_arcs);
         println!(
             "offset_reconnect_arcs returned {} components",
             final_arcs.len()
@@ -279,7 +285,7 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
     for (i, arc) in arcs.iter().enumerate() {
         let (start_point, end_point, bulge) = if i == 0 {
             // First arc: use original orientation
-            if arc.is_line() {
+            if arc.is_seg() {
                 (arc.a, arc.b, 0.0)
             } else {
                 let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
@@ -294,7 +300,7 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
 
             if use_forward {
                 // Use arc in forward direction (a -> b)
-                if arc.is_line() {
+                if arc.is_seg() {
                     (arc.a, arc.b, 0.0)
                 } else {
                     let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
@@ -302,7 +308,7 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
                 }
             } else {
                 // Use arc in reverse direction (b -> a)
-                if arc.is_line() {
+                if arc.is_seg() {
                     (arc.b, arc.a, 0.0)
                 } else {
                     // For reversed arc, we need to negate the bulge
@@ -574,7 +580,7 @@ pub fn offset_algo(raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) ->
 pub fn svg_offset_raws(svg: &mut SVG, offset_raws: &Vec<Vec<OffsetRaw>>, color: &str) {
     for raw in offset_raws {
         for seg in raw {
-            if seg.arc.is_line() {
+            if seg.arc.is_seg() {
                 let segment = segment(seg.arc.a, seg.arc.b);
                 svg.segment(&segment, color);
             } else {
@@ -583,798 +589,6 @@ pub fn svg_offset_raws(svg: &mut SVG, offset_raws: &Vec<Vec<OffsetRaw>>, color: 
         }
     }
 }
-
-// pub fn offset_convert_raw_to_arcs(raws: &Vec<OffsetRaw>) -> Vec<Arc> {
-//     let mut res = Vec::new();
-//     for raw in raws {
-//         res.push(raw.arc.clone());
-//     }
-//     res
-// }
-
-/*
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
-pub struct OffsetSegment {
-    pub arc: Arc,
-    //pub orig: Point, // original point p0
-    pub is_arc: bool,
-}
-
-impl Display for OffsetSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}, {}]", self.arc, self.is_arc)
-    }
-}
-
-impl OffsetSegment {
-    #[inline]
-    pub fn new(arc: Arc, is_arc: bool) -> Self {
-        OffsetSegment { arc, is_arc }
-    }
-}
-
-#[inline]
-pub fn offsetsegment(arc: Arc, is_arc: bool) -> OffsetSegment {
-    OffsetSegment::new(arc, is_arc)
-}
-*/
-
-// pub type OffsetSegment = Arc;
-
-// #[derive(Debug, PartialEq)]
-// pub struct OffsetRaw {
-//     pub arc: Arc,
-//     pub orig: Point, // original point p0
-//     pub g: f64,
-// }
-
-// impl Display for OffsetRaw {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "[{}, {}, {}]", self.arc, self.orig, self.g)
-//     }
-// }
-
-// impl OffsetRaw {
-//     #[inline]
-//     fn new(arc: Arc, orig: Point, g: f64) -> Self {
-//         OffsetRaw { arc, orig, g }
-//     }
-// }
-
-// #[inline]
-// fn offsetraw(arc: Arc, orig: Point, g: f64) -> OffsetRaw {
-//     OffsetRaw::new(arc, orig, g)
-// }
-
-// #[cfg(test)]
-// mod test_offset_raw {
-//     use super::*;
-
-//     #[test]
-//     fn test_new() {
-//         let arc = arc_circle_parametrization(point(1.0, 2.0), point(3.0, 4.0), 3.3);
-//         let o0 = OffsetRaw::new(arc, point(5.0, 6.0), 3.3);
-//         let o1 = offsetraw(arc, point(5.0, 6.0), 3.3);
-//         assert_eq!(o0, o1);
-//     }
-
-//     #[test]
-//     fn test_display() {
-//         let arc = arc_circle_parametrization(point(1.0, 2.0), point(3.0, 4.0), 3.3);
-//         let o0 = OffsetRaw::new(arc, point(5.0, 6.0), 3.3);
-//         assert_eq!("[[[1.00000000000000000000, 2.00000000000000000000], [3.00000000000000000000, 4.00000000000000000000], [3.49848484848484808651, 1.50151515151515169144], 2.54772716009334887488], [5.00000000000000000000, 6.00000000000000000000], 3.3]", format!("{}", o0));
-//     }
-// }
-
-const ZERO: f64 = 0f64;
-
-// // Offsets line segment on right side
-// // https://github.com/jbuckmccready/CavalierContours/blob/master/include/cavc/polylineoffset.hpp
-// fn line_offset(vertex0: PVertex, vertex1: PVertex, off: f64) -> OffsetRaw {
-//     // line segment
-//     let edge = vertex1.p - vertex0.p;
-//     let edge = point(edge.y, -edge.x).normalize();
-//     let offset_v = edge * off;
-//     let arc = arcline(vertex0.p + offset_v, vertex1.p + offset_v);
-//     return OffsetRaw {
-//         arc,
-//         orig: vertex0.p,
-//         g: ZERO,
-//     };
-// }
-
-// const EPS_COLLAPSED: f64 = 1E-10; // TODO: what should be the exact value.
-//                                   // Offsets arc on right side
-//                                   // https://github.com/jbuckmccready/CavalierContours/blob/master/include/cavc/polylineoffset.hpp
-//                                   // Offsets arc on right side
-// fn arc_offset(v0: PVertex, v1: PVertex, offset: f64) -> OffsetRaw {
-//     let bulge = v0.g;
-//     // arc is always CCW
-//     let param = arc_circle_parametrization(v0.p, v1.p, bulge);
-//     let v0_to_center = v0.p - param.c;
-//     let v0_to_center = v0_to_center.normalize();
-//     let v1_to_center = v1.p - param.c;
-//     let v1_to_center = v1_to_center.normalize();
-
-//     let off = if bulge < 0.0 { -offset } else { offset };
-//     let offset_radius = (param.r + off).abs();
-//     if offset_radius < EPS_COLLAPSED {
-//         // Collapsed arc is now line
-//         return OffsetRaw {
-//             arc: arcline(v0.p + v0_to_center * off, v1.p + v1_to_center * off),
-//             orig: v0.p,
-//             g: 0f64,
-//         };
-//     } else {
-//         return OffsetRaw {
-//             arc: arc(
-//                 v0.p + v0_to_center * off,
-//                 v1.p + v1_to_center * off,
-//                 param.c,
-//                 offset_radius,
-//             ),
-//             orig: v0.p,
-//             g: v0.g,
-//         };
-//     }
-// }
-
-// fn segment_offset(vertex0: PVertex, vertex1: PVertex, off: f64) -> OffsetRaw {
-//     if vertex0.g == ZERO {
-//         line_offset(vertex0, vertex1, off)
-//     } else {
-//         arc_offset(vertex0, vertex1, off)
-//     }
-// }
-
-// #[cfg(test)]
-// mod test_offset {
-//     use crate::pvertex::pvertex;
-
-//     use super::*;
-//     const ONE: f64 = 1f64;
-//     const ZERO: f64 = 0f64;
-
-//     #[test]
-//     fn test_line_offset_vertical() {
-//         // vertical segment
-//         let v0 = pvertex(point(2.0, 1.0), ZERO);
-//         let v1 = pvertex(point(2.0, 11.0), ZERO);
-//         let res = offsetraw(
-//             arcline(point(3.0, 1.0), point(3.0, 11.0)),
-//             point(2.0, 1.0),
-//             0.0,
-//         );
-//         assert_eq!(line_offset(v0, v1, 1.0), res);
-//     }
-//     #[test]
-//     fn test_line_offset_horizontal() {
-//         // horizontal segment
-//         let v0 = pvertex(point(-2.0, 1.0), ZERO);
-//         let v1 = pvertex(point(3.0, 1.0), ZERO);
-//         let res = offsetraw(
-//             arcline(point(-2.0, -1.0), point(3.0, -1.0)),
-//             point(-2.0, 1.0),
-//             0.0,
-//         );
-//         assert_eq!(line_offset(v0, v1, 2.0), res);
-//     }
-//     #[test]
-//     fn test_line_offset_diagonal() {
-//         // diagonal segment
-//         let v0 = pvertex(point(-1.0, 1.0), ZERO);
-//         let v1 = pvertex(point(-2.0, 2.0), ZERO);
-//         let res = offsetraw(
-//             arcline(point(0.0, 2.0), point(-1.0, 3.0)),
-//             point(-1.0, 1.0),
-//             0.0,
-//         );
-//         assert_eq!(line_offset(v0, v1, std::f64::consts::SQRT_2), res);
-//     }
-// }
-
-// fn offset_polyline_raw(pline: &Polyline, off: f64) -> Vec<OffsetRaw> {
-//     let mut result = Vec::with_capacity(pline.len() + 1);
-//     let last = pline.len() - 2;
-//     for i in 0..=last {
-//         let offset = segment_offset(pline[i], pline[i + 1], off);
-//         result.push(offset);
-//     }
-//     // close plyne
-//     let offset = segment_offset(*pline.last().unwrap(), pline[0], off);
-//     result.push(offset);
-
-//     println!("raw size: {}", result.len());
-//     result
-// }
-
-/*
-pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> bool {
-    if !off0.is_arc() {
-        if !off1.is_arc() {
-            // two segments
-            let segment0 = segment(off0.a, off0.b);
-            let segment1 = segment(off1.a, off1.b);
-            let res = intersect_segment_segment(segment0, segment1);
-            match res {
-                SegmentConfig::NoIntersection() => {
-                    return false;
-                }
-                _ => {
-                    return true;
-                }
-            }
-        } else {
-            // segment arc
-            let segment0 = segment(off0.a, off0.b);
-            let res = intersect_segment_arc(segment0, off1);
-            match res {
-                SegmentArcConfig::NoIntersection() => {
-                    return false;
-                }
-                _ => {
-                    return true;
-                }
-            }
-        }
-    } else {
-        if !off1.is_arc() {
-            // arc and segment
-            let segment0 = segment(off1.a, off1.b);
-            let res = intersect_segment_arc(segment0, off0);
-            match res {
-                SegmentArcConfig::NoIntersection() => {
-                    return false;
-                }
-                _ => {
-                    return true;
-                }
-            }
-        } else {
-            // two arcs
-            let res = intersect_arc_arc(off0, off1);
-            match res {
-                crate::int_arc_arc::ArcConfig::NoIntersection() => {
-                    return false;
-                }
-                _ => {
-                    return true;
-                }
-            }
-        }
-    }
-}
-*/
-
-// // Checks, if to create arc connection
-// // For two consecutive raw offsets,
-// // if end points are close to the other original pline,
-// // we skip the connecting arc
-// fn offset_if_close_to_pline2(point: Point, seg: &OffsetSegment, off: f64) -> bool {
-//     const EPS_IS_CLOSE_PLINE: f64 = 1E-10;
-//     let dist = if seg.is_line() {
-//         let segment = segment(seg.a, seg.b);
-//         let (_, dist) = distance_point_segment(point, segment);
-//         dist
-//     } else {
-//         // is arc
-//         let (_, dist) = distance_point_arc(point, &seg);
-//         dist
-//     };
-
-//     if off - dist > EPS_IS_CLOSE_PLINE {
-//         true
-//     } else {
-//         false
-//     }
-// }
-
-// pub fn offset_consecutive_offsets_intersect(off0: &OffsetSegment, off1: &OffsetSegment) -> bool {
-//     let f0 = off0.is_line();
-//     let f1 = off1.is_line();
-//     match (f0, f1) {
-//         (true, true) => {
-//             let seg0 = segment(off0.a, off0.b);
-//             let seg1 = segment(off1.a, off1.b);
-//             if intersect_segment_segment(seg0, seg1) == SegmentConfig::NoIntersection() {
-//                 false
-//             } else {
-//                 true
-//             }
-//         }
-//         (true, false) => {
-//             let seg0 = segment(off0.a, off0.b);
-//             if intersect_segment_arc(seg0, off1) == SegmentArcConfig::NoIntersection() {
-//                 false
-//             } else {
-//                 true
-//             }
-//         }
-//         (false, true) => {
-//             let seg1 = segment(off1.a, off1.b);
-//             if intersect_segment_arc(seg1, off0) == SegmentArcConfig::NoIntersection() {
-//                 false
-//             } else {
-//                 true
-//             }
-//         }
-//         (false, false) => {
-//             if intersect_arc_arc(off0, off1) == ArcArcConfig::NoIntersection() {
-//                 false
-//             } else {
-//                 true
-//             }
-//         }
-//     }
-// }
-
-// fn offset_connect_segments(
-//     oarc: &Vec<OffsetSegment>,
-//     raws: &Vec<OffsetRaw>,
-//     off: f64,
-// ) -> Vec<OffsetSegment> {
-//     let flag = false; // to skip close connecting arcs
-//     let mut res = Vec::with_capacity(2 * raws.len() + 1); // twise the size
-//     let last = raws.len() - 2;
-//     for i in 0..=last {
-//         // convert offsetRaw to OffsetSegment
-//         // make arcs ccw
-//         let old = raws[i].arc;
-//         let old_next = raws[i + 1].arc;
-//         let arc_connect = Arc::new(old.b, old_next.a, raws[i + 1].orig, off);
-//         let old_revert;
-//         if raws[i].g < ZERO {
-//             // revert arc dirrection
-//             old_revert = Arc::new(old.b, old.a, old.c, old.r);
-//         } else {
-//             old_revert = old;
-//         }
-//         res.push(old_revert);
-
-//         let next_revert;
-//         if raws[i + 1].g < ZERO {
-//             next_revert = Arc::new(old_next.b, old_next.a, old_next.c, old_next.r);
-//         } else {
-//             next_revert = old_next;
-//         }
-
-//         // Create segment connections
-//         let skip0 = offset_consecutive_offsets_intersect(&old_revert, &next_revert);
-//         if !skip0 || !flag {
-//             res.push(arc_connect);
-//         }
-//     }
-//     // close line
-//     let last = raws.last().unwrap();
-//     let old = last.arc;
-//     let raw_next = raws.first().unwrap();
-//     let old_next = raw_next.arc;
-//     let arc_connect = Arc::new(old.b, old_next.a, raw_next.orig, off);
-//     let old_revert;
-//     if last.g < ZERO {
-//         old_revert = Arc::new(old.b, old.a, old.c, old.r);
-//     } else {
-//         old_revert = old;
-//     }
-//     res.push(old_revert);
-
-//     let next_revert;
-//     if raw_next.g < ZERO {
-//         next_revert = Arc::new(old_next.b, old_next.a, old_next.c, old_next.r);
-//     } else {
-//         next_revert = old_next;
-//     }
-
-//     // Create segment connections
-//     let skip0 = offset_consecutive_offsets_intersect(&old_revert, &next_revert);
-//     if !skip0 || !flag {
-//         res.push(arc_connect);
-//     }
-
-//     println!("connected size: {}", res.len());
-//     res
-// }
-
-// // Remove line segments with 0 length
-// fn offset_remove_degenerate(offs: &mut Vec<OffsetSegment>) {
-//     let mut i = 0;
-//     while i < offs.len() - 1 {
-//         if offs[i].a.x == offs[i].b.x && offs[i].a.y == offs[i].b.y {
-//             offs.swap_remove(i);
-//         }
-//         i = i + 1;
-//     }
-//     println!("remove degenerate size: {}", offs.len());
-// }
-
-// // Split segments at self intersect points
-// fn offset_resolve_self_intersect(offs: &mut Vec<OffsetSegment>) {
-//     let mut i = 0;
-//     let mut j = 1;
-
-//     'LLL: while i < offs.len() - 1 {
-//         const EPS_SMALL_SEGMENT: f64 = 1E-8;
-//         while j < offs.len() {
-//             let (i_new, j_new) = offset_resolve_offseg_offseg(i, j, offs);
-//             let offslen = offs.len();
-
-//             if offslen > 2000 {
-//                 // TODO
-//                 println!("ERROR: {}", offslen);
-//                 //debug_assert!(false);
-//                 break 'LLL;
-//             }
-//             i = i_new;
-//             j = j_new;
-//         }
-//         i = i + 1;
-//         j = i + 1;
-//         print!("{} ", offs.len());
-//     }
-//     println!("\nself intersect resolve size: {}", offs.len());
-// }
-
-// // TODO
-// // check segments that start and end point does not coincide
-// fn check_add_segment(off: OffsetSegment, segments: &mut Vec<OffsetSegment>) {
-//     const EPS_DEGENERATE: f64 = 0.0;
-//     if off.a != off.b {
-//         let norm = (off.a - off.b).norm();
-//         if norm < EPS_DEGENERATE {
-//             // small arc is transformed to line
-//             let off = arcline(off.a, off.b);
-//             print!("{} ", segments.len());
-//             segments.push(off);
-//         } else {
-//             segments.push(off);
-//         }
-//     }
-// }
-
-// fn offset_resolve_line_line(
-//     off0: &OffsetSegment,
-//     off1: &OffsetSegment,
-//     offs: &mut Vec<OffsetSegment>,
-//     i: usize,
-//     j: usize,
-// ) -> (usize, usize) {
-//     // two line segments
-//     let seg0 = segment(off0.a, off0.b);
-//     let seg1 = segment(off1.a, off1.b);
-//     if is_touching_segment_segment(seg0, seg1) {
-//         return (i, j + 1);
-//     }
-//     let res = intersect_segment_segment(seg0, seg1);
-//     match res {
-//         SegmentConfig::NoIntersection() => {
-//             return (i, j + 1);
-//         }
-//         SegmentConfig::OnePoint(sp, _, _) => {
-//             // split segments on sp - split point
-//             // Important: remove j first, otherwise corner cases
-//             offs.swap_remove(j);
-//             offs.swap_remove(i);
-//             let line00 = arcline(off0.a, sp);
-//             let line01 = arcline(sp, off0.b);
-//             let line10 = arcline(off1.a, sp);
-//             let line11 = arcline(sp, off1.b);
-//             check_add_segment(line00, offs);
-//             check_add_segment(line01, offs);
-//             check_add_segment(line10, offs);
-//             check_add_segment(line11, offs);
-//             return (i, i + 1);
-//         }
-//         SegmentConfig::TwoPoints(..) => {
-//             return (i, j + 1); // TODO
-//         }
-//     }
-// }
-
-// fn offset_resolve_line_arc(
-//     off0: &OffsetSegment,
-//     off1: &OffsetSegment,
-//     offs: &mut Vec<OffsetSegment>,
-//     i: usize,
-//     j: usize,
-// ) -> (usize, usize) {
-//     // line segment arc
-//     // Swap line and arc for proper intersect arguments
-//     let seg = if off0.is_line() {
-//         segment(off0.a, off0.b)
-//     } else {
-//         segment(off1.a, off1.b)
-//     };
-//     let arc = if off1.is_arc() { off1 } else { off0 };
-
-//     if is_touching_segment_arc(seg, &arc) {
-//         // TODO: have to check for self intersect
-//         return (i, j + 1);
-//     }
-
-//     let res = intersect_segment_arc(seg, &arc);
-//     match res {
-//         SegmentArcConfig::NoIntersection() => {
-//             return (i, j + 1);
-//         }
-//         SegmentArcConfig::OnePoint(sp, _) => {
-//             // split segment and arc at sp - split point
-//             // Important: remove j first, otherwise corner cases
-//             if i < j {
-//                 offs.swap_remove(j);
-//                 offs.swap_remove(i);
-//             } else {
-//                 offs.swap_remove(i);
-//                 offs.swap_remove(j);
-//             }
-//             let line00 = arcline(seg.p0, sp);
-//             let line01 = arcline(sp, seg.p1);
-//             let arc10 = Arc::new(arc.a, sp, arc.c, arc.r);
-//             let arc11 = Arc::new(sp, arc.b, arc.c, arc.r);
-//             check_add_segment(line00, offs);
-//             check_add_segment(line01, offs);
-//             check_add_segment(arc10, offs);
-//             check_add_segment(arc11, offs);
-//             return (i, i + 1);
-//         }
-//         SegmentArcConfig::TwoPoints(..) => {
-//             return (i, j + 1); // TODO
-//         }
-//     }
-// }
-
-// fn offset_resolve_arc_arc(
-//     off0: &OffsetSegment,
-//     off1: &OffsetSegment,
-//     offs: &mut Vec<OffsetSegment>,
-//     i: usize,
-//     j: usize,
-// ) -> (usize, usize) {
-//     // two arcs
-//     if is_touching_arc_arc(&off0, &off1) {
-//         return (i, j + 1);
-//     }
-//     let res = intersect_arc_arc(&off0, &off1);
-//     match res {
-//         crate::int_arc_arc::ArcArcConfig::NoIntersection() => {
-//             return (i, j + 1);
-//         }
-//         crate::int_arc_arc::ArcArcConfig::NonCocircularOnePoint(sp) => {
-//             // split arcs at sp - split point
-//             // Important: remove j first, otherwise corner cases
-//             offs.swap_remove(j);
-//             offs.swap_remove(i);
-//             let (arc00, arc01) = split_arc_1point(&off0, sp);
-//             let (arc10, arc11) = split_arc_1point(&off1, sp);
-//             check_add_segment(arc00, offs);
-//             check_add_segment(arc01, offs);
-//             check_add_segment(arc10, offs);
-//             check_add_segment(arc11, offs);
-//             return (i, i + 1);
-//         }
-//         crate::int_arc_arc::ArcArcConfig::NonCocircularTwoPoints(sp0, sp1) => {
-//             // split arcs at sp - split point
-//             // Important: remove j first, otherwise corner cases
-//             offs.swap_remove(j);
-//             offs.swap_remove(i);
-//             let (segment00, segment01, segment02) = split_arc_2points(&off0, sp0, sp1);
-//             let (segment10, segment11, segment12) = split_arc_2points(&off1, sp0, sp1);
-//             check_add_segment(segment00, offs);
-//             check_add_segment(segment01, offs);
-//             check_add_segment(segment02, offs);
-//             check_add_segment(segment10, offs);
-//             check_add_segment(segment11, offs);
-//             check_add_segment(segment12, offs);
-//             return (i, i + 1);
-//         }
-//         crate::int_arc_arc::ArcArcConfig::CocircularOnePoint(_) => todo!(),
-//         crate::int_arc_arc::ArcArcConfig::CocircularTwoPoints(..) => todo!(),
-//         crate::int_arc_arc::ArcArcConfig::CocircularOnePointOneArc(..) => todo!(),
-//         crate::int_arc_arc::ArcArcConfig::CocircularOneArc(_) => {
-//             return (i, j + 1);
-//         }
-//         crate::int_arc_arc::ArcArcConfig::CocircularTwoArcs(..) => {
-//             return (i, j + 1);
-//         }
-//     }
-// }
-
-// fn offset_resolve_offseg_offseg(
-//     i: usize,
-//     j: usize,
-//     offs: &mut Vec<OffsetSegment>,
-// ) -> (usize, usize) {
-//     // If segments intersect remove from vector and put the splitted parts at the back of vector.
-//     // Than adjust the indexes accordingly
-//     let off0 = offs[i];
-//     let off1 = offs[j];
-
-//     let id0 = off0.id;
-//     let id1 = off1.id;
-
-//     let offslen = offs.len();
-//     /*if offslen > 1200 {
-//         println!(" {} ", offslen);
-//     }*/
-//     //if offslen > 240 {
-//     //    println!("({} {})", id0, id1);
-//     // }
-
-//     if off0.is_line() {
-//         if off1.is_line() {
-//             let res = offset_resolve_line_line(&off0, &off1, offs, i, j);
-//             debug_assert!(res.0 < res.1);
-//             return res;
-//         } else {
-//             let res = offset_resolve_line_arc(&off0, &off1, offs, i, j);
-//             debug_assert!(res.0 < res.1);
-//             return res;
-//         }
-//     } else {
-//         if off1.is_line() {
-//             let res = offset_resolve_line_arc(&off1, &off0, offs, i, j);
-//             //println!("", res.0, res.1);
-//             debug_assert!(res.0 < res.1);
-//             return res;
-//         } else {
-//             let res = offset_resolve_arc_arc(&off0, &off1, offs, i, j);
-//             debug_assert!(res.0 < res.1);
-//             return res;
-//         }
-//     }
-// }
-
-// fn split_arc_2points(
-//     off: &OffsetSegment,
-//     sp0: Point,
-//     sp1: Point,
-// ) -> (OffsetSegment, OffsetSegment, OffsetSegment) {
-//     let (p0, p1) = off.order_points_ccw(sp0, sp1);
-//     let arc0 = arc(off.a, p0, off.c, off.r);
-//     let arc1 = arc(p0, p1, off.c, off.r);
-//     let arc2 = arc(p1, off.b, off.c, off.r);
-//     (arc0, arc1, arc2)
-// }
-
-// fn split_arc_1point(off: &OffsetSegment, sp0: Point) -> (OffsetSegment, OffsetSegment) {
-//     let arc0 = arc(off.a, sp0, off.c, off.r);
-//     let arc1 = arc(sp0, off.b, off.c, off.r);
-//     (arc0, arc1)
-// }
-
-// #[cfg(test)]
-// mod test_offset_polyline_raw {
-//     use std::vec;
-
-//     use crate::{arc::arc_g_from_points, circle::circle, point::point, pvertex::pvertex, svg::svg};
-
-//     use super::*;
-//     const ONE: f64 = 1f64;
-//     const ZERO: f64 = 0f64;
-
-//     #[test]
-//     #[ignore = "svg"]
-//     fn test_arc_offset() {
-//         let mut svg = svg(300.0, 300.0);
-//         let p0 = point(100.0, 100.0);
-//         let p1 = point(100.0, 160.0);
-//         let p2 = point(120.0, 200.0);
-//         let p3 = point(128.0, 192.0);
-//         let p4 = point(128.0, 250.0);
-//         let p5 = point(0.0, 250.0);
-//         let p6 = point(0.0, 100.0);
-//         let off = 10.0;
-//         let b = 1.5;
-//         let pvertex0 = pvertex(p0, b);
-//         let pvertex1 = pvertex(p1, 0f64);
-//         let offset = segment_offset(pvertex0, pvertex1, off);
-//         svg.pvertex(p0, p1, b, "red");
-//         svg.segment_raw(&offset, "black");
-
-//         let pvertex2 = pvertex(p2, 0f64);
-//         let offset = segment_offset(pvertex1, pvertex2, off);
-//         svg.pvertex(p1, p2, 0f64, "red");
-//         svg.segment_raw(&offset, "black");
-
-//         let pvertex3 = pvertex(p3, 0f64);
-//         let offset = segment_offset(pvertex2, pvertex3, off);
-//         svg.pvertex(p2, p3, 0f64, "red");
-//         svg.segment_raw(&offset, "black");
-
-//         let pvertex4 = pvertex(p4, 0f64);
-//         let offset = segment_offset(pvertex3, pvertex4, off);
-//         svg.pvertex(p3, p4, 0f64, "red");
-//         svg.segment_raw(&offset, "black");
-
-//         let pvertex5 = pvertex(p5, 0f64);
-//         let offset = segment_offset(pvertex4, pvertex5, off);
-//         svg.pvertex(p4, p5, 0f64, "red");
-//         svg.segment_raw(&offset, "black");
-
-//         let pvertex6 = pvertex(p6, 0f64);
-//         let offset = segment_offset(pvertex5, pvertex6, off);
-//         svg.pvertex(p5, p6, 0f64, "red");
-//         svg.segment_raw(&offset, "black");
-
-//         let offset = segment_offset(pvertex6, pvertex0, off);
-//         svg.pvertex(p6, p0, 0f64, "red");
-//         svg.segment_raw(&offset, "black");
-
-//         svg.write();
-//     }
-
-//     #[test]
-//     #[ignore = "svg output"]
-//     fn test_offset_polyline_raw() {
-//         let pline = vec![
-//             pvertex(point(100.0, 100.0), 1.5),
-//             pvertex(point(100.0, 160.0), ZERO),
-//             pvertex(point(120.0, 200.0), ZERO),
-//             pvertex(point(128.0, 192.0), ZERO),
-//             pvertex(point(128.0, 205.0), ZERO),
-//             pvertex(point(136.0, 197.0), ZERO),
-//             pvertex(point(136.0, 250.0), ZERO),
-//             pvertex(point(110.0, 250.0), -1.0), // zero radius after offset
-//             pvertex(point(78.0, 250.0), ZERO),
-//             pvertex(point(50.0, 250.0), -1.0), // zero radius after offset
-//             pvertex(point(38.0, 250.0), ZERO),
-//             pvertex(point(0.0001, 250.0), 1000000.0), // almost circle
-//             pvertex(point(0.0, 250.0), ZERO),
-//             pvertex(point(-52.0, 250.0), ZERO),
-//             //pvertex(point(-52.0, 150.0), -1.0),
-//             pvertex(
-//                 point(-18.499999999999986, 208.0237020535574),
-//                 -0.5773502691896256,
-//             ),
-//             pvertex(point(82.0, 150.0), 0f64),
-//             pvertex(point(50.0, 150.0), 1.0),
-//             pvertex(point(-20.0, 150.0), ZERO),
-//             pvertex(point(0.0, 100.0), ZERO),
-//         ];
-//         let mut svg = svg(300.0, 350.0);
-//         svg.polyline(&pline, "red");
-//         let pline_offset = offset_polyline_raw(&pline, 10.0);
-//         svg.offset_raws(&pline_offset, "black");
-//         svg.write();
-//     }
-
-//     #[test]
-//     #[ignore = "svg output"]
-//     fn test_connect_offset_segments() {
-//         let pline = vec![
-//             pvertex(point(100.0, 100.0), 1.5),
-//             pvertex(point(100.0, 160.0), ZERO),
-//             pvertex(point(120.0, 200.0), ZERO),
-//             pvertex(point(128.0, 192.0), ZERO),
-//             pvertex(point(128.0, 205.0), ZERO),
-//             pvertex(point(136.0, 197.0), ZERO),
-//             pvertex(point(136.0, 250.0), ZERO),
-//             pvertex(point(110.0, 250.0), -1.0), // zero radius after offset
-//             pvertex(point(78.0, 250.0), ZERO),
-//             pvertex(point(50.0, 250.0), -1.0), // zero radius after offset
-//             pvertex(point(38.0, 250.0), ZERO),
-//             pvertex(point(0.0001, 250.0), 1000000.0), // almost circle
-//             pvertex(point(0.0, 250.0), ZERO),
-//             pvertex(point(-52.0, 250.0), ZERO),
-//             //pvertex(point(-52.0, 150.0), -1.0),
-//             pvertex(
-//                 point(-18.499999999999986, 208.0237020535574),
-//                 -0.5773502691896256,
-//             ),
-//             pvertex(point(82.0, 150.0), 0f64),
-//             pvertex(point(50.0, 150.0), 1.0),
-//             pvertex(point(-20.0, 150.0), ZERO),
-//             pvertex(point(0.0, 100.0), ZERO),
-//         ];
-//         let off = 10.0;
-//         let mut svg = svg(300.0, 340.0);
-//         svg.polyline(&pline, "red");
-//         let pline_offset = offset_polyline_raw(&pline, off);
-//         // convert polyline to offsetsegments
-//         let oarc = offset_pline_to_offsetsegments(&pline);
-//         let pline_offset2 = offset_connect_segments(&oarc, &pline_offset, off);
-//         svg.offset_segments(&pline_offset2, "black");
-//         svg.write();
-//     }
 
 //     #[test]
 //     #[ignore = "svg output"]
@@ -1652,74 +866,6 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 //     }
 // }
 
-// // convert polyline to offsetsegments
-// pub fn offset_pline_to_offsetsegments(pline: &Polyline) -> Vec<OffsetSegment> {
-//     let mut oarc: Vec<OffsetSegment> = Vec::with_capacity(pline.len());
-//     let last = pline.len() - 2;
-//     for i in 0..=last {
-//         let offseg = arc_circle_parametrization(pline[i].p, pline[i + 1].p, pline[i].g);
-//         oarc.push(offseg);
-//     }
-//     let offseg = arc_circle_parametrization(
-//         pline.last().unwrap().p,
-//         pline.first().unwrap().p,
-//         pline.last().unwrap().g,
-//     );
-//     oarc.push(offseg);
-//     oarc
-// }
-
-// // offsets close to pline are removed
-// pub fn offset_remove_invalid_offsets(
-//     offs: &mut Vec<OffsetSegment>,
-//     oarc: &Vec<OffsetSegment>, // original polyline converted to offset segments
-//     off: f64,
-// ) {
-//     const EPS_IVALIID: f64 = 1E-10;
-//     let mut i = 0;
-//     let mut flag_remove = false;
-//     while i < offs.len() {
-//         let arc0 = offs[i];
-//         for arc1 in oarc.iter() {
-//             let dist = distance_offsets(&arc0, arc1);
-//             debug_assert!(dist.is_finite());
-//             if off - dist > EPS_IVALIID {
-//                 // TODO: choose value for comparison
-//                 // TODO maybe int diff here?
-//                 offs.swap_remove(i);
-//                 flag_remove = true;
-//                 break;
-//             }
-//         }
-//         if flag_remove {
-//             flag_remove = false;
-//         } else {
-//             i = i + 1;
-//         }
-//     }
-//     println!("remove_invalid_offsets size: {}", offs.len());
-// }
-
-// // Calculate distance between offset segment and pline
-// fn distance_offsets(off0: &OffsetSegment, off1: &OffsetSegment) -> f64 {
-//     if off0.is_line() {
-//         let seg0 = segment(off0.a, off0.b);
-//         if off1.is_line() {
-//             let seg1 = segment(off1.a, off1.b);
-//             return distance_segment_segment(seg0, seg1).0;
-//         } else {
-//             return distance_segment_arc(seg0, &off1).1;
-//         }
-//     } else {
-//         if off1.is_line() {
-//             let seg1 = segment(off1.a, off1.b);
-//             return distance_segment_arc(seg1, &off0).1;
-//         } else {
-//             return distance_arc_arc(&off0, &off1).1;
-//         }
-//     }
-// }
-
 /// Test polyline for offseting.
 /// Has a mix of positive and negative offsets.
 #[must_use]
@@ -1974,28 +1120,6 @@ pub fn example_polylines_04() -> Vec<Polyline> {
 //     }
 // }
 
-// pub fn offset_polyline(pline: &Polyline, off: f64) -> Vec<Arc> {
-//     let offset_raw = crate::offset_polyline_raw::offset_polyline_raw(&pline, off);
-//     //svg.offset_raws(&offset_raw, "blue");
-//     // convert polyline to offsetsegments
-//     let mut offset = crate::offset_connect_segments::offset_connect_segments(&offset_raw, off);
-//     offset_remove_degenerate(&mut offset);
-//     offset_resolve_self_intersect(&mut offset);
-//     offset_remove_degenerate(&mut offset);
-//     let oarc = offset_pline_to_offsetsegments(&pline);
-//     offset_remove_invalid_offsets(&mut offset, &oarc, off);
-//     offset
-// }
-
-// pub fn offset_center_point(offs: &Vec<OffsetSegment>) -> Point {
-//     let mut res = point(0.0, 0.0);
-//     let count = offs.len() as f64;
-//     for off in offs.iter() {
-//         res = res + off.a + off.b;
-//     }
-//     point(res.x / (2.0 * count), res.y / (2.0 * count))
-// }
-
 // #[cfg(test)]
 // mod test_remove_invalid_offsets02 {
 //     use std::vec;
@@ -2170,53 +1294,6 @@ fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
     arcs
 }
 
-// pub fn poly_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>> {
-//     let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
-//     for pline in plines {
-//         varcs.push(poly_to_raws_single(pline));
-//     }
-//     varcs
-// }
-
-// pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
-//     let mut offs = Vec::with_capacity(pline.len() + 1);
-//     //let last = pline.len() - 1;
-//     for i in 0..pline.len() - 1 {
-//         let arc = arc_circle_parametrization(pline[i].p, pline[i + 1].p, pline[i].g);
-//         let orig = if pline[i].g < ZERO {pline[i].p} else {pline[i + 1].p};
-//         let off = OffsetRaw {
-//             arc,
-//             orig: orig,
-//             g: pline[i].g,
-//         };
-//         offs.push(off);
-//     }
-//     // last segment
-//     let arc = arc_circle_parametrization(pline.last().unwrap().p, pline[0].p, pline.last().unwrap().g);
-//     let orig = if pline.last().unwrap().g < ZERO {
-//         pline.last().unwrap().p
-//     } else {
-//         pline[0].p
-//     };
-//     let off = OffsetRaw {
-//         arc,
-//         orig: orig,
-//         g: pline.last().unwrap().g,
-//     };
-//     offs.push(off);
-//     offs
-// }
-
-// pub fn offset_polylines(plines: &Vec<Polyline>, off: f64) -> Vec<Arc> {
-//     let offset_raw = offset_polyline_raw(&plines, off);
-//     let offset_connect = offset_connect_raw(&offset_raw, off);
-//     //let arcs: Vec<Arc> = offset_connect.iter().map(|raw| raw.arc.clone()).collect();
-//     let mut offset_split = offset_split_arcs(&offset_connect);
-//     let poly_arcs = poly_to_arcs(&plines);
-//     let offset_final = offset_prune_invalid_offsets(&poly_arcs, &mut offset_split, off);
-//     offset_final
-// }
-
 #[cfg(test)]
 mod test_offset {
 
@@ -2365,7 +1442,6 @@ mod test_offset {
     // }
 
     #[test]
-    #[ignore = "svg output"]
     fn test_offset_complex_line_bug() {
         // let pline = vec![
         //     // pvertex(point(100.0, 100.0), 1.5),
@@ -2415,7 +1491,6 @@ mod test_offset {
     }
 
     #[test]
-    #[ignore = "svg output"]
     fn test_offset_complex_line_bug_2() {
         // let pline = vec![
         //     //pvertex(point(100.0, 100.0), 1.5),

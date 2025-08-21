@@ -4,7 +4,8 @@ use offroad::{offset::offset_arcline, prelude::OffsetCfg};
 fn main() {
     // Configuration for offsetting
     let mut cfg = OffsetCfg::default();
-    let mut svg = SVG::new(300.0, 300.0, "/tmp/arcline.svg");
+    // Prints SVG output to stdout
+    let mut svg = SVG::new(300.0, 300.0, None);
     cfg.svg = Some(&mut svg);
     // Show original arcline in SVG output
     cfg.svg_orig = true;

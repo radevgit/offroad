@@ -10,6 +10,10 @@ To use the Offroad library in your project, add the following to your `Cargo.tom
 offroad = "0.0.5"
 ```
 
+## Documentation
+
+[<https://docs.rs/offroad>](https://docs.rs/offroad)
+
 ## 2D offsetting for arc polylines/polygons
 ![](https://raw.githubusercontent.com/radevgit/offroad/refs/heads/main/img/offsets.svg "arc-line polygon offsets")
 

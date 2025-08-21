@@ -3,8 +3,8 @@ use offroad::prelude::{OffsetCfg, example_polyline_01, offset_polyline};
 
 fn main() {
     let mut cfg = OffsetCfg::default();
-    // This will create an SVG file at /tmp/pline1.svg
-    let mut svg = SVG::new(300.0, 300.0, "/tmp/pline1.svg");
+    // Prints SVG output to stdout
+    let mut svg = SVG::new(300.0, 300.0, None);
     cfg.svg = Some(&mut svg);
     //cfg.svg_orig = true;
     cfg.svg_remove_bridges = true;

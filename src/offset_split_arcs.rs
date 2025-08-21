@@ -49,13 +49,13 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
 
                 let part1 = parts[j].clone();
 
-                let (parts_new, _) = if part0.is_line() && part1.is_line() {
+                let (parts_new, _) = if part0.is_seg() && part1.is_seg() {
                     split_seg_seg(&part0, &part1)
                 } else if part0.is_arc() && part1.is_arc() {
                     split_arc_arc(&part0, &part1)
-                } else if part0.is_line() && part1.is_arc() {
+                } else if part0.is_seg() && part1.is_arc() {
                     split_seg_arc(&part0, &part1)
-                } else if part0.is_arc() && part1.is_line() {
+                } else if part0.is_arc() && part1.is_seg() {
                     split_seg_arc(&part1, &part0)
                 } else {
                     (Vec::new(), 0)
@@ -298,7 +298,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 /// Split two lines at intersection point
 #[must_use]
 pub fn split_seg_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
-    debug_assert!(line0.is_line());
+    debug_assert!(line0.is_seg());
     debug_assert!(arc1.is_arc());
     let mut res = Vec::new();
     let segment = segment(line0.a, line0.b);
@@ -358,7 +358,7 @@ pub fn split_seg_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 // Check if the line-arc segments have 0.0 length
 fn check_and_push(res: &mut Vec<Arc>, seg: &Arc) {
     let eps = 1e-10; // TODO: what should be the exact value
-    if seg.check(eps) {
+    if seg.is_valid(eps) {
         res.push(seg.clone())
     }
 }
@@ -378,7 +378,7 @@ mod test_offset_split_arcs {
             svg.circle(&circle(arc.a, 1.1), "red");
             svg.circle(&circle(arc.b, 1.1), "red");
         }
-        svg.write();
+        //svg.write();
     }
 
     #[test]

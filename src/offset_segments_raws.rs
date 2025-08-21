@@ -35,7 +35,7 @@ pub fn offset_raws_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw> {
 /// Offsets single Arc segment
 #[must_use]
 pub fn offset_arc_segment(raw: &OffsetRaw, off: f64) -> OffsetRaw {
-    if raw.arc.is_line() {
+    if raw.arc.is_seg() {
         seg_offset(raw, off)
     } else {
         arc_offset(raw, off)
@@ -47,8 +47,8 @@ pub fn offset_arc_segment(raw: &OffsetRaw, off: f64) -> OffsetRaw {
 /// Offsets line segment on right side
 fn seg_offset(raw: &OffsetRaw, off: f64) -> OffsetRaw {
     // line segment
-    let perp = raw.arc.b - raw.arc.a;
-    let (perp, _) = point(perp.y, -perp.x).normalize(false);
+    let v = raw.arc.b - raw.arc.a;
+    let (perp, _) = point(v.y, -v.x).normalize(false);
     let offset_vec = perp * off;
     let mut arc = arcseg(raw.arc.a + offset_vec, raw.arc.b + offset_vec);
     arc.id(raw.arc.id);
@@ -75,7 +75,7 @@ pub fn arc_offset(raw: &OffsetRaw, offset: f64) -> OffsetRaw {
     let b = seg.b + v1_to_center * off;
     let mut seg = arc(a, b, seg.c, offset_radius);
 
-    if seg.check(EPS_COLLAPSED) {
+    if seg.is_valid(EPS_COLLAPSED) {
         seg.id(raw.arc.id);
         OffsetRaw {
             arc: seg,
@@ -238,6 +238,6 @@ mod test_offset_polyline_raw {
         let circle1 = circle(point(offsetraw.arc.c.x, offsetraw.arc.c.y), 0.1);
         svg.circle(&circle1, "blue");
 
-        svg.write();
+        //svg.write();
     }
 }

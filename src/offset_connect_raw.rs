@@ -42,85 +42,80 @@ pub fn offset_connect_raw_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<Arc> {
         //let mut connect = arc(old.b, old_next.a, orig, off);
         let (mut connect, convex) = arc_connect_new(old, old_next, g0, g1, orig, off);
         connect.id(ID_PADDING + old.id);
-        if convex {
+        if convex < ZERO {
+            // Case convex == ZERO is skiped since it represents invalid geometry (angle=0)
             // only add connecting arcs between convex arcs formation
-            if connect.check(EPS_CONNECT_RAW) {
+            if connect.is_valid(EPS_CONNECT_RAW) {
                 // only add valid arcs
                 res.push(connect);
-            } else {
-                // Instead add a small line segment
-                let mut small = arcseg(connect.a, connect.b);
-                small.id(ID_PADDING + old.id);
-                res.push(small);
             }
         }
     }
     res
 }
 
-fn arc_connect_new(
-    old: Arc,
-    old_next: Arc,
-    g0: f64,
-    g1: f64,
-    orig: Point,
-    off: f64,
-) -> (Arc, bool) {
+fn angle_between_three_points(p0: Point, p1: Point, p2: Point) -> f64 {
+    let v0 = p1 - p0;
+    let v1 = p2 - p1;
+    let dot = v0.dot(v1);
+    let det = v0.perp(v1);
+    det.atan2(dot)
+}
+
+fn arc_connect_new(old: Arc, old_next: Arc, g0: f64, g1: f64, orig: Point, off: f64) -> (Arc, f64) {
     let seg: Arc;
-    let convex: bool;
-    let b = Coord {
+    let oo = Coord {
         x: orig.x,
         y: orig.y,
     };
+    let g;
+    let h;
     if g0 >= ZERO && g1 >= ZERO {
         seg = arc(old.b, old_next.a, orig, off);
-        let a = Coord {
+        h = Coord {
             x: old.b.x,
             y: old.b.y,
         };
-        let c = Coord {
+        g = Coord {
             x: old_next.a.x,
             y: old_next.a.y,
         };
-        convex = orient2d(a, b, c) < ZERO;
     } else if g0 >= ZERO && g1 < ZERO {
         seg = arc(old.b, old_next.b, orig, off);
-        let a = Coord {
+        h = Coord {
             x: old.b.x,
             y: old.b.y,
         };
-        let c = Coord {
+        g = Coord {
             x: old_next.b.x,
             y: old_next.b.y,
         };
-        convex = orient2d(a, b, c) < ZERO;
     } else if g0 < ZERO && g1 >= ZERO {
         seg = arc(old.a, old_next.a, orig, off);
-        let a = Coord {
+        h = Coord {
             x: old.a.x,
             y: old.a.y,
         };
-        let c = Coord {
+        g = Coord {
             x: old_next.a.x,
             y: old_next.a.y,
         };
-        convex = orient2d(a, b, c) < ZERO;
     } else {
         // g0 < 0 && g1 < 0
         seg = arc(old.a, old_next.b, orig, off);
-        let a = Coord {
+        h = Coord {
             x: old.a.x,
             y: old.a.y,
         };
-        let c = Coord {
+        g = Coord {
             x: old_next.b.x,
             y: old_next.b.y,
         };
-        convex = orient2d(a, b, c) < ZERO;
     }
+
     // We only create new arc if the arcs to be connected form convex angle.
     // In concave case, we do not need connection because it will be removed as invalid.
-    (seg, convex)
+    (seg, orient2d(h, oo, g))
 }
 
 #[cfg(test)]
@@ -133,7 +128,6 @@ mod test_offset_connect_raw {
     use super::*;
 
     #[test]
-    #[ignore = "svg output"]
     fn test_offset_connect_segments_arcs_00_svg() {
         let pline = vec![vec![
             pvertex(point(100.0, 100.0), 0.5),
@@ -151,11 +145,10 @@ mod test_offset_connect_raw {
         let offset_connect = offset_connect_raw(&offset_raw, off);
         svg.arclines(&offset_connect, "violet");
 
-        svg.write();
+        //svg.write();
     }
 
     #[test]
-    #[ignore = "svg output"]
     fn test_offset_connect_segments_arcs_01() {
         let pline = vec![vec![
             // pvertex(point(100.0, 100.0), 0.5),
@@ -178,11 +171,11 @@ mod test_offset_connect_raw {
         let offset_connect = offset_connect_raw(&offset_raw, off);
         svg.arclines(&offset_connect, "violet");
 
-        svg.write();
+        //svg.write();
     }
 
     #[test]
-    #[ignore = "svg output"]
+
     fn test_offset_connect_segments_lines_01() {
         // let pline = vec![
         //     pvertex(point(100.0, 100.0), 0.0),
@@ -231,7 +224,6 @@ mod test_offset_connect_raw {
     }
 
     #[test]
-    //#[ignore = "svg output"]
     fn test_offset_connect_segments_03() {
         let plines = example_polyline_01();
         let mut svg = svg(400.0, 600.0);
@@ -244,7 +236,7 @@ mod test_offset_connect_raw {
 
         svg_offset_raws(&mut svg, &offset_raw1, "red");
         svg.arclines(&offset_raw2, "blue");
-        svg.write();
+        //svg.write();
     }
 }
 
@@ -385,8 +377,8 @@ mod test_offset_connect_raw_single {
         let arc2 = arc_circle_parametrization(point(3.0, 0.0), point(5.0, 0.0), -0.3);
 
         // Verify arcs are valid
-        assert!(arc1.check(1e-10));
-        assert!(arc2.check(1e-10));
+        assert!(arc1.is_valid(1e-10));
+        assert!(arc2.is_valid(1e-10));
 
         let raw1 = OffsetRaw::new(arc1, point(1.0, 0.5), 1.0);
         let raw2 = OffsetRaw::new(arc2, point(4.0, 0.5), 1.0);
@@ -535,8 +527,8 @@ mod test_offset_connect_raw_single {
         let arc2 = arc_circle_parametrization(point(4.0, 2.0), point(6.0, 0.0), -0.5);
 
         // Verify arcs are geometrically valid
-        assert!(arc1.check(1e-10));
-        assert!(arc2.check(1e-10));
+        assert!(arc1.is_valid(1e-10));
+        assert!(arc2.is_valid(1e-10));
 
         let raw1 = OffsetRaw::new(arc1, point(1.0, 1.0), 1.0);
         let raw2 = OffsetRaw::new(arc2, point(5.0, 1.0), 1.0);
@@ -590,8 +582,8 @@ mod test_offset_connect_raw_single {
         let arc2 = arc_circle_parametrization(point(2.0, 0.0), point(3.0, 0.0), 0.5);
 
         // Verify arcs are geometrically valid
-        assert!(arc1.check(1e-10));
-        assert!(arc2.check(1e-10));
+        assert!(arc1.is_valid(1e-10));
+        assert!(arc2.is_valid(1e-10));
 
         let g_combinations = vec![
             (1.0, 1.0),   // both positive
@@ -633,6 +625,83 @@ mod test_offset_connect_raw_single {
         if !result.is_empty() {
             // Just verify we got some results - ID logic can vary due to arc replacement
             assert!(result.len() >= 1);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use geom::prelude::*;
+
+    use crate::offset::{OffsetCfg, offset_polyline, polyline_to_arcs};
+
+    #[test]
+    fn test_invalid_geometry_outside() {
+        // There are tangentially collinear segments
+        let mut cfg = OffsetCfg::default();
+        let mut svg = SVG::new(150.0, 150.0, None);
+        cfg.svg = Some(&mut svg);
+        cfg.svg_orig = true;
+        cfg.svg_raw = true;
+        cfg.svg_connect = true;
+
+        let connect = vec![
+            pvertex(point(50.0, 50.0), 0.0),
+            pvertex(point(70.0, 50.0), 0.0),
+            pvertex(point(70.0, 70.0), 0.0),
+            pvertex(point(90.0, 70.0), 0.0),
+            pvertex(point(90.0, 50.0), 0.0),
+            pvertex(point(110.0, 50.0), 0.0),
+            pvertex(point(110.0, 100.0), -0.9999999),
+            pvertex(point(50.0, 100.0), 0.0),
+        ];
+        let arcline = polyline_to_arcs(&vec![connect.clone()]);
+        assert_eq!(arcline_is_valid(&arcline[0]), ArclineValidation::Valid);
+
+        let _offset_polylines = offset_polyline(&connect, 10.0, &mut cfg);
+
+        if let Some(svg) = cfg.svg.as_deref_mut() {
+            // Write svg to file
+            //svg.write_stroke_width(0.2);
+        }
+    }
+
+    #[test]
+    fn test_invalid_geometry_inside() {
+        // There are tangentially collinear segments
+        let mut cfg = OffsetCfg::default();
+        let mut svg = SVG::new(150.0, 150.0, None);
+        cfg.svg = Some(&mut svg);
+        cfg.svg_orig = true;
+        // cfg.svg_raw = true;
+        // cfg.svg_connect = true;
+        //cfg.svg_remove_bridges = true;
+        cfg.svg_final = true;
+
+        let connect = vec![
+            pvertex(point(50.0, 50.0), 0.0),
+            pvertex(point(70.0, 50.0), 0.0),
+            pvertex(point(70.0, 70.0), 0.0),
+            pvertex(point(90.0, 70.0), 0.0),
+            pvertex(point(90.0, 50.0), 0.0),
+            pvertex(point(110.0, 50.0), 0.0),
+            pvertex(point(110.0, 90.0), 0.0),
+            pvertex(point(110.0, 130.0), -0.9999999),
+            pvertex(point(50.0, 130.0), 0.0),
+        ];
+
+        let arcline = polyline_to_arcs(&vec![connect.clone()]);
+        assert_eq!(arcline_is_valid(&arcline[0]), ArclineValidation::Valid);
+
+        // Internal offsetting
+        let connect = polyline_reverse(&connect);
+
+        let _offset_polylines = offset_polyline(&connect, 15.0, &mut cfg);
+
+        if let Some(svg) = cfg.svg.as_deref_mut() {
+            // Write svg to file
+            //svg.write_stroke_width(0.2);
         }
     }
 }

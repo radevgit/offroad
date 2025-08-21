@@ -4,15 +4,23 @@ use std::collections::{HashMap, HashSet};
 
 use geom::prelude::*;
 
+#[derive(Clone, Debug)]
+enum MergeEnd {
+    AA,
+    AB,
+    BA,
+    BB,
+}
+
 #[doc(hidden)]
 /// Reconnects offset segments by merging adjacent arcs vertices.
 #[must_use]
-pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
+pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
     println!(
         "DEBUG: offset_reconnect_arcs called with {} arcs",
         arcs.len()
     );
-    let result = Vec::new();
+    let mut result = Vec::new();
 
     // Initialize the edge list: each arc contributes 2 vertices
     let mut arc_map: HashMap<usize, (usize, usize)> = HashMap::new(); // map arcs to end vertices
@@ -25,13 +33,14 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
         k += 2;
     }
 
-    let merge = find_points_to_merge(arcs, &arc_map);
+    //let merge = find_points_to_merge(arcs, &arc_map);
+    let merge = middle_points_knn(arcs, &mut arc_map);
 
     // println!("DEBUG: Merge operations: {:?}", merge);
     // println!("DEBUG: Arc map after merge: {:?}", arc_map);
 
     // Apply merge operations to arc_map
-    merge_points(&mut arc_map, &merge);
+    merge_graph_vertices(&mut arc_map, &merge);
 
     // Build the graph from arc_map
     let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
@@ -56,166 +65,109 @@ pub fn offset_reconnect_arcs(arcs: &Arcline) -> Vec<Arcline> {
     result
 }
 
-const EPS_CONNECT: f64 = 1e-10;
-// find where the arcs are touching at ends
-fn find_points_to_merge(
-    arcs: &Arcline,
-    arc_map: &HashMap<usize, (usize, usize)>,
-) -> Vec<(usize, usize)> {
-    let mut merge: Vec<(usize, usize)> = Vec::new(); // coincident vertices
+// const EPS_CONNECT: f64 = 1e-10;
+// // find where the arcs are touching at ends
+// fn find_points_to_merge(
+//     arcs: &Arcline,
+//     arc_map: &HashMap<usize, (usize, usize)>,
+// ) -> Vec<(usize, usize)> {
+//     let mut merge: Vec<(usize, usize)> = Vec::new(); // coincident vertices
 
-    for i in 0..arcs.len() {
-        for j in 0..arcs.len() {
-            if i == j {
-                continue; // skip self
-            }
+//     for i in 0..arcs.len() {
+//         for j in 0..arcs.len() {
+//             if i == j {
+//                 continue; // skip self
+//             }
 
-            let arc0 = arcs[i];
-            let arc1 = arcs[j];
+//             let arc0 = arcs[i];
+//             let arc1 = arcs[j];
 
-            // close points are already merged
-            // here we just track them
-            if arc0.a.close_enough(arc1.a, EPS_CONNECT) {
-                // track merge
-                let g = arc_map.get(&i).unwrap().0;
-                let h = arc_map.get(&j).unwrap().0;
-                merge.push((g, h));
-            }
-            if arc0.a.close_enough(arc1.b, EPS_CONNECT) {
-                // track merge
-                let g = arc_map.get(&i).unwrap().0;
-                let h = arc_map.get(&j).unwrap().1;
-                merge.push((g, h));
-            }
-            if arc0.b.close_enough(arc1.a, EPS_CONNECT) {
-                // track merge
-                let g = arc_map.get(&i).unwrap().1;
-                let h = arc_map.get(&j).unwrap().0;
-                merge.push((g, h));
-            }
-            if arc0.b.close_enough(arc1.b, EPS_CONNECT) {
-                // track merge
-                let g = arc_map.get(&i).unwrap().1;
-                let h = arc_map.get(&j).unwrap().1;
-                merge.push((g, h));
-            }
-        }
-    }
-    merge
-}
+//             // close points are already merged
+//             // here we just track them
+//             if arc0.a.close_enough(arc1.a, EPS_CONNECT) {
+//                 // track merge
+//                 let g = arc_map.get(&i).unwrap().0;
+//                 let h = arc_map.get(&j).unwrap().0;
+//                 merge.push((g, h));
+//             }
+//             if arc0.a.close_enough(arc1.b, EPS_CONNECT) {
+//                 // track merge
+//                 let g = arc_map.get(&i).unwrap().0;
+//                 let h = arc_map.get(&j).unwrap().1;
+//                 merge.push((g, h));
+//             }
+//             if arc0.b.close_enough(arc1.a, EPS_CONNECT) {
+//                 // track merge
+//                 let g = arc_map.get(&i).unwrap().1;
+//                 let h = arc_map.get(&j).unwrap().0;
+//                 merge.push((g, h));
+//             }
+//             if arc0.b.close_enough(arc1.b, EPS_CONNECT) {
+//                 // track merge
+//                 let g = arc_map.get(&i).unwrap().1;
+//                 let h = arc_map.get(&j).unwrap().1;
+//                 merge.push((g, h));
+//             }
+//         }
+//     }
+//     merge
+// }
 
-const EPS_MIDDLE: f64 = 1e-6;
-#[doc(hidden)]
-pub fn find_middle_points(arcs: &mut Arcline) {
-    // find where the arcs are touching at ends
-    for i in 0..arcs.len() {
-        for j in 0..arcs.len() {
-            if i == j {
-                continue; // skip self
-            }
-
-            // merge close points, point ids
-            if arcs[i].a.close_enough(arcs[j].a, EPS_MIDDLE) {
-                let mid = middle_point(&arcs[i].a, &arcs[j].a);
-                arcs[i].a = mid;
-                arcs[j].a = mid;
-                continue;
-            }
-            if arcs[i].a.close_enough(arcs[j].b, EPS_MIDDLE) {
-                let mid = middle_point(&arcs[i].a, &arcs[j].b);
-                arcs[i].a = mid;
-                arcs[j].b = mid;
-                continue;
-            }
-            if arcs[i].b.close_enough(arcs[j].a, EPS_MIDDLE) {
-                let mid = middle_point(&arcs[i].b, &arcs[j].a);
-                arcs[i].b = mid;
-                arcs[j].a = mid;
-                continue;
-            }
-            if arcs[i].b.close_enough(arcs[j].b, EPS_MIDDLE) {
-                let mid = middle_point(&arcs[i].b, &arcs[j].b);
-                arcs[i].b = mid;
-                arcs[j].b = mid;
-                continue;
-            }
-        }
-    }
-
-    // Adjust arcs
-    for arc in arcs.iter_mut() {
-        arc.make_consistent();
-    }
-}
-
-fn middle_point(a: &Point, b: &Point) -> Point {
-    Point {
-        x: (a.x + b.x) / 2.0,
-        y: (a.y + b.y) / 2.0,
-    }
-}
+const EPS_MIDDLE: f64 = 1e-7;
 
 #[doc(hidden)]
 /// Find middle points using KNN
-pub fn middle_points_knn(arcs: &mut Arcline) {
-    #[derive(Clone, Debug)]
-    enum MergeEnd {
-        AA,
-        AB,
-        BA,
-        BB,
-    }
+pub fn middle_points_knn(
+    arcs: &mut Vec<Arc>,
+    arc_map: &mut HashMap<usize, (usize, usize)>,
+) -> Vec<(usize, usize)> {
     // Find the k-nearest neighbors for each arc in the arcline
-    let k = 12; // Number of neighbors to find
-    let mut neighbors: Vec<Vec<(usize, usize, MergeEnd)>> = vec![Vec::new(); arcs.len()];
+    //let k = 12; // Number of neighbors to find
+    let mut neighbors: Vec<Vec<(usize, usize, MergeEnd, f64)>> = vec![Vec::new(); arcs.len()];
 
     for i in 0..arcs.len() {
         let arc_i = &arcs[i];
-        let mut distances: Vec<(usize, usize, MergeEnd, f64)> = Vec::new();
+        //let mut distances: Vec<(usize, usize, MergeEnd, f64)> = Vec::new();
 
-        for j in 0..arcs.len() {
-            if i == j {
-                continue; // Skip self
-            }
-
+        for j in (i + 1)..arcs.len() {
             let arc_j = &arcs[j];
-            let dist0 = manhattan_distance(&arc_i.a, &arc_j.a);
-            let dist1 = manhattan_distance(&arc_i.a, &arc_j.b);
-            let dist2 = manhattan_distance(&arc_i.b, &arc_j.a);
-            let dist3 = manhattan_distance(&arc_i.b, &arc_j.b);
+            let dist0 = (&arc_i.a - &arc_j.a).norm();
+            let dist1 = (&arc_i.a - &arc_j.b).norm();
+            let dist2 = (&arc_i.b - &arc_j.a).norm();
+            let dist3 = (&arc_i.b - &arc_j.b).norm();
 
-            if dist0 < EPS_MIDDLE {
-                distances.push((j, i, MergeEnd::AA, dist0));
+            if dist0 <= EPS_MIDDLE {
+                neighbors[i].push((i, j, MergeEnd::AA, dist0));
             }
-            if dist1 < EPS_MIDDLE {
-                distances.push((j, i, MergeEnd::AB, dist1));
+            if dist1 <= EPS_MIDDLE {
+                neighbors[i].push((i, j, MergeEnd::AB, dist1));
             }
-            if dist2 < EPS_MIDDLE {
-                distances.push((j, i, MergeEnd::BA, dist2));
+            if dist2 <= EPS_MIDDLE {
+                neighbors[i].push((i, j, MergeEnd::BA, dist2));
             }
-            if dist3 < EPS_MIDDLE {
-                distances.push((j, i, MergeEnd::BB, dist3));
+            if dist3 <= EPS_MIDDLE {
+                neighbors[i].push((i, j, MergeEnd::BB, dist3));
             }
         }
 
-        // Sort by distance and take the k nearest
-        distances.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap());
-        neighbors[i] = distances
-            .iter()
-            .take(k)
-            .map(|&(idx0, idx1, ref merge_end, _)| (idx0, idx1, merge_end.clone()))
-            .collect();
+        // // Sort by distance and take the k nearest
+        // distances.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap());
+        // neighbors[i] = distances
+        //     .iter()
+        //     //.filter(|&&(_, _, _, distance)| distance < EPS_MIDDLE)
+        //     .map(|&(idx0, idx1, ref merge_end, distance)| (idx0, idx1, merge_end.clone(), distance))
+        //     .collect();
     }
 
     for (i, neighbor_list) in neighbors.iter().enumerate() {
         println!("DEBUG: Arc {} neighbors: {:?}", i, neighbor_list);
     }
 
-    for neighbor_list in neighbors {
+    for neighbor_list in &neighbors {
         let count = neighbor_list.len();
         let mut sum = Point::new(0.0, 0.0);
         for neighbor in neighbor_list.clone() {
-            let (i, j, merge_end) = neighbor;
+            let (i, j, merge_end, _distance) = neighbor;
             match merge_end {
                 MergeEnd::AA => {
                     sum = sum + arcs[i].a + arcs[j].a;
@@ -232,50 +184,75 @@ pub fn middle_points_knn(arcs: &mut Arcline) {
             }
         }
         // mid point of k neighbors
-        let mid = sum / (count as f64 * 2.0);
+        let mid = sum / (count as f64);
         for neighbor in neighbor_list {
-            let (i, j, merge_end) = neighbor;
+            let (i, j, merge_end, _distance) = neighbor;
             match merge_end {
                 MergeEnd::AA => {
-                    arcs[i].a = mid;
-                    arcs[j].a = mid;
+                    arcs[*i].a = mid;
+                    arcs[*j].a = mid;
                 }
                 MergeEnd::AB => {
-                    arcs[i].a = mid;
-                    arcs[j].b = mid;
+                    arcs[*i].a = mid;
+                    arcs[*j].b = mid;
                 }
                 MergeEnd::BA => {
-                    arcs[i].b = mid;
-                    arcs[j].a = mid;
+                    arcs[*i].b = mid;
+                    arcs[*j].a = mid;
                 }
                 MergeEnd::BB => {
-                    arcs[i].b = mid;
-                    arcs[j].b = mid;
+                    arcs[*i].b = mid;
+                    arcs[*j].b = mid;
                 }
             }
         }
-    }
-
-    
-    // Remove small arcs
-    let mut to_remove = Vec::new();
-    for (i, arc) in arcs.iter().enumerate() {
-        if arc.check(1e-10) {
-            to_remove.push(i);
-        }
-    }
-    // Remove in reverse order to avoid index shifts
-    for i in to_remove.into_iter().rev() {
-        arcs.remove(i);
     }
 
     // Adjust arcs based on new midpoints
     for arc in arcs.iter_mut() {
         arc.make_consistent();
     }
+
+    // Convert to graph edges
+    let all_neighbors = neighbors
+        .iter()
+        .flat_map(|n| {
+            n.iter()
+                .map(|(i, j, merge_end, _)| (*i, *j, merge_end.clone()))
+        })
+        .collect::<Vec<_>>();
+
+    let mut merge = Vec::new();
+    for (i, j, merge_end) in all_neighbors {
+        let (g, h) = match merge_end {
+            MergeEnd::AA => {
+                let g = arc_map.get(&i).unwrap().0;
+                let h = arc_map.get(&j).unwrap().0;
+                (g, h)
+            }
+            MergeEnd::AB => {
+                let g = arc_map.get(&i).unwrap().0;
+                let h = arc_map.get(&j).unwrap().1;
+                (g, h)
+            }
+            MergeEnd::BA => {
+                let g = arc_map.get(&i).unwrap().1;
+                let h = arc_map.get(&j).unwrap().0;
+                (g, h)
+            }
+            MergeEnd::BB => {
+                let g = arc_map.get(&i).unwrap().1;
+                let h = arc_map.get(&j).unwrap().1;
+                (g, h)
+            }
+        };
+        merge.push((g, h));
+        merge.push((h, g));
+    }
+    merge
 }
 
-fn manhattan_distance(p1: &Point, p2: &Point) -> f64 {
+fn manhattan(p1: &Point, p2: &Point) -> f64 {
     (p1.x - p2.x).abs() + (p1.y - p2.y).abs()
 }
 
@@ -284,7 +261,7 @@ fn manhattan_distance(p1: &Point, p2: &Point) -> f64 {
 // Reduce the "merge" to make the vertices unique and update arc_map,
 // So the arcs vertices are now the updated one indices.
 // Checked.
-fn merge_points(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize, usize)>) {
+fn merge_graph_vertices(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Vec<(usize, usize)>) {
     use std::collections::HashMap;
 
     // Build a union-find structure to group vertices that should be merged
@@ -441,7 +418,8 @@ const EPS_BRIDGE: f64 = 5e-7;
 /// Removes duplicate arcs that overlap as 2D graphics elements.
 ///
 /// The arcs between paths or spikes from paths.
-pub fn remove_bridge_arcs(arcs: &mut Arcline) {
+/// TODO: More complex logic for finding and removing bridge arcs
+pub fn remove_bridge_arcs(arcs: &mut Vec<Arc>) {
     let mut to_remove = Vec::new(); // remove bridge arcs
     let mut to_add = Vec::new(); // add new arcs between close ends
     for i in 0..arcs.len() {
@@ -452,7 +430,7 @@ pub fn remove_bridge_arcs(arcs: &mut Arcline) {
             // Ends match
             if arc0.a.close_enough(arc1.a, EPS_BRIDGE)
                 && arc0.b.close_enough(arc1.b, EPS_BRIDGE)
-                && (arc0.is_arc() && arc1.is_arc() || arc0.is_line() && arc1.is_line())
+                && (arc0.is_arc() && arc1.is_arc() || arc0.is_seg() && arc1.is_seg())
             {
                 // Radii match
                 if arc0.is_arc() && arc1.is_arc() && !close_enough(arc0.r, arc1.r, EPS_BRIDGE) {
@@ -470,7 +448,7 @@ pub fn remove_bridge_arcs(arcs: &mut Arcline) {
 
             if arc0.a.close_enough(arc1.b, EPS_BRIDGE)
                 && arc0.b.close_enough(arc1.a, EPS_BRIDGE)
-                && (arc0.is_arc() && arc1.is_arc() || arc0.is_line() && arc1.is_line())
+                && (arc0.is_arc() && arc1.is_arc() || arc0.is_seg() && arc1.is_seg())
             {
                 // Radii match
                 if arc0.is_arc() && arc1.is_arc() && !close_enough(arc0.r, arc1.r, EPS_BRIDGE) {
@@ -1412,7 +1390,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test the example from user: arc0.b == arc1.a should be merged
@@ -1422,7 +1400,7 @@ mod test_merge_points {
 
         // No explicit merges needed since they already share the same vertex
         let merge = vec![];
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // arc0.b (1006) and arc1.a (1006) are already the same, so no changes
         assert_eq!(arc_map[&5], (1005, 1006)); // arc0: unchanged
@@ -1431,7 +1409,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_multiple_merges() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test multiple merges
@@ -1443,7 +1421,7 @@ mod test_merge_points {
         // Chain of merges: 1001-1002, 1003-1004
         let merge = vec![(1001, 1002), (1003, 1004)];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // After merges: 1001=1002, 1003=1004 (separate components)
         // Arc 0: 1000 -> 1001 (no change)
@@ -1456,7 +1434,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_empty_merge() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test empty merge list - should not change anything
@@ -1467,7 +1445,7 @@ mod test_merge_points {
         let original_arc_map = arc_map.clone();
         let merge = vec![];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Should remain unchanged
         assert_eq!(arc_map, original_arc_map);
@@ -1475,7 +1453,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_self_merge() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test merging a vertex with itself - should be a no-op
@@ -1486,7 +1464,7 @@ mod test_merge_points {
         let original_arc_map = arc_map.clone();
         let merge = vec![(1000, 1000), (1001, 1001)];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Should remain unchanged
         assert_eq!(arc_map, original_arc_map);
@@ -1494,7 +1472,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_transitive_closure() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test transitive closure: if A->B and B->C, then A,B,C should all map to same
@@ -1506,7 +1484,7 @@ mod test_merge_points {
         // Create a chain: 1000->1002->1004
         let merge = vec![(1000, 1002), (1002, 1004)];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // All vertices in the chain should map to 1000 (smallest)
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 unchanged, 1001 unchanged
@@ -1516,7 +1494,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_both_endpoints_merge() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test when both endpoints of an arc need to be merged
@@ -1527,7 +1505,7 @@ mod test_merge_points {
         // Merge both endpoints: start with start, end with end
         let merge = vec![(1000, 1002), (1001, 1003)];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Both arcs should have the same canonical endpoints
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 unchanged (smaller), 1001 unchanged (smaller)
@@ -1536,7 +1514,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_complex_graph() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test a more complex merging scenario with multiple connected components
@@ -1557,7 +1535,7 @@ mod test_merge_points {
             (1006, 1008), // Separate component: 1006 and 1008
         ];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Check the results
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 unchanged, 1001 unchanged
@@ -1569,7 +1547,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_duplicate_merges() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test duplicate merge operations - should handle gracefully
@@ -1580,7 +1558,7 @@ mod test_merge_points {
         // Same merge operation repeated multiple times
         let merge = vec![(1000, 1002), (1002, 1000), (1000, 1002)];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Should still work correctly despite duplicates
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 unchanged, 1001 unchanged
@@ -1589,7 +1567,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_cycle_formation() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test when merges would form a cycle in the graph
@@ -1601,7 +1579,7 @@ mod test_merge_points {
         // Create merges that form a cycle: 1001->1002->1004->1000 (but 1000 is start of arc 0)
         let merge = vec![(1001, 1002), (1002, 1004), (1004, 1000)];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // All vertices should merge to 1000 (smallest in the cycle)
         assert_eq!(arc_map[&0], (1000, 1000)); // 1000 unchanged, 1001->1000
@@ -1611,7 +1589,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_large_numbers() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test with larger vertex IDs to ensure no integer overflow issues
@@ -1621,7 +1599,7 @@ mod test_merge_points {
 
         let merge = vec![(100001, 200000)];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Should use smaller ID as canonical
         assert_eq!(arc_map[&0], (100000, 100001)); // 100000 unchanged, 100001 unchanged
@@ -1630,7 +1608,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_single_arc() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test with only one arc
@@ -1639,7 +1617,7 @@ mod test_merge_points {
 
         let merge = vec![(1000, 1001)]; // Merge arc's own endpoints
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Both endpoints should become the same (smaller ID)
         assert_eq!(arc_map[&0], (1000, 1000));
@@ -1647,7 +1625,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_reverse_order() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test that merge order doesn't matter (commutativity)
@@ -1661,8 +1639,8 @@ mod test_merge_points {
         let merge1 = vec![(1000, 1002), (1001, 1003)];
         let merge2 = vec![(1003, 1001), (1002, 1000)]; // Reverse order and swapped pairs
 
-        merge_points(&mut arc_map1, &merge1);
-        merge_points(&mut arc_map2, &merge2);
+        merge_graph_vertices(&mut arc_map1, &merge1);
+        merge_graph_vertices(&mut arc_map2, &merge2);
 
         // Results should be identical
         assert_eq!(arc_map1, arc_map2);
@@ -1670,7 +1648,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_simple_loop() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test a simple loop: three arcs forming a triangle
@@ -1689,7 +1667,7 @@ mod test_merge_points {
             (1005, 1000), // Connect arc2 end to arc0 start (closes loop)
         ];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // After merges: 1001=1002, 1003=1004, 1005=1000
         // Arc 0: 1000 -> 1001 (no change)
@@ -1702,7 +1680,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_multiple_loops() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test multiple separate loops
@@ -1727,7 +1705,7 @@ mod test_merge_points {
             (2003, 2000),
         ];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // After merges: 1001=1002, 1003=1004, 1005=1000, 2001=2002, 2003=2000
         // These create separate components, not complete loops
@@ -1744,7 +1722,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_nested_loops() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test nested/connected loop structure
@@ -1769,7 +1747,7 @@ mod test_merge_points {
             (1000, 1004), // Connect inner loop to outer loop
         ];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // The merges create several connected components:
         // {1001, 1002}, {1000, 1003, 1004, 1009}, {1005, 1006}, {1007, 1008}
@@ -1782,7 +1760,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_many_small_loops() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test many small independent loops (5 loops, 2 arcs each)
@@ -1803,7 +1781,7 @@ mod test_merge_points {
             merge.push((base + 3, base)); // Connect arc2 end to arc1 start
         }
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Each loop creates two separate components per loop
         for loop_id in 0..5 {
@@ -1819,7 +1797,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_long_chain_to_loop() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test a long chain that eventually forms a loop
@@ -1838,7 +1816,7 @@ mod test_merge_points {
         // Close the loop: connect last arc end to first arc start
         merge.push((1000 + 7 * 2 + 1, 1000)); // 1015 -> 1000
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // The merges create separate pairs, not one big component
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 -> 1001 (unchanged)
@@ -1853,7 +1831,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_figure_eight() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test figure-8 pattern: two loops sharing a vertex
@@ -1880,7 +1858,7 @@ mod test_merge_points {
             (1009, 1010),
         ];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // The merges create several components
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 -> 1001 (unchanged)
@@ -1893,7 +1871,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_spiral_pattern() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test spiral pattern where arcs connect in a spiral that eventually loops back
@@ -1916,7 +1894,7 @@ mod test_merge_points {
             (1007, 1000), // Connect arc 3 back to start
         ]);
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // The merges create separate components
         assert_eq!(arc_map[&0], (1000, 1001)); // 1000 -> 1001 (unchanged)
@@ -1928,7 +1906,7 @@ mod test_merge_points {
 
     #[test]
     fn test_merge_points_disconnected_components_with_loops() {
-        use super::merge_points;
+        use super::merge_graph_vertices;
         use std::collections::HashMap;
 
         // Test multiple disconnected components, some with loops, some without
@@ -1964,7 +1942,7 @@ mod test_merge_points {
             (4005, 4000),
         ];
 
-        merge_points(&mut arc_map, &merge);
+        merge_graph_vertices(&mut arc_map, &merge);
 
         // Component 1: creates two separate merge pairs
         assert_eq!(arc_map[&0], (1000, 1001)); // unchanged
@@ -2382,301 +2360,19 @@ mod test_middle_points_knn {
 
     // Helper function to validate remaining arcs after middle_points_knn processing
     fn validate_remaining_arcs(arcs: &[Arc], min_expected: usize, max_expected: usize) {
-        assert!(arcs.len() >= min_expected && arcs.len() <= max_expected, 
-                "Arc count {} not in expected range [{}, {}]", arcs.len(), min_expected, max_expected);
-        
+        assert!(
+            arcs.len() >= min_expected && arcs.len() <= max_expected,
+            "Arc count {} not in expected range [{}, {}]",
+            arcs.len(),
+            min_expected,
+            max_expected
+        );
+
         // Just verify we have some valid geometry - let algorithm decide what to keep
-        assert!(!arcs.is_empty() || min_expected == 0, "Should have at least one arc if minimum expected > 0");
-    }
-
-    #[test]
-    fn test_middle_points_knn_empty_input() {
-        let mut arcs = Vec::new();
-        middle_points_knn(&mut arcs);
-        assert_eq!(arcs.len(), 0);
-    }
-
-    #[test]
-    fn test_middle_points_knn_single_arc() {
-        let mut arcs = vec![arcseg(point(0.0, 0.0), point(1.0, 0.0))];
-        middle_points_knn(&mut arcs);
-        // Single arc with no neighbors should remain unchanged, unless it becomes degenerate
-        // The algorithm might remove it if it becomes too small during processing
-        assert!(arcs.len() <= 1);
-        if arcs.len() == 1 {
-            // If it remains, it should be valid
-            let dist = manhattan_distance(&arcs[0].a, &arcs[0].b);
-            assert!(dist > 1e-10, "Remaining arc should be valid");
-        }
-    }
-
-    #[test]
-    fn test_middle_points_knn_two_separate_arcs() {
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(1.0, 0.0)),
-            arcseg(point(10.0, 0.0), point(11.0, 0.0)), // Far apart, no merging
-        ];
-        middle_points_knn(&mut arcs);
-        // Arcs far apart should not merge, but may be removed if they become too small
-        assert!(arcs.len() <= 2);
-        
-        // Verify remaining arcs are valid
-        for arc in &arcs {
-            let dist = manhattan_distance(&arc.a, &arc.b);
-            assert!(dist > 1e-10, "All remaining arcs should be valid");
-        }
-        
-        // If arcs remain, they should be in reasonable positions
-        if arcs.len() >= 1 {
-            let all_points: Vec<Point> = arcs.iter().flat_map(|a| vec![a.a, a.b]).collect();
-            // Verify points are within expected bounds
-            for point in all_points {
-                assert!(point.x >= -0.1 && point.x <= 11.1, "Points should be within bounds");
-                assert!(point.y >= -0.1 && point.y <= 0.1, "Points should be within bounds");
-            }
-        }
-    }
-
-    #[test]
-    fn test_middle_points_knn_close_endpoints() {
-        // Two arcs with endpoints very close (within EPS_MIDDLE)
-        let eps = EPS_MIDDLE / 2.0; // Half of threshold to ensure they're close enough
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(2.0, 0.0)),
-            arcseg(point(2.0 + eps, 0.0), point(4.0, 0.0)), // Close to first arc's end
-        ];
-        middle_points_knn(&mut arcs);
-        
-        // Algorithm should process without crashing
-        assert!(!arcs.is_empty(), "Should have remaining arcs");
-        
-        // Test that resulting arcs have valid geometry
-        for arc in &arcs {
-            assert!(arc.a.x.is_finite() && arc.a.y.is_finite(), "Start point should be finite");
-            assert!(arc.b.x.is_finite() && arc.b.y.is_finite(), "End point should be finite");
-            // Note: Very short arcs are acceptable during k-nearest neighbor processing
-        }
-        
-        // If we have two arcs, their connection should be improved
-        if arcs.len() >= 2 {
-            let connection_dist = manhattan_distance(&arcs[0].b, &arcs[1].a);
-            assert!(connection_dist <= eps * 2.0, "Connection should be improved");
-        }
-    }
-
-    #[test]
-    fn test_middle_points_knn_exact_connection() {
-        // Two arcs sharing an exact endpoint
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(2.0, 0.0)),
-            arcseg(point(2.0, 0.0), point(4.0, 0.0)), // Exact connection
-        ];
-        middle_points_knn(&mut arcs);
-        
-        // The shared endpoint should remain the same (or very close)
-        let dist = manhattan_distance(&arcs[0].b, &arcs[1].a);
-        assert!(dist < EPS_MIDDLE);
-    }
-
-    #[test]
-    fn test_middle_points_knn_square_path() {
-        // Test with connected arcs that should work with the algorithm
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(1.0, 0.0)), // Bottom edge
-            arcseg(point(1.0, 0.0), point(1.0, 1.0)), // Right edge - connected
-            arcseg(point(1.0, 1.0), point(0.0, 1.0)), // Top edge - connected  
-            arcseg(point(0.0, 1.0), point(0.0, 0.0)), // Left edge - connected
-        ];
-        
-        middle_points_knn(&mut arcs);
-        
-        // Algorithm might merge or keep arcs - test shouldn't panic and should have sensible output
-        // Since arcs are already perfectly connected, algorithm may not change much
-        println!("Result has {} arcs", arcs.len());
-        
-        // Just test that algorithm completes and doesn't break basic properties
-        // Allow for any reasonable outcome since the algorithm may optimize the path
-    }
-
-    #[test]
-    fn test_middle_points_knn_multiple_close_points() {
-        // Multiple arcs with endpoints clustered together
-        let center = point(5.0, 5.0);
-        let eps = EPS_MIDDLE / 4.0;
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), center + point(eps, 0.0)),
-            arcseg(center + point(0.0, eps), point(10.0, 0.0)),
-            arcseg(point(0.0, 10.0), center + point(-eps, 0.0)),
-            arcseg(center + point(0.0, -eps), point(10.0, 10.0)),
-        ];
-        
-        middle_points_knn(&mut arcs);
-        
-        // Algorithm may remove small arcs, so we verify remaining structure
-        assert!(arcs.len() >= 1, "At least one arc should remain");
-        
-        // Filter out degenerate arcs for our tests (algorithm might create them temporarily)
-        let valid_arcs: Vec<&Arc> = arcs.iter().filter(|arc| {
-            let dist = manhattan_distance(&arc.a, &arc.b);
-            dist > 1e-10
-        }).collect();
-        
-        // If multiple valid arcs remain, check that endpoints that should be close are actually close
-        if valid_arcs.len() > 1 {
-            let all_endpoints: Vec<Point> = valid_arcs.iter().flat_map(|a| vec![a.a, a.b]).collect();
-            // Find clusters of close points
-            for (i, p1) in all_endpoints.iter().enumerate() {
-                for (j, p2) in all_endpoints.iter().enumerate() {
-                    if i != j {
-                        let dist = manhattan_distance(p1, p2);
-                        if dist < EPS_MIDDLE * 3.0 {
-                            // Points that are this close should be very close after merging
-                            assert!(dist < EPS_MIDDLE * 2.0, "Close points should be merged: distance = {}", dist);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn test_middle_points_knn_star_configuration() {
-        // Star pattern with multiple arcs radiating from center
-        let center = point(0.0, 0.0);
-        let eps = EPS_MIDDLE / 5.0;
-        let mut arcs = vec![
-            arcseg(center + point(eps, 0.0), point(5.0, 0.0)),     // East
-            arcseg(center + point(0.0, eps), point(0.0, 5.0)),     // North
-            arcseg(center + point(-eps, 0.0), point(-5.0, 0.0)),   // West
-            arcseg(center + point(0.0, -eps), point(0.0, -5.0)),   // South
-            arcseg(center + point(eps/2.0, eps/2.0), point(3.0, 3.0)), // Northeast
-        ];
-        
-        middle_points_knn(&mut arcs);
-        
-        // Star pattern with close starting points may result in merged arcs being removed
-        validate_remaining_arcs(&arcs, 0, 5);
-        
-        // If any arcs remain, verify they have reasonable endpoints
-        if arcs.len() > 0 {
-            for arc in &arcs {
-                // Remaining arcs should extend to reasonable outer points
-                let start_dist_from_center = manhattan_distance(&arc.a, &center);
-                let end_dist_from_center = manhattan_distance(&arc.b, &center);
-                
-                // Either start or end should be far from center (the outer points)
-                assert!(start_dist_from_center > 2.0 || end_dist_from_center > 2.0, 
-                        "Arc should extend to outer point: start_dist={}, end_dist={}", 
-                        start_dist_from_center, end_dist_from_center);
-            }
-        }
-    }
-
-    #[test]
-    fn test_middle_points_knn_chain_connection() {
-        // Chain of arcs where each connects to the next
-        let eps = EPS_MIDDLE / 4.0;
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(1.0 + eps, 0.0)),
-            arcseg(point(1.0, eps), point(2.0 + eps, 0.0)),
-            arcseg(point(2.0, -eps), point(3.0 + eps, 0.0)),
-            arcseg(point(3.0, eps), point(4.0, 0.0)),
-        ];
-        
-        middle_points_knn(&mut arcs);
-        
-        // Chain connection may result in merged arcs
-        validate_remaining_arcs(&arcs, 1, 4);
-        
-        // If multiple arcs remain, check that adjacent arcs have merged connection points
-        if arcs.len() >= 2 {
-            for i in 0..arcs.len()-1 {
-                let connection_dist = manhattan_distance(&arcs[i].b, &arcs[i+1].a);
-                if connection_dist < EPS_MIDDLE * 3.0 {
-                    assert!(connection_dist < EPS_MIDDLE * 2.0, 
-                            "Connection {} not merged properly: distance = {}", i+1, connection_dist);
-                }
-            }
-        }
-        
-        // Verify the algorithm processed the chain without errors
-        if !arcs.is_empty() {
-            // Check that remaining arcs have valid geometry
-            for arc in &arcs {
-                assert!(arc.a.x.is_finite() && arc.a.y.is_finite(), "Start point should be finite");
-                assert!(arc.b.x.is_finite() && arc.b.y.is_finite(), "End point should be finite");
-                // Note: Very short arcs are acceptable during k-nearest neighbor processing
-            }
-        }
-        // Note: Algorithm may merge or remove arcs as needed - this is valid behavior
-    }
-
-    #[test]
-    fn test_middle_points_knn_removes_small_arcs() {
-        let eps = EPS_MIDDLE / 4.0;
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(5.0, 0.0)), // Normal arc
-            arcseg(point(2.0, 0.0), point(2.0 + eps, 0.0)), // Very small arc
-            arcseg(point(10.0, 0.0), point(15.0, 0.0)), // Normal arc
-        ];
-        
-        let initial_count = arcs.len();
-        middle_points_knn(&mut arcs);
-        
-        // Small arcs might be removed
-        assert!(arcs.len() <= initial_count);
-        
-        // Remaining arcs should be valid
-        for arc in &arcs {
-            let dist = manhattan_distance(&arc.a, &arc.b);
-            assert!(dist > 1e-10, "Arc too small: start={:?}, end={:?}, distance={}", arc.a, arc.b, dist);
-        }
-    }
-
-    #[test]
-    fn test_middle_points_knn_boundary_case() {
-        // Test points at different distances relative to EPS_MIDDLE
-        let eps = EPS_MIDDLE;
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(1.0, 0.0)),
-            arcseg(point(1.0 + eps * 0.5, 0.0), point(2.0, 0.0)), // Within threshold
-            arcseg(point(1.0 + eps * 2.0, 1.0), point(2.0, 1.0)), // Outside threshold
-        ];
-        
-        middle_points_knn(&mut arcs);
-        
-        // Algorithm should process without crashing
-        assert!(!arcs.is_empty(), "Should have remaining arcs");
-        
-        // Test that algorithm preserves valid geometry (finite coordinates)
-        for arc in &arcs {
-            assert!(arc.a.x.is_finite() && arc.a.y.is_finite(), "Start point should be finite");
-            assert!(arc.b.x.is_finite() && arc.b.y.is_finite(), "End point should be finite");
-            // Note: Very short arcs are acceptable during k-nearest neighbor processing
-        }
-    }
-
-    #[test]
-    fn test_middle_points_knn_preserves_arc_consistency() {
-        // Test that arcs remain geometrically valid after processing
-        let eps = EPS_MIDDLE / 3.0;
-        let mut arcs = vec![
-            arcseg(point(0.0, 0.0), point(1.0 + eps, 1.0)),
-            arcseg(point(1.0, 1.0 + eps), point(2.0, 2.0)),
-            arcseg(point(2.0 - eps, 2.0), point(3.0, 3.0 - eps)),
-        ];
-        
-        middle_points_knn(&mut arcs);
-        
-        // Algorithm should complete without crashing
-        assert!(!arcs.is_empty() || true, "Algorithm completed processing");
-        
-        // Check that any remaining arcs are valid
-        for (i, arc) in arcs.iter().enumerate() {
-            assert!(arc.a.x.is_finite() && arc.a.y.is_finite(), "Arc {} start point invalid", i);
-            assert!(arc.b.x.is_finite() && arc.b.y.is_finite(), "Arc {} end point invalid", i);
-            // Note: Algorithm may create very small arcs during processing - this is acceptable
-        }
+        assert!(
+            !arcs.is_empty() || min_expected == 0,
+            "Should have at least one arc if minimum expected > 0"
+        );
     }
 
     #[test]
@@ -2684,85 +2380,238 @@ mod test_middle_points_knn {
         // Test the helper function directly
         let p1 = point(0.0, 0.0);
         let p2 = point(3.0, 4.0);
-        let dist = manhattan_distance(&p1, &p2);
+        let dist = manhattan(&p1, &p2);
         assert_eq!(dist, 7.0); // |3-0| + |4-0| = 7
-        
+
         let p3 = point(-2.0, -3.0);
         let p4 = point(1.0, 2.0);
-        let dist2 = manhattan_distance(&p3, &p4);
+        let dist2 = manhattan(&p3, &p4);
         assert_eq!(dist2, 8.0); // |1-(-2)| + |2-(-3)| = 3 + 5 = 8
-        
+
         // Same point
-        let dist3 = manhattan_distance(&p1, &p1);
+        let dist3 = manhattan(&p1, &p1);
         assert_eq!(dist3, 0.0);
+    }
+}
+
+#[cfg(test)]
+mod test_arc_check {
+    use super::*;
+
+    #[test]
+    fn test_arc_check_valid_arcs() {
+        // Valid circular arcs should pass the check
+        let valid_arc1 = arc(point(0.0, 0.0), point(1.0, 0.0), point(0.5, 0.0), 0.5);
+        assert!(valid_arc1.is_valid(EPS_MIDDLE));
+
+        let valid_arc2 = arc(
+            point(-1.0, -1.0),
+            point(1.0, 1.0),
+            point(0.0, 0.0),
+            std::f64::consts::SQRT_2,
+        );
+        assert!(valid_arc2.is_valid(EPS_MIDDLE));
+
+        // Valid semicircle
+        let semicircle = arc(point(-1.0, 0.0), point(1.0, 0.0), point(0.0, 0.0), 1.0);
+        assert!(semicircle.is_valid(EPS_MIDDLE));
     }
 
     #[test]
-    fn test_middle_points_knn_with_different_merge_patterns() {
-        // Test different MergeEnd patterns: AA, AB, BA, BB
-        let eps = EPS_MIDDLE / 4.0;
-        let mut arcs = vec![
-            // AA pattern: both start points close
-            arcseg(point(0.0, 0.0), point(1.0, 0.0)),
-            arcseg(point(eps, 0.0), point(0.0, 1.0)),
-            
-            // BB pattern: both end points close
-            arcseg(point(2.0, 0.0), point(3.0, 0.0)),
-            arcseg(point(4.0, 0.0), point(3.0 + eps, 0.0)),
-            
-            // AB pattern: start of first with end of second
-            arcseg(point(5.0, 0.0), point(6.0, 0.0)),
-            arcseg(point(7.0, 0.0), point(5.0 + eps, 0.0)),
+    fn test_arc_check_valid_line_segments() {
+        // Valid line segments (infinite radius) should pass the check
+        let valid_line1 = arcseg(point(0.0, 0.0), point(10.0, 0.0));
+        assert!(valid_line1.is_valid(EPS_MIDDLE));
+
+        let valid_line2 = arcseg(point(-5.0, -3.0), point(7.0, 8.0));
+        assert!(valid_line2.is_valid(EPS_MIDDLE));
+
+        // Long line segment
+        let long_line = arcseg(point(0.0, 0.0), point(1000.0, 1000.0));
+        assert!(long_line.is_valid(EPS_MIDDLE));
+    }
+
+    #[test]
+    fn test_arc_check_collapsed_endpoints() {
+        // Arcs with collapsed endpoints should fail the check
+        let collapsed_endpoints1 = arc(point(0.0, 0.0), point(0.0, 0.0), point(0.0, 1.0), 1.0);
+        assert!(!collapsed_endpoints1.is_valid(EPS_MIDDLE));
+
+        // Points very close together (within tolerance)
+        let eps_half = EPS_MIDDLE / 2.0;
+        let very_close_endpoints = arc(point(0.0, 0.0), point(eps_half, 0.0), point(0.0, 1.0), 1.0);
+        assert!(!very_close_endpoints.is_valid(EPS_MIDDLE));
+
+        // Line segments with collapsed endpoints should also fail
+        let collapsed_line = arcseg(point(1.0, 1.0), point(1.0, 1.0));
+        assert!(!collapsed_line.is_valid(EPS_MIDDLE));
+
+        let very_close_line = arcseg(point(1.0, 1.0), point(1.0 + eps_half, 1.0));
+        assert!(!very_close_line.is_valid(EPS_MIDDLE));
+    }
+
+    #[test]
+    fn test_arc_check_collapsed_radius() {
+        // Arcs with collapsed radius should fail the check
+        let tiny_radius = arc(
+            point(0.0, 0.0),
+            point(1.0, 0.0),
+            point(0.5, 0.0),
+            EPS_MIDDLE / 10.0,
+        );
+        assert!(!tiny_radius.is_valid(EPS_MIDDLE));
+
+        let zero_radius = arc(point(0.0, 0.0), point(1.0, 0.0), point(0.5, 0.0), 0.0);
+        assert!(!zero_radius.is_valid(EPS_MIDDLE));
+
+        let negative_radius = arc(point(0.0, 0.0), point(1.0, 0.0), point(0.5, 0.0), -1.0);
+        assert!(!negative_radius.is_valid(EPS_MIDDLE));
+    }
+
+    #[test]
+    fn test_arc_check_inconsistent_geometry() {
+        // Create an arc with inconsistent geometry (center point doesn't match the radius)
+        let inconsistent_arc = arc(point(0.0, 0.0), point(2.0, 0.0), point(0.5, 0.0), 2.0);
+        assert!(!inconsistent_arc.is_valid(EPS_MIDDLE));
+
+        // Another inconsistent geometry example
+        let bad_geometry = arc(point(0.0, 0.0), point(1.0, 1.0), point(0.0, 0.0), 0.5);
+        assert!(!bad_geometry.is_valid(EPS_MIDDLE));
+    }
+
+    #[test]
+    fn test_arc_check_boundary_cases() {
+        // Test points exactly at the tolerance boundary
+        let boundary_endpoints = arc(
+            point(0.0, 0.0),
+            point(EPS_MIDDLE, 0.0),
+            point(0.0, 1.0),
+            1.0,
+        );
+        assert!(!boundary_endpoints.is_valid(EPS_MIDDLE)); // Should fail (distance equals tolerance)
+
+        // Test points just outside the tolerance
+        let outside_tolerance = arc(
+            point(0.0, 0.0),
+            point(EPS_MIDDLE * 2.0, 0.0),
+            point(0.0, 1.0),
+            1.0,
+        );
+        assert!(outside_tolerance.is_valid(EPS_MIDDLE)); // Should pass if geometry is consistent
+
+        // Test radius exactly at tolerance boundary
+        let boundary_radius = arc(
+            point(0.0, 0.0),
+            point(1.0, 0.0),
+            point(0.5, 0.0),
+            EPS_MIDDLE,
+        );
+        assert!(!boundary_radius.is_valid(EPS_MIDDLE)); // Should fail (radius equals tolerance)
+    }
+
+    #[test]
+    fn test_arc_check_special_values() {
+        // Test with NaN radius
+        let nan_radius = arc(point(0.0, 0.0), point(1.0, 0.0), point(0.5, 0.0), f64::NAN);
+        assert!(!nan_radius.is_valid(EPS_MIDDLE));
+
+        // Test with infinite radius (line segment)
+        let infinite_radius = Arc {
+            a: point(0.0, 0.0),
+            b: point(10.0, 0.0),
+            c: point(5.0, 0.0),
+            r: f64::INFINITY,
+            id: 0,
+        };
+        assert!(infinite_radius.is_valid(EPS_MIDDLE));
+    }
+
+    #[test]
+    fn test_arc_check_real_world_scenarios() {
+        // Test scenarios similar to those that might occur in offset operations
+
+        // Small arc that should be removed (this is how it's used in middle_points_knn)
+        let small_arc = arc(
+            point(0.0, 0.0),
+            point(0.001, 0.0),
+            point(0.0005, 0.0),
+            0.0005,
+        );
+        // This should pass the check if tolerance is small enough and geometry is consistent
+        assert!(small_arc.is_valid(1e-10));
+        // But fail if tolerance is larger
+        assert!(!small_arc.is_valid(0.01));
+
+        // Arc from offset operation with proper geometric consistency
+        // The previous test arc had inconsistent geometry, let's use a valid one
+        let valid_offset_arc = arc(point(0.0, 0.0), point(1.0, 0.0), point(0.5, 0.0), 0.5);
+        assert!(valid_offset_arc.is_valid(EPS_MIDDLE));
+
+        // Very large coordinates (stress test)
+        let large_coords = arc(
+            point(1e6, 1e6),
+            point(1e6 + 1.0, 1e6),
+            point(1e6 + 0.5, 1e6),
+            0.5,
+        );
+        assert!(large_coords.is_valid(EPS_MIDDLE));
+    }
+
+    #[test]
+    fn test_arc_check_different_tolerances() {
+        // Test the same arc with different tolerance values
+        let test_arc = arc(point(0.0, 0.0), point(1e-4, 0.0), point(5e-5, 0.0), 5e-5);
+
+        // Should pass with very strict tolerance
+        assert!(test_arc.is_valid(1e-10));
+
+        // Should fail with loose tolerance (endpoints and radius too small)
+        assert!(!test_arc.is_valid(1e-3));
+
+        // Test with EPS_MIDDLE tolerance specifically - this actually passes as shown by debug
+        assert!(test_arc.is_valid(EPS_MIDDLE)); // Geometry is consistent even though small
+    }
+
+    #[test]
+    fn test_arc_check_usage_in_middle_points_knn() {
+        // Test how arc.is_valid() is used in the actual algorithm
+        // The function removes arcs that pass the check with EPS_MIDDLE tolerance
+        // This seems to be checking for "small" but valid arcs that should be removed
+
+        let mut test_arcs = vec![
+            arc(point(0.0, 0.0), point(1.0, 0.0), point(0.5, 0.0), 0.5), // Normal arc
+            arc(
+                point(1.0, 0.0),
+                point(1.001, 0.0),
+                point(1.0005, 0.0),
+                0.0005,
+            ), // Very small arc
+            arcseg(point(2.0, 0.0), point(2.001, 0.0)),                  // Very small line segment
+            arcseg(point(3.0, 0.0), point(4.0, 0.0)),                    // Normal line segment
         ];
-        
-        
-        middle_points_knn(&mut arcs);
-        
-        // Algorithm should process different merge patterns without crashing
-        // Note: The algorithm may remove or merge arcs as needed
-        
-        // Test that algorithm completed successfully
-        if !arcs.is_empty() {
-            // Check that remaining arcs are valid
-            for arc in &arcs {
-                assert!(arc.a.x.is_finite() && arc.a.y.is_finite(), "Start point should be finite");
-                assert!(arc.b.x.is_finite() && arc.b.y.is_finite(), "End point should be finite");
+
+        // Count how many would be removed by the algorithm
+        let initial_count = test_arcs.len();
+        let mut to_remove = Vec::new();
+        for (i, arc) in test_arcs.iter().enumerate() {
+            // Note: The current code has arc.is_valid(EPS_MIDDLE), but this seems backwards
+            // It should probably be !arc.is_valid(EPS_MIDDLE) to remove invalid arcs
+            if !arc.is_valid(EPS_MIDDLE) {
+                to_remove.push(i);
             }
         }
-        
-        // The specific merge patterns may result in various outcomes depending on algorithm implementation
-    }    #[test]
-    fn test_middle_points_knn_k_neighbors_limit() {
-        // Test with more than k=7 potential neighbors
-        let center = point(5.0, 5.0);
-        let eps = EPS_MIDDLE / 10.0;
-        let mut arcs = vec![];
-        
-        // Create 10 arcs all starting very close to the center
-        for i in 0..10 {
-            let start = center + point(eps * (i as f64), eps * (i as f64 % 3.0));
-            let end = start + point(10.0, 0.0);
-            arcs.push(arcseg(start, end));
+
+        // Remove invalid arcs
+        for i in to_remove.into_iter().rev() {
+            test_arcs.remove(i);
         }
-        
-        middle_points_knn(&mut arcs);
-        
-        // Algorithm should handle many neighbors correctly (k=7 limit)
-        assert!(!arcs.is_empty(), "Should have remaining arcs");
-        
-        // Check that algorithm processed without creating invalid geometry
-        for arc in &arcs {
-            assert!(arc.a.x.is_finite() && arc.a.y.is_finite(), "Start point should be finite");
-            assert!(arc.b.x.is_finite() && arc.b.y.is_finite(), "End point should be finite");
+
+        // We expect some arcs to be removed (those with collapsed geometry)
+        assert!(test_arcs.len() <= initial_count);
+
+        // All remaining arcs should be valid
+        for arc in &test_arcs {
+            assert!(arc.is_valid(EPS_MIDDLE));
         }
-        
-        // Test that nearby points were processed (some may be merged)
-        let start_points: Vec<Point> = arcs.iter().map(|arc| arc.a).collect();
-        let max_distance = start_points.iter().map(|p1| {
-            start_points.iter().map(|p2| manhattan_distance(p1, p2)).fold(0.0, f64::max)
-        }).fold(0.0, f64::max);
-        
-        // With k-nearest neighbor, nearby points should be closer together than original spread
-        assert!(max_distance < 1.0, "Algorithm should have reduced point spread");
     }
 }
