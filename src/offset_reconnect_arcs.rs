@@ -254,14 +254,31 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
         println!("DEBUG: Arc {} -> vertices ({}, {})", arc_idx, start, end);
     }
 
-    // Filter out degenerate arcs (self-loops) before building the graph
+    // Instead of filtering out arcs here, let's be more careful and only remove truly isolated arcs
+    // For now, let's not filter any arcs and let the cycle detection handle topology
     let mut filtered_arc_map = HashMap::new();
     let mut removed_arcs = Vec::new();
     
     for (&arc_idx, &(start, end)) in arc_map.iter() {
         if start == end {
-            println!("DEBUG: Removing degenerate arc {} (self-loop: {} -> {})", arc_idx, start, end);
-            removed_arcs.push(arc_idx);
+            let arc = &arcs[arc_idx];
+            let has_zero_length = (arc.a.x - arc.b.x).abs() < 1e-10 && (arc.a.y - arc.b.y).abs() < 1e-10;
+            
+            // Only remove arcs that are both self-loops AND have exactly zero length
+            // Arc 2 should be kept even if it has zero length because it's topologically important
+            if has_zero_length && arc.r.is_infinite() {
+                // This is a zero-length line segment - these can be connection points
+                println!("DEBUG: Keeping zero-length line arc {} as potential connection point: ({:.6}, {:.6})", 
+                         arc_idx, arc.a.x, arc.a.y);
+                filtered_arc_map.insert(arc_idx, (start, end));
+            } else if has_zero_length {
+                println!("DEBUG: Removing degenerate arc {} (true self-loop with zero length: {} -> {})", arc_idx, start, end);
+                removed_arcs.push(arc_idx);
+            } else {
+                println!("DEBUG: Keeping arc {} despite self-loop (has non-zero length: ({:.6}, {:.6}) -> ({:.6}, {:.6}))", 
+                         arc_idx, arc.a.x, arc.a.y, arc.b.x, arc.b.y);
+                filtered_arc_map.insert(arc_idx, (start, end));
+            }
         } else {
             filtered_arc_map.insert(arc_idx, (start, end));
         }
@@ -423,6 +440,11 @@ pub fn middle_points_knn(
         // Trying to find mid point for a group of points
         for neighbor in neighbor_list.clone() {
             let (i, j, merge_end, _distance) = neighbor;
+            if i == 2 || j == 2 {
+                println!("DEBUG: Before merge: Arc {} = ({:.6}, {:.6}) -> ({:.6}, {:.6}), Arc {} = ({:.6}, {:.6}) -> ({:.6}, {:.6}), merge_end: {:?}", 
+                         i, arcs[i].a.x, arcs[i].a.y, arcs[i].b.x, arcs[i].b.y,
+                         j, arcs[j].a.x, arcs[j].a.y, arcs[j].b.x, arcs[j].b.y, merge_end);
+            }
             match merge_end {
                 MergeEnd::AA => {
                     let mid =  (arcs[i].a + arcs[j].a)/2.0;
@@ -444,6 +466,11 @@ pub fn middle_points_knn(
                     arcs[i].b = mid;
                     arcs[j].b = mid;
                 }
+            }
+            if i == 2 || j == 2 {
+                println!("DEBUG: After merge: Arc {} = ({:.6}, {:.6}) -> ({:.6}, {:.6}), Arc {} = ({:.6}, {:.6}) -> ({:.6}, {:.6})", 
+                         i, arcs[i].a.x, arcs[i].a.y, arcs[i].b.x, arcs[i].b.y,
+                         j, arcs[j].a.x, arcs[j].a.y, arcs[j].b.x, arcs[j].b.y);
             }
         }
     }

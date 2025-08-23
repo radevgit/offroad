@@ -6,9 +6,9 @@ fn main() {
     // Prints SVG output to stdout
     let mut svg = SVG::new(300.0, 300.0,  Some("/tmp/polyline.svg"));
     cfg.svg = Some(&mut svg);
-    cfg.svg_orig = true;
+    cfg.svg_orig = false;
     //cfg.svg_remove_bridges = true;
-    cfg.svg_prune = true;
+    cfg.svg_final = true;
 
     // Translate to fit in the SVG viewport
     let poly = polyline_translate(&example_polyline_01(), point(100.0, -50.0));

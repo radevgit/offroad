@@ -13,7 +13,7 @@ readme = "README.md"
 
 
 [dependencies]
-geom = { package = "basegeom", version = "0.3.5" }
+geom = { package = "basegeom", version = "0.3.11" }
 robust = "1.2.0"
 
 [lib]

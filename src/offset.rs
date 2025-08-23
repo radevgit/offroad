@@ -122,6 +122,11 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
 
     //remove_bridge_arcs(&mut offset_arcs);
 
+    for arc in &offset_arcs {
+        println!("DEBUG: Offset arc: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}, id={}",
+                 arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r, arc.id);
+    }
+
     if let Some(svg) = cfg.svg.as_deref_mut()
         && cfg.svg_remove_bridges
     {
@@ -279,49 +284,82 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
         return polyline;
     }
 
-    // Start with the first arc in its original orientation
-    let mut current_end_point = arcs[0].b;
-
+    println!("DEBUG: Converting {} arcs to polyline", arcs.len());
     for (i, arc) in arcs.iter().enumerate() {
-        let (start_point, end_point, bulge) = if i == 0 {
-            // First arc: use original orientation
+        println!("DEBUG: Arc {}: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}", 
+                 i, arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r);
+    }
+
+    // For the first arc, start with its original orientation
+    // Convert first arc
+    let (start_point, end_point, bulge) = if arcs[0].is_seg() {
+        (arcs[0].a, arcs[0].b, 0.0)
+    } else {
+        let bulge = arc_bulge_from_points(arcs[0].a, arcs[0].b, arcs[0].c, arcs[0].r);
+        (arcs[0].a, arcs[0].b, bulge)
+    };
+    
+    println!("DEBUG: Arc 0 -> polyline vertex: p=({:.2}, {:.2}), bulge={:.6}", 
+             start_point.x, start_point.y, bulge);
+    polyline.push(pvertex(start_point, bulge));
+    let mut current_end_point = end_point;
+
+    // For subsequent arcs, determine orientation to maintain connectivity
+    for i in 1..arcs.len() {
+        let arc = &arcs[i];
+        let prev_end = current_end_point;
+
+        // Check both possible orientations and choose the one that connects
+        let forward_connects = prev_end.close_enough(arc.a, 1e-10);
+        let reverse_connects = prev_end.close_enough(arc.b, 1e-10);
+        
+        println!("DEBUG: Arc {} connectivity check: prev_end=({:.2}, {:.2}), arc.a=({:.2}, {:.2}), arc.b=({:.2}, {:.2}), forward_connects={}, reverse_connects={}", 
+                 i, prev_end.x, prev_end.y, arc.a.x, arc.a.y, arc.b.x, arc.b.y, forward_connects, reverse_connects);
+
+        let (start_point, end_point, bulge) = if forward_connects {
+            // Use arc in forward direction (a -> b)
+            if arc.is_seg() {
+                (arc.a, arc.b, 0.0)
+            } else {
+                let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+                println!("DEBUG: Arc {} forward bulge: {:.6}", i, bulge);
+                (arc.a, arc.b, bulge)
+            }
+        } else if reverse_connects {
+            // Use arc in reverse direction (b -> a)
+            if arc.is_seg() {
+                (arc.b, arc.a, 0.0)
+            } else {
+                // For reversed arc, we need to negate the bulge
+                let forward_bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+                println!("DEBUG: Arc {} reversed: forward_bulge={:.6}, using={:.6}", i, forward_bulge, -forward_bulge);
+                (arc.b, arc.a, -forward_bulge)
+            }
+        } else {
+            // No direct connection - this indicates a gap in the arcline
+            // For now, use the arc in forward direction and let the gap be visible
+            println!("DEBUG: WARNING: Arc {} has no direct connection to previous arc!", i);
             if arc.is_seg() {
                 (arc.a, arc.b, 0.0)
             } else {
                 let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
                 (arc.a, arc.b, bulge)
             }
-        } else {
-            // For subsequent arcs, check orientation based on connectivity
-            let prev_end = current_end_point;
-
-            // Check if arc.a connects to previous end point
-            let use_forward = prev_end.close_enough(arc.a, 1e-10); // TODO: Improve tolerance
-
-            if use_forward {
-                // Use arc in forward direction (a -> b)
-                if arc.is_seg() {
-                    (arc.a, arc.b, 0.0)
-                } else {
-                    let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
-                    (arc.a, arc.b, bulge)
-                }
-            } else {
-                // Use arc in reverse direction (b -> a)
-                if arc.is_seg() {
-                    (arc.b, arc.a, 0.0)
-                } else {
-                    // For reversed arc, we need to negate the bulge
-                    let forward_bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
-                    (arc.b, arc.a, -forward_bulge)
-                }
-            }
         };
 
+        // Only add vertex if it's different from the previous end point
+        if !prev_end.close_enough(start_point, 1e-10) {
+            println!("DEBUG: Adding intermediate vertex at ({:.2}, {:.2}) to bridge gap", prev_end.x, prev_end.y);
+            polyline.push(pvertex(prev_end, 0.0)); // Add intermediate vertex with zero bulge
+        }
+        
+        println!("DEBUG: Arc {} -> polyline vertex: p=({:.2}, {:.2}), bulge={:.6}", 
+                 i, start_point.x, start_point.y, bulge);
         polyline.push(pvertex(start_point, bulge));
         current_end_point = end_point;
     }
 
+    println!("DEBUG: Final polyline has {} vertices", polyline.len());
     polyline
 }
 
@@ -581,7 +619,8 @@ pub fn svg_offset_raws(svg: &mut SVG, offset_raws: &Vec<Vec<OffsetRaw>>, color: 
     for raw in offset_raws {
         for seg in raw {
             if seg.arc.is_seg() {
-                let segment = segment(seg.arc.a, seg.arc.b);
+                let mut segment = segment(seg.arc.a, seg.arc.b);
+                segment.id(seg.arc.id);
                 svg.segment(&segment, color);
             } else {
                 svg.arc(&seg.arc, color);
