@@ -62,6 +62,10 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
         println!("DEBUG: Component {}: {:?}", i, component);
     }
 
+    for component in components {
+        result.push(vertex_path_to_arcs(&component, arcs, &arc_map));
+    }
+
     result
 }
 
@@ -308,42 +312,7 @@ fn merge_graph_vertices(arc_map: &mut HashMap<usize, (usize, usize)>, merge: &Ve
     }
 }
 
-fn vertex_path_to_arcs(
-    vertex_path: &[usize],
-    arcs: &[Arc],
-    arc_map: &HashMap<usize, (usize, usize)>,
-) -> Vec<Arc> {
-    // Convert a path of vertex IDs back to a sequence of arcs
-    // We need to find which arc connects each pair of consecutive vertices in the path
 
-    let mut result = Vec::new();
-    let mut used_arcs = HashSet::new();
-
-    for i in 0..vertex_path.len() {
-        let current_vertex = vertex_path[i];
-        let next_vertex = vertex_path[(i + 1) % vertex_path.len()];
-
-        // println!("DEBUG: Looking for arc connecting {} -> {}", current_vertex, next_vertex);
-
-        // Find arc that connects current_vertex to next_vertex using arc_map
-        let arc_idx = find_connecting_arc_by_vertices(current_vertex, next_vertex, arc_map);
-
-        if let Some(idx) = arc_idx {
-            if !used_arcs.contains(&idx) {
-                // println!("DEBUG: Found arc {} connecting vertices", idx);
-                if idx < arcs.len() {
-                    let arc = &arcs[idx];
-                    result.push(arc.clone());
-                    used_arcs.insert(idx);
-                }
-            }
-        } else {
-            // println!("DEBUG: No arc found connecting {} -> {}", current_vertex, next_vertex);
-        }
-    }
-
-    result
-}
 
 fn find_connecting_arc_by_vertices(
     vertex1: usize,
@@ -541,7 +510,7 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
             component_vertices
         );
 
-        if component_vertices.len() >= 3 {
+        if component_vertices.len() >= 2 {
             println!(
                 "DEBUG: Looking for cycles in component with {} vertices",
                 component_vertices.len()
@@ -555,7 +524,7 @@ pub fn find_connected_components(graph: &[(usize, usize)]) -> Vec<Vec<usize>> {
             cycles.extend(component_cycles);
         } else {
             println!(
-                "DEBUG: Skipping component with {} vertices (need >= 3)",
+                "DEBUG: Skipping component with {} vertices (need >= 2)",
                 component_vertices.len()
             );
         }
@@ -571,7 +540,7 @@ fn find_cycles_iterative(
 ) -> Vec<Vec<usize>> {
     use std::collections::HashSet;
 
-    if component.len() < 3 {
+    if component.len() < 2 {
         return Vec::new();
     }
 
