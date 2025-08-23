@@ -663,7 +663,7 @@ mod tests {
 
         if let Some(svg) = cfg.svg.as_deref_mut() {
             // Write svg to file
-            //svg.write_stroke_width(0.2);
+            svg.write_stroke_width(0.2);
         }
     }
 
@@ -701,7 +701,7 @@ mod tests {
 
         if let Some(svg) = cfg.svg.as_deref_mut() {
             // Write svg to file
-            //svg.write_stroke_width(0.2);
+            svg.write_stroke_width(0.2);
         }
     }
 }
