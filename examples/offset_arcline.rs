@@ -5,7 +5,7 @@ fn main() {
     // Configuration for offsetting
     let mut cfg = OffsetCfg::default();
     // Prints SVG output to stdout
-    let mut svg = SVG::new(300.0, 300.0, None);
+    let mut svg = SVG::new(300.0, 300.0,  Some("/tmp/polyline.svg"));
     cfg.svg = Some(&mut svg);
     // Show original arcline in SVG output
     cfg.svg_orig = true;
@@ -15,13 +15,11 @@ fn main() {
     let arc0 = arc_circle_parametrization(point(0.0, 0.0), point(100.0, 100.0), 0.0);
     let arc1 = arc_circle_parametrization(point(100.0, 100.0), point(200.0, 0.0), 0.5);
     let arc2 = arc_circle_parametrization(point(200.0, 0.0), point(0.0, 0.0), 1.3);
-    let arcs_orig = vec![arc0, arc1, arc2];
+    let mut arcs_orig = vec![arc0, arc1, arc2];
 
     // Translate to fit in the SVG viewport
-    //let poly = polyline_translate(&arcs_orig, point(40.0, 100.0));
+    arcline_translate(&mut arcs_orig, point(40.0, 100.0));
 
-    // Internal offsetting
-    //let poly = polyline_reverse(&poly);
     let offset_arclines = offset_arcline(&arcs_orig, 15.0, &mut cfg);
 
     println!("Input arcline has {} vertices", arcs_orig.len());

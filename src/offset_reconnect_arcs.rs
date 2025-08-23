@@ -1,6 +1,4 @@
 
-use geom::algo::area::arcline_area;
-
 /// Given a cycle of vertex indices, reconstruct the CCW arc sequence.
 fn vertex_path_to_arcs(
     vertex_path: &[usize],
@@ -20,24 +18,18 @@ fn vertex_path_to_arcs(
         // Find the arc index that connects v0 to v1
         let mut found = None;
         for (&arc_idx, &(start, end)) in arc_map.iter() {
-            // CCW: arc goes from start to end
-            if start == v0 && end == v1 {
-                found = Some((arc_idx, false)); // original direction
-                break;
-            } else if start == v1 && end == v0 {
-                found = Some((arc_idx, true)); // reversed
+            if (start == v0 && end == v1) || (start == v1 && end == v0) {
+                found = Some(arc_idx);
                 break;
             }
         }
-        if let Some((arc_idx, reversed)) = found {
-            println!("DEBUG: Found arc {} (reversed={})", arc_idx, reversed);
-            let mut arc = arcs[arc_idx].clone();
-            println!("DEBUG: Original arc: a=({:.2}, {:.2}), b=({:.2}, {:.2})", arc.a.x, arc.a.y, arc.b.x, arc.b.y);
-            // If reversed, flip the arc to maintain CCW orientation
-            if reversed {
-                arc = arc.reverse();
-                println!("DEBUG: After reverse: a=({:.2}, {:.2}), b=({:.2}, {:.2})", arc.a.x, arc.a.y, arc.b.x, arc.b.y);
-            }
+        if let Some(arc_idx) = found {
+            println!("DEBUG: Found arc {}", arc_idx);
+            let arc = arcs[arc_idx].clone();
+            println!("DEBUG: Arc: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}", 
+                     arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r);
+            // Always use the arc in its original CCW orientation
+            // The arcline may traverse it forward or backward, but the arc itself stays CCW
             result.push(arc);
         } else {
             println!("DEBUG: No arc found for edge {} -> {}", v0, v1);
@@ -73,6 +65,12 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
     for (i, arc) in arcs.iter().enumerate() {
         println!("DEBUG: Input Arc {}: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}", 
                  i, arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r);
+        // Check if input arc is CCW as it should be by definition
+        if !arc.is_seg() {
+            let arc_area = geom::algo::area::arcline_area(&vec![arc.clone()]);
+            println!("DEBUG: Input Arc {} area: {:.6} ({})", 
+                     i, arc_area, if arc_area > 0.0 { "CCW" } else { "CW" });
+        }
     }
     
     let mut result = Vec::new();
@@ -131,6 +129,12 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
         for (i, arc) in arc_sequence.iter().enumerate() {
             println!("DEBUG: Output Arc {}: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}", 
                      i, arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r);
+            // Verify that each arc is CCW oriented
+            if !arc.is_seg() {
+                let arc_area = geom::algo::area::arcline_area(&vec![arc.clone()]);
+                println!("DEBUG: Arc {} area: {:.6} ({})", 
+                         i, arc_area, if arc_area > 0.0 { "CCW" } else { "CW" });
+            }
         }
         
         result.push(arc_sequence);

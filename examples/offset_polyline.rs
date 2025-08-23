@@ -34,5 +34,5 @@ fn main() {
         // Write svg to file
         svg.write_stroke_width(0.1);
     }
-    //assert!(offset_polylines.len() == 2);
+    assert!(offset_polylines.len() == 2);
 }

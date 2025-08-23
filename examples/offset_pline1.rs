@@ -4,9 +4,9 @@ use offroad::prelude::{OffsetCfg, example_polyline_01, offset_polyline};
 fn main() {
     let mut cfg = OffsetCfg::default();
     // Prints SVG output to stdout
-    let mut svg = SVG::new(300.0, 300.0, Some("/tmp/pline1.svg"));
+    let mut svg = SVG::new(300.0, 300.0,  Some("/tmp/polyline.svg"));
     cfg.svg = Some(&mut svg);
-    //cfg.svg_orig = true;
+    cfg.svg_orig = true;
     //cfg.svg_remove_bridges = true;
     cfg.svg_final = true;
 
