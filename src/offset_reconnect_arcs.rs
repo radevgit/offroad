@@ -40,6 +40,159 @@ fn vertex_path_to_arcs(
     result
 }
 
+/// Analyze connectivity gaps in the graph to understand why no cycles are formed
+fn analyze_connectivity_gaps(
+    graph: &[(usize, usize)],
+    arc_map: &HashMap<usize, (usize, usize)>,
+    arcs: &[Arc],
+) {
+    println!("DEBUG: === Analyzing connectivity gaps ===");
+    
+    // Build adjacency list
+    let mut adjacency: HashMap<usize, Vec<usize>> = HashMap::new();
+    for &(u, v) in graph {
+        adjacency.entry(u).or_insert_with(Vec::new).push(v);
+        adjacency.entry(v).or_insert_with(Vec::new).push(u);
+    }
+    
+    // Find all vertices with degree 1 (endpoints) or 0 (isolated)
+    let mut endpoints = Vec::new();
+    let mut isolated = Vec::new();
+    
+    for (&vertex, neighbors) in &adjacency {
+        match neighbors.len() {
+            0 => isolated.push(vertex),
+            1 => endpoints.push(vertex),
+            _ => {}
+        }
+    }
+    
+    println!("DEBUG: Found {} isolated vertices: {:?}", isolated.len(), isolated);
+    println!("DEBUG: Found {} endpoint vertices: {:?}", endpoints.len(), endpoints);
+    
+    // Special case: if there's exactly 1 endpoint, the graph is almost closed except for one gap
+    if endpoints.len() == 1 {
+        let endpoint = endpoints[0];
+        println!("DEBUG: === Almost closed path analysis (1 endpoint) ===");
+        
+        // Find the arc that this endpoint belongs to and its coordinates
+        for (&arc_idx, &(start, end)) in arc_map {
+            if start == endpoint {
+                let arc = &arcs[arc_idx];
+                println!("DEBUG: Endpoint {} is start of Arc {}: ({:.2}, {:.2})", 
+                         endpoint, arc_idx, arc.a.x, arc.a.y);
+                
+                // Find the closest arc endpoints to close the gap
+                find_closest_endpoints_to_point(arc.a, arc_map, arcs, arc_idx);
+            } else if end == endpoint {
+                let arc = &arcs[arc_idx];
+                println!("DEBUG: Endpoint {} is end of Arc {}: ({:.2}, {:.2})", 
+                         endpoint, arc_idx, arc.b.x, arc.b.y);
+                
+                // Find the closest arc endpoints to close the gap
+                find_closest_endpoints_to_point(arc.b, arc_map, arcs, arc_idx);
+            }
+        }
+        
+        return; // Early return for this special case
+    }
+    
+    // Analyze gaps between endpoints
+    if endpoints.len() >= 2 {
+        println!("DEBUG: === Gap analysis between endpoints ===");
+        
+        // For each endpoint, find its corresponding arc and coordinates
+        let mut endpoint_coords = Vec::new();
+        for &endpoint in &endpoints {
+            // Find which arc this vertex belongs to
+            for (&arc_idx, &(start, end)) in arc_map {
+                if start == endpoint {
+                    let arc = &arcs[arc_idx];
+                    endpoint_coords.push((endpoint, arc.a, format!("Arc {} start", arc_idx)));
+                    println!("DEBUG: Endpoint {} is start of Arc {}: ({:.2}, {:.2})", 
+                             endpoint, arc_idx, arc.a.x, arc.a.y);
+                } else if end == endpoint {
+                    let arc = &arcs[arc_idx];
+                    endpoint_coords.push((endpoint, arc.b, format!("Arc {} end", arc_idx)));
+                    println!("DEBUG: Endpoint {} is end of Arc {}: ({:.2}, {:.2})", 
+                             endpoint, arc_idx, arc.b.x, arc.b.y);
+                }
+            }
+        }
+        
+        // Calculate distances between all endpoint pairs
+        for i in 0..endpoint_coords.len() {
+            for j in i+1..endpoint_coords.len() {
+                let (_, p1, desc1) = &endpoint_coords[i];
+                let (_, p2, desc2) = &endpoint_coords[j];
+                let distance = (p1 - p2).norm();
+                println!("DEBUG: Gap between {} and {}: {:.6}", desc1, desc2, distance);
+                if distance < 1e-6 {
+                    println!("DEBUG: *** VERY SMALL GAP: {} <-> {} (distance: {:.12})", desc1, desc2, distance);
+                } else if distance < 1.0 {
+                    println!("DEBUG: *** SMALL GAP: {} <-> {} (distance: {:.6})", desc1, desc2, distance);
+                } else if distance < 10.0 {
+                    println!("DEBUG: *** MEDIUM GAP: {} <-> {} (distance: {:.6})", desc1, desc2, distance);
+                } else {
+                    println!("DEBUG: *** LARGE GAP: {} <-> {} (distance: {:.6})", desc1, desc2, distance);
+                }
+            }
+        }
+    }
+    
+    println!("DEBUG: === End gap analysis ===");
+}
+
+/// Find the closest arc endpoints to a given point to identify potential connection gaps
+fn find_closest_endpoints_to_point(
+    target_point: Point,
+    arc_map: &HashMap<usize, (usize, usize)>,
+    arcs: &[Arc],
+    exclude_arc_idx: usize,
+) {
+    println!("DEBUG: Finding closest endpoints to point ({:.2}, {:.2})", target_point.x, target_point.y);
+    
+    let mut distances = Vec::new();
+    
+    for (&arc_idx, &(_start, _end)) in arc_map {
+        if arc_idx == exclude_arc_idx {
+            continue; // Skip the arc we're measuring from
+        }
+        
+        let arc = &arcs[arc_idx];
+        
+        // Check distance to arc start
+        let dist_to_start = (target_point - arc.a).norm();
+        distances.push((dist_to_start, arc_idx, "start", arc.a));
+        
+        // Check distance to arc end
+        let dist_to_end = (target_point - arc.b).norm();
+        distances.push((dist_to_end, arc_idx, "end", arc.b));
+    }
+    
+    // Sort by distance
+    distances.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    
+    // Show the 5 closest endpoints
+    println!("DEBUG: Closest endpoints to ({:.2}, {:.2}):", target_point.x, target_point.y);
+    for (i, (distance, arc_idx, endpoint_type, point)) in distances.iter().take(5).enumerate() {
+        println!("DEBUG:   {}. Arc {} {} at ({:.2}, {:.2}): distance = {:.6}", 
+                 i + 1, arc_idx, endpoint_type, point.x, point.y, distance);
+        
+        if *distance < 1e-6 {
+            println!("DEBUG:      *** TINY GAP: This should connect! ***");
+        } else if *distance < 0.1 {
+            println!("DEBUG:      *** VERY SMALL GAP ***");
+        } else if *distance < 1.0 {
+            println!("DEBUG:      *** SMALL GAP ***");
+        } else if *distance < 10.0 {
+            println!("DEBUG:      *** MEDIUM GAP ***");
+        } else {
+            println!("DEBUG:      *** LARGE GAP ***");
+        }
+    }
+}
+
 use std::collections::{HashMap, HashSet};
 
 use geom::prelude::*;
@@ -119,6 +272,11 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
     println!("DEBUG: Found {} components", components.len());
     for (i, component) in components.iter().enumerate() {
         println!("DEBUG: Component {}: {:?}", i, component);
+    }
+
+    // If we have large components with no cycles, analyze connectivity gaps
+    if components.is_empty() {
+        analyze_connectivity_gaps(&graph, &arc_map, &arcs);
     }
 
     for component in components {
