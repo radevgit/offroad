@@ -254,8 +254,25 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
         println!("DEBUG: Arc {} -> vertices ({}, {})", arc_idx, start, end);
     }
 
-    // Build the graph from arc_map
-    let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
+    // Filter out degenerate arcs (self-loops) before building the graph
+    let mut filtered_arc_map = HashMap::new();
+    let mut removed_arcs = Vec::new();
+    
+    for (&arc_idx, &(start, end)) in arc_map.iter() {
+        if start == end {
+            println!("DEBUG: Removing degenerate arc {} (self-loop: {} -> {})", arc_idx, start, end);
+            removed_arcs.push(arc_idx);
+        } else {
+            filtered_arc_map.insert(arc_idx, (start, end));
+        }
+    }
+    
+    if !removed_arcs.is_empty() {
+        println!("DEBUG: Removed {} degenerate arcs: {:?}", removed_arcs.len(), removed_arcs);
+    }
+
+    // Build the graph from filtered arc_map
+    let graph: Vec<(usize, usize)> = filtered_arc_map.values().cloned().collect();
 
     println!("DEBUG: Graph edges after merge: {:?}", graph);
     println!("DEBUG: Merge operations count: {}", merge.len());
@@ -349,7 +366,7 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
 //     merge
 // }
 
-const EPS_MIDDLE: f64 = 1e-7;
+const EPS_MIDDLE: f64 = 1e-6;  // Increased to handle floating-point precision errors
 
 #[doc(hidden)]
 /// Find middle points using KNN
@@ -836,7 +853,8 @@ fn find_cycles_from_vertex_iterative(
 
     while let Some(mut state) = stack.pop() {
         // Skip paths that are too long to avoid infinite loops
-        if state.path.len() > 10 {
+        // Allow paths up to the component size since we might have one large cycle
+        if state.path.len() > component_set.len() {
             continue;
         }
 

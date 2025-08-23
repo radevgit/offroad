@@ -8,7 +8,7 @@ fn main() {
     cfg.svg = Some(&mut svg);
     cfg.svg_orig = true;
     //cfg.svg_remove_bridges = true;
-    cfg.svg_final = true;
+    cfg.svg_prune = true;
 
     // Translate to fit in the SVG viewport
     let poly = polyline_translate(&example_polyline_01(), point(100.0, -50.0));
