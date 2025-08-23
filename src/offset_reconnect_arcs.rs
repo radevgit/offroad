@@ -1,4 +1,52 @@
-#![allow(dead_code)]
+
+use geom::algo::area::arcline_area;
+
+/// Given a cycle of vertex indices, reconstruct the CCW arc sequence.
+fn vertex_path_to_arcs(
+    vertex_path: &[usize],
+    arcs: &[Arc],
+    arc_map: &HashMap<usize, (usize, usize)>,
+) -> Vec<Arc> {
+    let mut result = Vec::new();
+    let n = vertex_path.len();
+    println!("DEBUG: vertex_path_to_arcs processing path: {:?}", vertex_path);
+    
+    // For each consecutive pair in the cycle, find the arc that connects them
+    for i in 0..n {
+        let v0 = vertex_path[i];
+        let v1 = vertex_path[(i + 1) % n];
+        println!("DEBUG: Looking for arc connecting {} -> {}", v0, v1);
+        
+        // Find the arc index that connects v0 to v1
+        let mut found = None;
+        for (&arc_idx, &(start, end)) in arc_map.iter() {
+            // CCW: arc goes from start to end
+            if start == v0 && end == v1 {
+                found = Some((arc_idx, false)); // original direction
+                break;
+            } else if start == v1 && end == v0 {
+                found = Some((arc_idx, true)); // reversed
+                break;
+            }
+        }
+        if let Some((arc_idx, reversed)) = found {
+            println!("DEBUG: Found arc {} (reversed={})", arc_idx, reversed);
+            let mut arc = arcs[arc_idx].clone();
+            println!("DEBUG: Original arc: a=({:.2}, {:.2}), b=({:.2}, {:.2})", arc.a.x, arc.a.y, arc.b.x, arc.b.y);
+            // If reversed, flip the arc to maintain CCW orientation
+            if reversed {
+                arc = arc.reverse();
+                println!("DEBUG: After reverse: a=({:.2}, {:.2}), b=({:.2}, {:.2})", arc.a.x, arc.a.y, arc.b.x, arc.b.y);
+            }
+            result.push(arc);
+        } else {
+            println!("DEBUG: No arc found for edge {} -> {}", v0, v1);
+            // No arc found for this edge, skip
+            // (should not happen in a valid cycle)
+        }
+    }
+    result
+}
 
 use std::collections::{HashMap, HashSet};
 
@@ -20,6 +68,13 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
         "DEBUG: offset_reconnect_arcs called with {} arcs",
         arcs.len()
     );
+    
+    // Debug: Print input arc coordinates
+    for (i, arc) in arcs.iter().enumerate() {
+        println!("DEBUG: Input Arc {}: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}", 
+                 i, arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r);
+    }
+    
     let mut result = Vec::new();
 
     // Initialize the edge list: each arc contributes 2 vertices
@@ -41,6 +96,12 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
 
     // Apply merge operations to arc_map
     merge_graph_vertices(&mut arc_map, &merge);
+    
+    // Debug: Print arc_map after merge
+    println!("DEBUG: Arc map after merge:");
+    for (&arc_idx, &(start, end)) in arc_map.iter() {
+        println!("DEBUG: Arc {} -> vertices ({}, {})", arc_idx, start, end);
+    }
 
     // Build the graph from arc_map
     let graph: Vec<(usize, usize)> = arc_map.values().cloned().collect();
@@ -63,7 +124,16 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
     }
 
     for component in components {
-        result.push(vertex_path_to_arcs(&component, arcs, &arc_map));
+        let arc_sequence = vertex_path_to_arcs(&component, &arcs, &arc_map);
+        
+        // Debug: Print output arc coordinates
+        println!("DEBUG: Component {:?} produced {} arcs:", component, arc_sequence.len());
+        for (i, arc) in arc_sequence.iter().enumerate() {
+            println!("DEBUG: Output Arc {}: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}", 
+                     i, arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r);
+        }
+        
+        result.push(arc_sequence);
     }
 
     result
@@ -168,45 +238,32 @@ pub fn middle_points_knn(
     }
 
     for neighbor_list in &neighbors {
-        let count = neighbor_list.len();
-        let mut sum = Point::new(0.0, 0.0);
+        if neighbor_list.is_empty() {
+            continue;
+        }
+        // Trying to find mid point for a group of points
         for neighbor in neighbor_list.clone() {
             let (i, j, merge_end, _distance) = neighbor;
             match merge_end {
                 MergeEnd::AA => {
-                    sum = sum + arcs[i].a + arcs[j].a;
+                    let mid =  (arcs[i].a + arcs[j].a)/2.0;
+                    arcs[i].a = mid;
+                    arcs[j].a = mid;
                 }
                 MergeEnd::AB => {
-                    sum = sum + arcs[i].a + arcs[j].b;
+                    let mid =  (arcs[i].a + arcs[j].b)/2.0;
+                    arcs[i].a = mid;
+                    arcs[j].b = mid;
                 }
                 MergeEnd::BA => {
-                    sum = sum + arcs[i].b + arcs[j].a;
+                    let mid =  (arcs[i].b + arcs[j].a)/2.0;
+                    arcs[i].b = mid;
+                    arcs[j].a = mid;
                 }
                 MergeEnd::BB => {
-                    sum = sum + arcs[i].b + arcs[j].b;
-                }
-            }
-        }
-        // mid point of k neighbors
-        let mid = sum / (count as f64);
-        for neighbor in neighbor_list {
-            let (i, j, merge_end, _distance) = neighbor;
-            match merge_end {
-                MergeEnd::AA => {
-                    arcs[*i].a = mid;
-                    arcs[*j].a = mid;
-                }
-                MergeEnd::AB => {
-                    arcs[*i].a = mid;
-                    arcs[*j].b = mid;
-                }
-                MergeEnd::BA => {
-                    arcs[*i].b = mid;
-                    arcs[*j].a = mid;
-                }
-                MergeEnd::BB => {
-                    arcs[*i].b = mid;
-                    arcs[*j].b = mid;
+                    let mid =  (arcs[i].b + arcs[j].b)/2.0;
+                    arcs[i].b = mid;
+                    arcs[j].b = mid;
                 }
             }
         }
