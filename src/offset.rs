@@ -120,7 +120,7 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
         offset_arcs.len()
     );
 
-    remove_bridge_arcs(&mut offset_arcs);
+    //remove_bridge_arcs(&mut offset_arcs);
 
     if let Some(svg) = cfg.svg.as_deref_mut()
         && cfg.svg_remove_bridges

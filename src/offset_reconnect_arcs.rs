@@ -293,11 +293,11 @@ pub fn offset_reconnect_arcs(arcs: &mut Vec<Arc>) -> Vec<Arcline> {
 
     // If we have large components with no cycles, analyze connectivity gaps
     if components.is_empty() {
-        analyze_connectivity_gaps(&graph, &arc_map, &arcs);
+        analyze_connectivity_gaps(&graph, &filtered_arc_map, &arcs);
     }
 
     for component in components {
-        let arc_sequence = vertex_path_to_arcs(&component, &arcs, &arc_map);
+        let arc_sequence = vertex_path_to_arcs(&component, &arcs, &filtered_arc_map);
         
         // Debug: Print output arc coordinates
         println!("DEBUG: Component {:?} produced {} arcs:", component, arc_sequence.len());
