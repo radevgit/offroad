@@ -123,8 +123,10 @@ pub fn offset_polyline(poly: &Polyline, off: f64, cfg: &mut OffsetCfg) -> Vec<Po
     //remove_bridge_arcs(&mut offset_arcs);
 
     for arc in &offset_arcs {
-        println!("DEBUG: Offset arc: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}, id={}",
-                 arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r, arc.id);
+        println!(
+            "DEBUG: Offset arc: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}, id={}",
+            arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r, arc.id
+        );
     }
 
     if let Some(svg) = cfg.svg.as_deref_mut()
@@ -286,8 +288,10 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
 
     println!("DEBUG: Converting {} arcs to polyline", arcs.len());
     for (i, arc) in arcs.iter().enumerate() {
-        println!("DEBUG: Arc {}: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}", 
-                 i, arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r);
+        println!(
+            "DEBUG: Arc {}: a=({:.2}, {:.2}), b=({:.2}, {:.2}), r={:.2}",
+            i, arc.a.x, arc.a.y, arc.b.x, arc.b.y, arc.r
+        );
     }
 
     // For the first arc, start with its original orientation
@@ -298,9 +302,11 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
         let bulge = arc_bulge_from_points(arcs[0].a, arcs[0].b, arcs[0].c, arcs[0].r);
         (arcs[0].a, arcs[0].b, bulge)
     };
-    
-    println!("DEBUG: Arc 0 -> polyline vertex: p=({:.2}, {:.2}), bulge={:.6}", 
-             start_point.x, start_point.y, bulge);
+
+    println!(
+        "DEBUG: Arc 0 -> polyline vertex: p=({:.2}, {:.2}), bulge={:.6}",
+        start_point.x, start_point.y, bulge
+    );
     polyline.push(pvertex(start_point, bulge));
     let mut current_end_point = end_point;
 
@@ -312,9 +318,19 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
         // Check both possible orientations and choose the one that connects
         let forward_connects = prev_end.close_enough(arc.a, 1e-10);
         let reverse_connects = prev_end.close_enough(arc.b, 1e-10);
-        
-        println!("DEBUG: Arc {} connectivity check: prev_end=({:.2}, {:.2}), arc.a=({:.2}, {:.2}), arc.b=({:.2}, {:.2}), forward_connects={}, reverse_connects={}", 
-                 i, prev_end.x, prev_end.y, arc.a.x, arc.a.y, arc.b.x, arc.b.y, forward_connects, reverse_connects);
+
+        println!(
+            "DEBUG: Arc {} connectivity check: prev_end=({:.2}, {:.2}), arc.a=({:.2}, {:.2}), arc.b=({:.2}, {:.2}), forward_connects={}, reverse_connects={}",
+            i,
+            prev_end.x,
+            prev_end.y,
+            arc.a.x,
+            arc.a.y,
+            arc.b.x,
+            arc.b.y,
+            forward_connects,
+            reverse_connects
+        );
 
         let (start_point, end_point, bulge) = if forward_connects {
             // Use arc in forward direction (a -> b)
@@ -332,13 +348,19 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
             } else {
                 // For reversed arc, we need to negate the bulge
                 let forward_bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
-                println!("DEBUG: Arc {} reversed: forward_bulge={:.6}, using={:.6}", i, forward_bulge, -forward_bulge);
+                println!(
+                    "DEBUG: Arc {} reversed: forward_bulge={:.6}, using={:.6}",
+                    i, forward_bulge, -forward_bulge
+                );
                 (arc.b, arc.a, -forward_bulge)
             }
         } else {
             // No direct connection - this indicates a gap in the arcline
             // For now, use the arc in forward direction and let the gap be visible
-            println!("DEBUG: WARNING: Arc {} has no direct connection to previous arc!", i);
+            println!(
+                "DEBUG: WARNING: Arc {} has no direct connection to previous arc!",
+                i
+            );
             if arc.is_seg() {
                 (arc.a, arc.b, 0.0)
             } else {
@@ -349,12 +371,17 @@ pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
 
         // Only add vertex if it's different from the previous end point
         if !prev_end.close_enough(start_point, 1e-10) {
-            println!("DEBUG: Adding intermediate vertex at ({:.2}, {:.2}) to bridge gap", prev_end.x, prev_end.y);
+            println!(
+                "DEBUG: Adding intermediate vertex at ({:.2}, {:.2}) to bridge gap",
+                prev_end.x, prev_end.y
+            );
             polyline.push(pvertex(prev_end, 0.0)); // Add intermediate vertex with zero bulge
         }
-        
-        println!("DEBUG: Arc {} -> polyline vertex: p=({:.2}, {:.2}), bulge={:.6}", 
-                 i, start_point.x, start_point.y, bulge);
+
+        println!(
+            "DEBUG: Arc {} -> polyline vertex: p=({:.2}, {:.2}), bulge={:.6}",
+            i, start_point.x, start_point.y, bulge
+        );
         polyline.push(pvertex(start_point, bulge));
         current_end_point = end_point;
     }
@@ -1320,16 +1347,14 @@ pub fn polyline_to_arcs(plines: &Vec<Polyline>) -> Vec<Vec<Arc>> {
 
 #[doc(hidden)]
 fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
-    let mut arcs = Vec::with_capacity(pline.len() + 1);
-    let last = pline.len() - 1;
-    for i in 0..last {
-        let arc = arc_circle_parametrization(pline[i].p, pline[i + 1].p, pline[i].b);
+    let size = pline.len();
+    let mut arcs = Vec::with_capacity(size - 1);
+    for i in 0..size {
+        let p1 = pline[i % size].p;
+        let p2 = pline[(i + 1) % size].p;
+        let arc = arc_circle_parametrization(p1, p2, pline[i].b);
         arcs.push(arc);
     }
-    // last segment
-    let arc =
-        arc_circle_parametrization(pline.last().unwrap().p, pline[0].p, pline.last().unwrap().b);
-    arcs.push(arc);
     arcs
 }
 
@@ -1810,5 +1835,30 @@ mod test_poly_remove_duplicates {
         let result = poly_remove_duplicates(&pline);
         assert!(result.len() < pline.len()); // Some duplicates should be removed
         assert!(result.len() >= 4); // Should have at least the 4 corners of square
+    }
+
+    #[test]
+    fn test_some_random_pline() {
+        let mut cfg = OffsetCfg::default();
+        // Prints SVG output to stdout
+        let mut svg = SVG::new(1280.0, 640.0, Some("/tmp/polyline.svg"));
+        cfg.svg = Some(&mut svg);
+        cfg.svg_orig = false;
+        //cfg.svg_remove_bridges = true;
+        cfg.svg_raw = true;
+        cfg.svg_connect = true;
+
+        // Translate to fit in the SVG viewport
+        let poly = polyline_translate(&example_polyline_01(), point(550.0, 120.0));
+        let arcline = polyline_to_arcs_single(&poly);
+
+        for i in 42..=42 {
+            let _offset_polylines = offset_polyline(&poly, i as f64, &mut cfg);
+        }
+
+        if let Some(svg) = cfg.svg.as_deref_mut() {
+            // Write svg to file
+            svg.write_stroke_width(0.2);
+        }
     }
 }
