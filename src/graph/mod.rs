@@ -8,6 +8,9 @@
 pub mod merge_ends;
 pub mod find_cycles;
 
+#[cfg(test)]
+mod find_cycles_tangent_tests_simple;
+
 // Re-export main functions
 pub use merge_ends::merge_close_endpoints;
-// pub use find_cycles::find_non_intersecting_cycles; // Will be implemented next
+pub use find_cycles::find_non_intersecting_cycles;

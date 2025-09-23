@@ -85,7 +85,7 @@ the existing code, use real examples, fix all bugs and and cover with test, we c
 **A9**: Should be part of `merge_ends.rs`. Small is relative to `tolerance` parameter. Should be max of (a-b distance, radius of the arc). Can invent more precise definition later.
 
 **Q10. X-Vertex Traversal**: How to decide which traversal option to choose at X-intersection?
-**A10**: When following one edge toward the vertex, take the most loose on the right to exit the vertex - this way we don't intersect.
+**A10**: When following one edge toward the vertex, take the most close on the right to exit the vertex - this way we don't intersect.
 
 **Q11. togo::Arc Interface**: What does the Arc structure look like?
 **A11**: Available at: https://github.com/radevgit/togo/blob/main/src/arc.rs
