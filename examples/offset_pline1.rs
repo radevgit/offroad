@@ -1,10 +1,10 @@
-use geom::prelude::*;
+use togo::prelude::*;
 use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline, pline_01};
 
 fn main() {
     let mut cfg = OffsetCfg::default();
     // This will create an SVG file at /tmp/pline1.svg
-    let mut svg = SVG::new(300.0, 300.0, "/tmp/pline1.svg");
+    let mut svg = SVG::new(300.0, 300.0, Some("/tmp/pline1.svg"));
     cfg.svg = Some(&mut svg);
     cfg.svg_orig = true;
     cfg.svg_final = true;

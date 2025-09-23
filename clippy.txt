@@ -1,0 +1,1377 @@
+    Checking offroad v0.0.6 (/home/ross/devpublic/offroad)
+warning: redundant field names in struct initialization
+   --> src/offset.rs:331:13
+    |
+331 |             orig: orig,
+    |             ^^^^^^^^^^ help: replace it with: `orig`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+    = note: `#[warn(clippy::redundant_field_names)]` on by default
+
+warning: redundant field names in struct initialization
+   --> src/offset.rs:399:13
+    |
+399 |             orig: orig,
+    |             ^^^^^^^^^^ help: replace it with: `orig`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+
+warning: redundant field names in struct initialization
+   --> src/offset.rs:412:13
+    |
+412 |             orig: orig,
+    |             ^^^^^^^^^^ help: replace it with: `orig`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+
+warning: binding's name is too similar to existing binding
+    --> src/offset.rs:1747:9
+     |
+1747 |     let plines = vec![pline2.clone()];
+     |         ^^^^^^
+     |
+note: existing binding defined here
+    --> src/offset.rs:1746:9
+     |
+1746 |     let pline2 = polyline_scale(&pline, 1.0);
+     |         ^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+     = note: `-W clippy::similar-names` implied by `-W clippy::pedantic`
+     = help: to override `-W clippy::pedantic` add `#[allow(clippy::similar_names)]`
+
+warning: long literal lacking separators
+    --> src/offset.rs:1733:38
+     |
+1733 |         pvertex(point(0.001, 250.0), 100000.0), // almost circle
+     |                                      ^^^^^^^^ help: consider: `100_000.0`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unreadable_literal
+     = note: `-W clippy::unreadable-literal` implied by `-W clippy::pedantic`
+     = help: to override `-W clippy::pedantic` add `#[allow(clippy::unreadable_literal)]`
+
+warning: long literal lacking separators
+    --> src/offset.rs:1738:20
+     |
+1738 |             point(-23.429621235520095, 204.88318696736243),
+     |                    ^^^^^^^^^^^^^^^^^^ help: consider: `23.429_621_235_520_095`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unreadable_literal
+
+warning: long literal lacking separators
+    --> src/offset.rs:1738:40
+     |
+1738 |             point(-23.429621235520095, 204.88318696736243),
+     |                                        ^^^^^^^^^^^^^^^^^^ help: consider: `204.883_186_967_362_43`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unreadable_literal
+
+warning: long literal lacking separators
+    --> src/offset.rs:1739:14
+     |
+1739 |             -0.6068148963145962,
+     |              ^^^^^^^^^^^^^^^^^^ help: consider: `0.606_814_896_314_596_2`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unreadable_literal
+
+warning: binding's name is too similar to existing binding
+    --> src/offset.rs:1795:9
+     |
+1795 |     let plines = vec![pline2.clone()];
+     |         ^^^^^^
+     |
+note: existing binding defined here
+    --> src/offset.rs:1794:9
+     |
+1794 |     let pline2 = polyline_scale(&pline, 1.0);
+     |         ^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: redundant field names in struct initialization
+  --> src/offset_segments_raws.rs:54:9
+   |
+54 |         orig: orig,
+   |         ^^^^^^^^^^ help: replace it with: `orig`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+
+warning: redundant else block
+  --> src/offset_segments_raws.rs:79:6
+   |
+79 |       } else {
+   |  ______^
+80 | |         // Collapsed arc is now line
+81 | |         let mut arc = arcseg(b, a);
+82 | |         arc.id(seg.id);
+...  |
+87 | |         };
+88 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_else
+   = note: `-W clippy::redundant-else` implied by `-W clippy::pedantic`
+   = help: to override `-W clippy::pedantic` add `#[allow(clippy::redundant_else)]`
+help: remove the `else` block and move the contents out
+   |
+79 ~     }
+80 +     // Collapsed arc is now line
+81 +     let mut arc = arcseg(b, a);
+82 +     arc.id(seg.id);
+83 +     return OffsetRaw {
+84 +         arc: arc,
+85 +         orig: orig,
+86 +         g: ZERO,
+87 +     };
+   |
+
+warning: redundant field names in struct initialization
+  --> src/offset_segments_raws.rs:75:13
+   |
+75 |             arc: arc,
+   |             ^^^^^^^^ help: replace it with: `arc`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+
+warning: redundant field names in struct initialization
+  --> src/offset_segments_raws.rs:76:13
+   |
+76 |             orig: orig,
+   |             ^^^^^^^^^^ help: replace it with: `orig`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+
+warning: redundant field names in struct initialization
+  --> src/offset_segments_raws.rs:84:13
+   |
+84 |             arc: arc,
+   |             ^^^^^^^^ help: replace it with: `arc`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+
+warning: redundant field names in struct initialization
+  --> src/offset_segments_raws.rs:85:13
+   |
+85 |             orig: orig,
+   |             ^^^^^^^^^^ help: replace it with: `orig`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_field_names
+
+warning: long literal lacking separators
+  --> src/offset_connect_raw.rs:22:31
+   |
+22 | pub const ID_PADDING: usize = 100000; // Large enough to avoid collisions
+   |                               ^^^^^^ help: consider: `100_000`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unreadable_literal
+
+warning: binding's name is too similar to existing binding
+  --> src/offset_split_arcs.rs:32:17
+   |
+32 |             let part0 = parts.pop().unwrap();
+   |                 ^^^^^
+   |
+note: existing binding defined here
+  --> src/offset_split_arcs.rs:14:13
+   |
+14 |     let mut parts: Vec<Arc> = row
+   |             ^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+  --> src/offset_split_arcs.rs:49:21
+   |
+49 |                 let part1 = parts[j].clone();
+   |                     ^^^^^
+   |
+note: existing binding defined here
+  --> src/offset_split_arcs.rs:14:13
+   |
+14 |     let mut parts: Vec<Arc> = row
+   |             ^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: long literal lacking separators
+  --> src/offset_split_arcs.rs:24:17
+   |
+24 |     let steps = 100000; // TODO: make this configurable
+   |                 ^^^^^^ help: consider: `100_000`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unreadable_literal
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:152:21
+    |
+152 |             let mut arc01 = arc(p, arc0.b, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:153:21
+    |
+153 |             let mut arc10 = arc(arc1.a, p, arc1.c, arc1.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:22
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                      ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:172:21
+    |
+172 |             let mut arc01 = arc(p0, p1, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:181:21
+    |
+181 |             let mut arc10 = arc(arc1.a, p0, arc1.c, arc1.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:22
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                      ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:198:21
+    |
+198 |             let mut arc01 = arc(arc1.b, arc0.b, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:210:21
+    |
+210 |             let mut arc01 = arc(arc0.b, arc1.b, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:229:21
+    |
+229 |             let mut arc01 = arc(arc0.a, arc0.b, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:242:21
+    |
+242 |             let mut arc01 = arc(arc0.a, arc1.b, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:255:21
+    |
+255 |             let mut arc01 = arc(arc1.a, arc0.b, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:268:21
+    |
+268 |             let mut arc01 = arc(arc1.a, arc1.b, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_split_arcs.rs:282:21
+    |
+282 |             let mut arc01 = arc(arc1.a, arc0.b, arc0.c, arc0.r);
+    |                     ^^^^^
+    |
+note: existing binding defined here
+   --> src/offset_split_arcs.rs:136:34
+    |
+136 | pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+    |                                  ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_reconnect_arcs.rs:233:17
+    |
+233 |             let arc0 = &arcs[i];
+    |                 ^^^^
+    |
+note: existing binding defined here
+   --> src/offset_reconnect_arcs.rs:228:27
+    |
+228 | pub fn remove_bridge_arcs(arcs: &mut Arcline) {
+    |                           ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: binding's name is too similar to existing binding
+   --> src/offset_reconnect_arcs.rs:234:17
+    |
+234 |             let arc1 = &arcs[j];
+    |                 ^^^^
+    |
+note: existing binding defined here
+   --> src/offset_reconnect_arcs.rs:228:27
+    |
+228 | pub fn remove_bridge_arcs(arcs: &mut Arcline) {
+    |                           ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#similar_names
+
+warning: this `continue` expression is redundant
+   --> src/offset_reconnect_arcs.rs:276:17
+    |
+276 |                 continue;
+    |                 ^^^^^^^^
+    |
+    = help: consider dropping the `continue` expression
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_continue
+    = note: `-W clippy::needless-continue` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::needless_continue)]`
+
+warning: unused variable: `len`
+  --> src/offset_reconnect_arcs.rs:18:9
+   |
+18 |     let len = arcs.len();
+   |         ^^^ help: if this is intentional, prefix it with an underscore: `_len`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: variable does not need to be mutable
+  --> src/offset_reconnect_arcs.rs:16:9
+   |
+16 |     let mut result = Vec::new();
+   |         ----^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: more than 3 bools in a struct
+  --> src/offset.rs:16:1
+   |
+16 | / pub struct OffsetCfg<'a> {
+17 | |     /// Optional SVG context for rendering
+18 | |     pub svg: Option<&'a mut SVG>,
+19 | |     /// Flag to indicate if reconnecting arcs is needed after offsetting
+...  |
+33 | |     pub svg_final: bool,
+34 | | }
+   | |_^
+   |
+   = help: consider using a state machine or refactoring bools into two-variant enums
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#struct_excessive_bools
+   = note: `-W clippy::struct-excessive-bools` implied by `-W clippy::pedantic`
+   = help: to override `-W clippy::pedantic` add `#[allow(clippy::struct_excessive_bools)]`
+
+warning: the following explicit lifetimes could be elided: 'a
+  --> src/offset.rs:36:6
+   |
+36 | impl<'a> Default for OffsetCfg<'a> {
+   |      ^^                        ^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#elidable_lifetime_names
+   = note: `-W clippy::elidable-lifetime-names` implied by `-W clippy::pedantic`
+   = help: to override `-W clippy::pedantic` add `#[allow(clippy::elidable_lifetime_names)]`
+help: elide the lifetimes
+   |
+36 - impl<'a> Default for OffsetCfg<'a> {
+36 + impl Default for OffsetCfg<'_> {
+   |
+
+warning: this `if` statement can be collapsed
+   --> src/offset.rs:128:5
+    |
+128 | /     if let Some(svg) = cfg.svg.as_deref_mut() {
+129 | |         if cfg.svg_final {
+130 | |             svg.polylines(&final_poly, "violet");
+131 | |         }
+132 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+    = note: `#[warn(clippy::collapsible_if)]` on by default
+help: collapse nested if block
+    |
+128 ~     if let Some(svg) = cfg.svg.as_deref_mut()
+129 ~         && cfg.svg_final {
+130 |             svg.polylines(&final_poly, "violet");
+131 ~         }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/offset.rs:214:5
+    |
+214 | /     if let Some(svg) = cfg.svg.as_deref_mut() {
+215 | |         if cfg.svg_final {
+216 | |             svg.arclines(&final_arcs, "violet");
+217 | |         }
+218 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+help: collapse nested if block
+    |
+214 ~     if let Some(svg) = cfg.svg.as_deref_mut()
+215 ~         && cfg.svg_final {
+216 |             svg.arclines(&final_arcs, "violet");
+217 ~         }
+    |
+
+warning: returning the result of a `let` binding from a block
+   --> src/offset.rs:228:5
+    |
+227 |     let offset_arcs = offset_algo(&poly_raws, off, cfg);
+    |     ---------------------------------------------------- unnecessary `let` binding
+228 |     offset_arcs
+    |     ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#let_and_return
+    = note: `#[warn(clippy::let_and_return)]` on by default
+help: return the expression directly
+    |
+227 ~     
+228 ~     offset_algo(&poly_raws, off, cfg)
+    |
+
+warning: calls to `push` immediately after creation
+   --> src/offset.rs:224:5
+    |
+224 | /     let mut plines = Vec::new();
+225 | |     plines.push(poly.clone());
+    | |______________________________^ help: consider using the `vec![]` macro: `let plines = vec![..];`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#vec_init_then_push
+    = note: `#[warn(clippy::vec_init_then_push)]` on by default
+
+warning: returning the result of a `let` binding from a block
+   --> src/offset.rs:236:5
+    |
+235 |     let offset_arcs = offset_algo(&poly_raws, off, cfg);
+    |     ---------------------------------------------------- unnecessary `let` binding
+236 |     offset_arcs
+    |     ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#let_and_return
+help: return the expression directly
+    |
+235 ~     
+236 ~     offset_algo(&poly_raws, off, cfg)
+    |
+
+warning: calls to `push` immediately after creation
+   --> src/offset.rs:232:5
+    |
+232 | /     let mut alines = Vec::new();
+233 | |     alines.push(arcs.clone());
+    | |______________________________^ help: consider using the `vec![]` macro: `let alines = vec![..];`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#vec_init_then_push
+
+warning: this function could have a `#[must_use]` attribute
+   --> src/offset.rs:241:1
+    |
+241 | pub fn arclines_to_polylines(reconnect_arcs: &Vec<Arcline>) -> Vec<Polyline> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn arclines_to_polylines(reconnect_arcs: &Vec<Arcline>) -> Vec<Polyline>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+    = note: `-W clippy::must-use-candidate` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::must_use_candidate)]`
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+   --> src/offset.rs:241:46
+    |
+241 | pub fn arclines_to_polylines(reconnect_arcs: &Vec<Arcline>) -> Vec<Polyline> {
+    |                                              ^^^^^^^^^^^^^ help: change this to: `&[Arcline]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+    = note: `#[warn(clippy::ptr_arg)]` on by default
+
+warning: it is more concise to loop over references to containers instead of using explicit iteration methods
+   --> src/offset.rs:243:17
+    |
+243 |     for arcs in reconnect_arcs.iter() {
+    |                 ^^^^^^^^^^^^^^^^^^^^^ help: to write this more concisely, try: `reconnect_arcs`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#explicit_iter_loop
+    = note: `-W clippy::explicit-iter-loop` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::explicit_iter_loop)]`
+
+warning: this function could have a `#[must_use]` attribute
+   --> src/offset.rs:254:1
+    |
+254 | pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn arclines_to_polylines_single(arcs: &Arcline) -> Polyline`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: this function could have a `#[must_use]` attribute
+   --> src/offset.rs:308:1
+    |
+308 | pub fn polyline_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn polyline_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: this function could have a `#[must_use]` attribute
+   --> src/offset.rs:318:1
+    |
+318 | pub fn polyline_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn polyline_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: this function could have a `#[must_use]` attribute
+   --> src/offset.rs:342:1
+    |
+342 | pub fn poly_remove_duplicates(pline: &Polyline) -> Polyline {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn poly_remove_duplicates(pline: &Polyline) -> Polyline`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: this `else { if .. }` block can be collapsed
+   --> src/offset.rs:361:16
+    |
+361 |           } else {
+    |  ________________^
+362 | |             if flag {
+363 | |                 // If we had a duplicate, add the last unique point
+364 | |                 if let Some(point) = old_p {
+...   |
+372 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_else_if
+    = note: `#[warn(clippy::collapsible_else_if)]` on by default
+help: collapse nested if block
+    |
+361 ~         } else if flag {
+362 +             // If we had a duplicate, add the last unique point
+363 +             if let Some(point) = old_p {
+364 +                 res.push(pvertex(point, pline[cur].b));
+365 +             }
+366 +             flag = false;
+367 +         } else {
+368 +             // If no duplicates, just add the current point
+369 +             res.push(pline[cur]);
+370 +         }
+    |
+
+warning: this function could have a `#[must_use]` attribute
+   --> src/offset.rs:377:1
+    |
+377 | pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: docs for function which may panic missing `# Panics` section
+   --> src/offset.rs:386:1
+    |
+386 | pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: first possible panic found here
+   --> src/offset.rs:405:15
+    |
+405 |     let seg = arcs.last().unwrap();
+    |               ^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_panics_doc
+    = note: `-W clippy::missing-panics-doc` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::missing_panics_doc)]`
+
+warning: this function could have a `#[must_use]` attribute
+   --> src/offset.rs:386:1
+    |
+386 | pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: the loop variable `i` is only used to index `arcs`
+   --> src/offset.rs:389:14
+    |
+389 |     for i in 0..arcs.len() - 1 {
+    |              ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `#[warn(clippy::needless_range_loop)]` on by default
+help: consider using an iterator
+    |
+389 -     for i in 0..arcs.len() - 1 {
+389 +     for <item> in arcs.iter().take(arcs.len() - 1) {
+    |
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src/offset.rs:406:27
+    |
+406 |     let check = arc_check(&seg, EPS_COLLAPSED);
+    |                           ^^^^ help: change this to: `seg`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrow
+    = note: `#[warn(clippy::needless_borrow)]` on by default
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src/offset.rs:515:48
+    |
+515 |         let offset_polylines = offset_polyline(&poly, off, config);
+    |                                                ^^^^^ help: change this to: `poly`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrow
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src/offset.rs:534:43
+    |
+534 |     let offset_raw = offset_segments_raws(&raws, off);
+    |                                           ^^^^^ help: change this to: `raws`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrow
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src/offset.rs:556:45
+    |
+556 |     let offset_prune = offset_prune_invalid(&raws, &mut offset_split, off);
+    |                                             ^^^^^ help: change this to: `raws`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrow
+
+warning: this function could have a `#[must_use]` attribute
+    --> src/offset.rs:1719:1
+     |
+1719 | pub fn pline_01() -> Vec<Polyline> {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn pline_01() -> Vec<Polyline>`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: unneeded `return` statement
+    --> src/offset.rs:1748:5
+     |
+1748 |     return plines;
+     |     ^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+     = note: `#[warn(clippy::needless_return)]` on by default
+help: remove `return`
+     |
+1748 -     return plines;
+1748 +     plines
+     |
+
+warning: this function could have a `#[must_use]` attribute
+    --> src/offset.rs:1752:1
+     |
+1752 | pub fn pline_02() -> Polyline {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn pline_02() -> Polyline`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: unneeded `return` statement
+    --> src/offset.rs:1781:5
+     |
+1781 |     return pline;
+     |     ^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+help: remove `return`
+     |
+1781 -     return pline;
+1781 +     pline
+     |
+
+warning: this function could have a `#[must_use]` attribute
+    --> src/offset.rs:1785:1
+     |
+1785 | pub fn pline_03() -> Vec<Polyline> {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn pline_03() -> Vec<Polyline>`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: unneeded `return` statement
+    --> src/offset.rs:1796:5
+     |
+1796 |     return plines;
+     |     ^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+help: remove `return`
+     |
+1796 -     return plines;
+1796 +     plines
+     |
+
+warning: this function could have a `#[must_use]` attribute
+    --> src/offset.rs:1800:1
+     |
+1800 | pub fn pline_04() -> Vec<Polyline> {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn pline_04() -> Vec<Polyline>`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: unneeded `return` statement
+    --> src/offset.rs:1817:5
+     |
+1817 |     return plines;
+     |     ^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+help: remove `return`
+     |
+1817 -     return plines;
+1817 +     plines
+     |
+
+warning: calls to `push` immediately after creation
+    --> src/offset.rs:1814:5
+     |
+1814 | /     let mut plines = Vec::new();
+1815 | |     plines.push(outer);
+1816 | |     plines.push(inner);
+     | |_______________________^ help: consider using the `vec![]` macro: `let plines = vec![..];`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#vec_init_then_push
+
+warning: this function could have a `#[must_use]` attribute
+    --> src/offset.rs:2152:1
+     |
+2152 | pub fn polyline_to_arcs(plines: &Vec<Polyline>) -> Vec<Vec<Arc>> {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn polyline_to_arcs(plines: &Vec<Polyline>) -> Vec<Vec<Arc>>`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: item in documentation is missing backticks
+  --> src/offset_raw.rs:26:23
+   |
+26 |     /// Creates a new OffsetRaw instance.
+   |                       ^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_markdown
+   = note: `-W clippy::doc-markdown` implied by `-W clippy::pedantic`
+   = help: to override `-W clippy::pedantic` add `#[allow(clippy::doc_markdown)]`
+help: try
+   |
+26 -     /// Creates a new OffsetRaw instance.
+26 +     /// Creates a new `OffsetRaw` instance.
+   |
+
+warning: this method could have a `#[must_use]` attribute
+  --> src/offset_raw.rs:28:5
+   |
+28 |     pub fn new(arc: Arc, orig: Point, g: f64) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn new(arc: Arc, orig: Point, g: f64) -> Self`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: this function could have a `#[must_use]` attribute
+  --> src/offset_raw.rs:36:1
+   |
+36 | pub fn offsetraw(arc: Arc, orig: Point, g: f64) -> OffsetRaw {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: add the attribute: `#[must_use] pub fn offsetraw(arc: Arc, orig: Point, g: f64) -> OffsetRaw`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#must_use_candidate
+
+warning: unneeded `return` statement
+  --> src/offset_segments_raws.rs:52:5
+   |
+52 | /     return OffsetRaw {
+53 | |         arc,
+54 | |         orig: orig,
+55 | |         g: ZERO,
+56 | |     };
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+help: remove `return`
+   |
+52 ~     OffsetRaw {
+53 +         arc,
+54 +         orig: orig,
+55 +         g: ZERO,
+56 ~     }
+   |
+
+warning: unneeded `return` statement
+  --> src/offset_segments_raws.rs:74:9
+   |
+74 | /         return OffsetRaw {
+75 | |             arc: arc,
+76 | |             orig: orig,
+77 | |             g: bulge,
+78 | |         };
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+help: remove `return`
+   |
+74 ~         OffsetRaw {
+75 +             arc: arc,
+76 +             orig: orig,
+77 +             g: bulge,
+78 ~         }
+   |
+
+warning: unneeded `return` statement
+  --> src/offset_segments_raws.rs:83:9
+   |
+83 | /         return OffsetRaw {
+84 | |             arc: arc,
+85 | |             orig: orig,
+86 | |             g: ZERO,
+87 | |         };
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+help: remove `return`
+   |
+83 ~         OffsetRaw {
+84 +             arc: arc,
+85 +             orig: orig,
+86 +             g: ZERO,
+87 ~         }
+   |
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/offset_connect_raw.rs:14:33
+   |
+14 | pub fn offset_connect_raw(raws: &Vec<Vec<OffsetRaw>>, off: f64) -> Vec<Vec<Arc>> {
+   |                                 ^^^^^^^^^^^^^^^^^^^^ help: change this to: `&[Vec<OffsetRaw>]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: it is more concise to loop over references to containers instead of using explicit iteration methods
+  --> src/offset_connect_raw.rs:16:16
+   |
+16 |     for raw in raws.iter() {
+   |                ^^^^^^^^^^^ help: to write this more concisely, try: `raws`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#explicit_iter_loop
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/offset_connect_raw.rs:26:40
+   |
+26 | pub fn offset_connect_raw_single(raws: &Vec<OffsetRaw>, off: f64) -> Vec<Arc> {
+   |                                        ^^^^^^^^^^^^^^^ help: change this to: `&[OffsetRaw]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/offset_split_arcs.rs:12:31
+   |
+12 | pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
+   |                               ^^^^^^^^^^^^^^^^^^^^ help: change this to: `&[Vec<OffsetRaw>]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/offset_split_arcs.rs:12:62
+   |
+12 | pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
+   |                                                              ^^^^^^^^^^^^^^ help: change this to: `&[Vec<Arc>]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: using `clone` on type `Arc` which implements the `Copy` trait
+  --> src/offset_split_arcs.rs:17:27
+   |
+17 |         .map(|offset_raw| offset_raw.arc.clone())
+   |                           ^^^^^^^^^^^^^^^^^^^^^^ help: try removing the `clone` call: `offset_raw.arc`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#clone_on_copy
+   = note: `#[warn(clippy::clone_on_copy)]` on by default
+
+warning: used `cloned` where `copied` could be used instead
+  --> src/offset_split_arcs.rs:18:41
+   |
+18 |         .chain(connect.iter().flatten().cloned())
+   |                                         ^^^^^^ help: try: `copied`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cloned_instead_of_copied
+   = note: `-W clippy::cloned-instead-of-copied` implied by `-W clippy::pedantic`
+   = help: to override `-W clippy::pedantic` add `#[allow(clippy::cloned_instead_of_copied)]`
+
+warning: length comparison to zero
+  --> src/offset_split_arcs.rs:31:15
+   |
+31 |         while parts.len() > 0 {
+   |               ^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!parts.is_empty()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
+   = note: `#[warn(clippy::len_zero)]` on by default
+
+warning: length comparison to zero
+  --> src/offset_split_arcs.rs:33:16
+   |
+33 |             if parts.len() == 0 {
+   |                ^^^^^^^^^^^^^^^^ help: using `is_empty` is clearer and more explicit: `parts.is_empty()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
+
+warning: using `clone` on type `Arc` which implements the `Copy` trait
+  --> src/offset_split_arcs.rs:49:29
+   |
+49 |                 let part1 = parts[j].clone();
+   |                             ^^^^^^^^^^^^^^^^ help: try removing the `clone` call: `parts[j]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#clone_on_copy
+
+warning: binding to `_` prefixed variable with no side-effect
+  --> src/offset_split_arcs.rs:85:9
+   |
+85 |     let _kkk = kk;
+   |         ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#no_effect_underscore_binding
+   = note: `-W clippy::no-effect-underscore-binding` implied by `-W clippy::pedantic`
+   = help: to override `-W clippy::pedantic` add `#[allow(clippy::no_effect_underscore_binding)]`
+
+warning: this function has too many lines (143/100)
+   --> src/offset_split_arcs.rs:136:1
+    |
+136 | / pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
+137 | |     let mut res = Vec::new();
+138 | |     let inter = int_arc_arc(&arc0, &arc1);
+139 | |     match inter {
+...   |
+290 | | }
+    | |_^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_lines
+    = note: `-W clippy::too-many-lines` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::too_many_lines)]`
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src/offset_split_arcs.rs:138:29
+    |
+138 |     let inter = int_arc_arc(&arc0, &arc1);
+    |                             ^^^^^ help: change this to: `arc0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrow
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src/offset_split_arcs.rs:138:36
+    |
+138 |     let inter = int_arc_arc(&arc0, &arc1);
+    |                                    ^^^^^ help: change this to: `arc1`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrow
+
+warning: consider adding a `;` to the last statement for consistent formatting
+   --> src/offset_split_arcs.rs:355:9
+    |
+355 |         res.push(seg.clone())
+    |         ^^^^^^^^^^^^^^^^^^^^^ help: add a `;` here: `res.push(seg.clone());`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#semicolon_if_nothing_returned
+    = note: `-W clippy::semicolon-if-nothing-returned` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::semicolon_if_nothing_returned)]`
+
+warning: using `clone` on type `Arc` which implements the `Copy` trait
+   --> src/offset_split_arcs.rs:355:18
+    |
+355 |         res.push(seg.clone())
+    |                  ^^^^^^^^^^^ help: try dereferencing it: `*seg`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#clone_on_copy
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/offset_prune_invalid.rs:11:15
+   |
+11 |     polyraws: &Vec<Vec<OffsetRaw>>,
+   |               ^^^^^^^^^^^^^^^^^^^^ help: change this to: `&[Vec<OffsetRaw>]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: length comparison to zero
+  --> src/offset_prune_invalid.rs:23:11
+   |
+23 |     while offsets.len() > 0 {
+   |           ^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!offsets.is_empty()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
+
+warning: using `clone` on type `Arc` which implements the `Copy` trait
+  --> src/offset_prune_invalid.rs:25:20
+   |
+25 |         valid.push(offset.clone());
+   |                    ^^^^^^^^^^^^^^ help: try removing the `clone` call: `offset`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#clone_on_copy
+
+warning: it is more concise to loop over references to containers instead of using explicit iteration methods
+  --> src/offset_prune_invalid.rs:26:18
+   |
+26 |         for p in arcs.iter() {
+   |                  ^^^^^^^^^^^ help: to write this more concisely, try: `&arcs`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#explicit_iter_loop
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+  --> src/offset_prune_invalid.rs:32:49
+   |
+32 |             let dist = distance_element_element(&p, &offset);
+   |                                                 ^^ help: change this to: `p`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrow
+
+warning: usage of a legacy numeric constant
+  --> src/offset_prune_invalid.rs:43:20
+   |
+43 |     let mut dist = std::f64::INFINITY;
+   |                    ^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#legacy_numeric_constants
+   = note: `#[warn(clippy::legacy_numeric_constants)]` on by default
+help: use the associated constant instead
+   |
+43 -     let mut dist = std::f64::INFINITY;
+43 +     let mut dist = f64::INFINITY;
+   |
+
+warning: manual implementation of `midpoint` which can overflow
+  --> src/offset_reconnect_arcs.rs:59:12
+   |
+59 |         x: (a.x + b.x) / 2.0,
+   |            ^^^^^^^^^^^^^^^^^ help: use `f64::midpoint` instead: `f64::midpoint(a.x, b.x)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_midpoint
+   = note: `-W clippy::manual-midpoint` implied by `-W clippy::pedantic`
+   = help: to override `-W clippy::pedantic` add `#[allow(clippy::manual_midpoint)]`
+
+warning: manual implementation of `midpoint` which can overflow
+  --> src/offset_reconnect_arcs.rs:60:12
+   |
+60 |         y: (a.y + b.y) / 2.0,
+   |            ^^^^^^^^^^^^^^^^^ help: use `f64::midpoint` instead: `f64::midpoint(a.y, b.y)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_midpoint
+
+warning: adding items after statements is confusing, since items exist from the start of the scope
+  --> src/offset_reconnect_arcs.rs:82:5
+   |
+82 | /     fn find(parent: &mut HashMap<usize, usize>, x: usize) -> usize {
+83 | |         if parent[&x] != x {
+84 | |             let root = find(parent, parent[&x]);
+85 | |             parent.insert(x, root);
+86 | |         }
+87 | |         parent[&x]
+88 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
+   = note: `-W clippy::items-after-statements` implied by `-W clippy::pedantic`
+   = help: to override `-W clippy::pedantic` add `#[allow(clippy::items_after_statements)]`
+
+warning: adding items after statements is confusing, since items exist from the start of the scope
+   --> src/offset_reconnect_arcs.rs:91:5
+    |
+91  | /     fn union(parent: &mut HashMap<usize, usize>, x: usize, y: usize) {
+92  | |         let root_x = find(parent, x);
+93  | |         let root_y = find(parent, y);
+94  | |         if root_x != root_y {
+...   |
+102 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
+
+warning: using `clone` on type `Arc` which implements the `Copy` trait
+   --> src/offset_reconnect_arcs.rs:141:33
+    |
+141 |                     result.push(arc.clone());
+    |                                 ^^^^^^^^^^^ help: try dereferencing it: `*arc`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#clone_on_copy
+
+warning: use of `or_insert_with` to construct default value
+   --> src/offset_reconnect_arcs.rs:321:31
+    |
+321 |             adj_list.entry(u).or_insert_with(Vec::new).push(v);
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_or_default
+    = note: `#[warn(clippy::unwrap_or_default)]` on by default
+
+warning: use of `or_insert_with` to construct default value
+   --> src/offset_reconnect_arcs.rs:322:31
+    |
+322 |             adj_list.entry(v).or_insert_with(Vec::new).push(u);
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_or_default
+
+warning: used `sort` on primitive type `usize`
+   --> src/offset_reconnect_arcs.rs:330:9
+    |
+330 |         neighbors.sort();
+    |         ^^^^^^^^^^^^^^^^ help: try: `neighbors.sort_unstable()`
+    |
+    = note: an unstable sort typically performs faster without any observable difference for this data type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#stable_sort_primitive
+    = note: `-W clippy::stable-sort-primitive` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::stable_sort_primitive)]`
+
+warning: variables can be used directly in the `format!` string
+   --> src/offset_reconnect_arcs.rs:333:5
+    |
+333 |     println!("DEBUG: Adjacency list: {:?}", adj_list);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `-W clippy::uninlined-format-args` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+    |
+333 -     println!("DEBUG: Adjacency list: {:?}", adj_list);
+333 +     println!("DEBUG: Adjacency list: {adj_list:?}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> src/offset_reconnect_arcs.rs:334:5
+    |
+334 |     println!("DEBUG: All vertices: {:?}", all_vertices);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+334 -     println!("DEBUG: All vertices: {:?}", all_vertices);
+334 +     println!("DEBUG: All vertices: {all_vertices:?}");
+    |
+
+warning: variables can be used directly in the `format!` string
+   --> src/offset_reconnect_arcs.rs:345:9
+    |
+345 | /         println!(
+346 | |             "DEBUG: Finding component starting from vertex {}",
+347 | |             start_vertex
+348 | |         );
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+
+warning: used `cloned` where `copied` could be used instead
+   --> src/offset_reconnect_arcs.rs:397:58
+    |
+397 |     let component_set: HashSet<usize> = component.iter().cloned().collect();
+    |                                                          ^^^^^^ help: try: `copied`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cloned_instead_of_copied
+
+warning: variables can be used directly in the `format!` string
+   --> src/offset_reconnect_arcs.rs:401:9
+    |
+401 |         println!("DEBUG: Looking for cycles starting from vertex {}", start);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+help: change this to
+    |
+401 -         println!("DEBUG: Looking for cycles starting from vertex {}", start);
+401 +         println!("DEBUG: Looking for cycles starting from vertex {start}");
+    |
+
+warning: unnecessary boolean `not` operation
+   --> src/offset_reconnect_arcs.rs:418:13
+    |
+418 | /             if !is_duplicate_cycle(&normalized_cycle, &cycles) {
+419 | |                 println!(
+420 | |                     "DEBUG: Adding new cycle of length {}: {:?}",
+421 | |                     normalized_cycle.len(),
+...   |
+429 | |                 );
+430 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#if_not_else
+    = note: `-W clippy::if-not-else` implied by `-W clippy::pedantic`
+    = help: to override `-W clippy::pedantic` add `#[allow(clippy::if_not_else)]`
+help: try
+    |
+418 ~             if is_duplicate_cycle(&normalized_cycle, &cycles) {
+419 +                 println!(
+420 +                     "DEBUG: Skipping duplicate cycle of length {}",
+421 +                     normalized_cycle.len()
+422 +                 );
+423 +             } else {
+424 +                 println!(
+425 +                     "DEBUG: Adding new cycle of length {}: {:?}",
+426 +                     normalized_cycle.len(),
+427 +                     normalized_cycle
+428 +                 );
+429 +                 cycles.push(normalized_cycle);
+430 +             }
+    |
+
+warning: consider using `sort_by_key`
+   --> src/offset_reconnect_arcs.rs:433:5
+    |
+433 |     cycles.sort_by(|a, b| a.len().cmp(&b.len()));
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `cycles.sort_by_key(|a| a.len())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_sort_by
+    = note: `#[warn(clippy::unnecessary_sort_by)]` on by default
+
+warning: adding items after statements is confusing, since items exist from the start of the scope
+   --> src/offset_reconnect_arcs.rs:449:5
+    |
+449 | /     struct DfsState {
+450 | |         current: usize,
+451 | |         path: Vec<usize>,
+452 | |         visited: HashSet<usize>,
+453 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
+
+warning: adding items after statements is confusing, since items exist from the start of the scope
+   --> src/offset_reconnect_arcs.rs:577:5
+    |
+577 | /     fn dfs_shortest_cycle(
+578 | |         current: usize,
+579 | |         start: usize,
+580 | |         adj_list: &HashMap<usize, Vec<usize>>,
+...   |
+628 | |         None
+629 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
+
+warning: used `cloned` where `copied` could be used instead
+   --> src/offset_reconnect_arcs.rs:574:58
+    |
+574 |     let component_set: HashSet<usize> = component.iter().cloned().collect();
+    |                                                          ^^^^^^ help: try: `copied`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cloned_instead_of_copied
+
+warning: this `if` statement can be collapsed
+   --> src/offset_reconnect_arcs.rs:608:24
+    |
+608 |                   } else if !visited.contains(&neighbor) {
+    |  ________________________^
+609 | |                     if let Some(cycle) = dfs_shortest_cycle(
+610 | |                         neighbor,
+611 | |                         start,
+...   |
+622 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+help: collapse nested if block
+    |
+608 ~                 } else if !visited.contains(&neighbor)
+609 ~                     && let Some(cycle) = dfs_shortest_cycle(
+610 |                         neighbor,
+...
+620 |                         return Some(cycle);
+621 ~                     }
+    |
+
+warning: used `cloned` where `copied` could be used instead
+   --> src/offset_reconnect_arcs.rs:670:52
+    |
+670 |     let path_u_set: HashSet<usize> = path_u.iter().cloned().collect();
+    |                                                    ^^^^^^ help: try: `copied`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cloned_instead_of_copied
+
+warning: used `cloned` where `copied` could be used instead
+   --> src/offset_reconnect_arcs.rs:743:58
+    |
+743 |     let component_set: HashSet<usize> = component.iter().cloned().collect();
+    |                                                          ^^^^^^ help: try: `copied`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cloned_instead_of_copied
+
+warning: adding items after statements is confusing, since items exist from the start of the scope
+   --> src/offset_reconnect_arcs.rs:792:5
+    |
+792 | /     struct SearchState {
+793 | |         current: usize,
+794 | |         path: Vec<usize>,
+795 | |         visited: HashSet<usize>,
+796 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
+
+warning: used `cloned` where `copied` could be used instead
+   --> src/offset_reconnect_arcs.rs:846:58
+    |
+846 |     let component_set: HashSet<usize> = component.iter().cloned().collect();
+    |                                                          ^^^^^^ help: try: `copied`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cloned_instead_of_copied
+
+warning: used `cloned` where `copied` could be used instead
+   --> src/offset_reconnect_arcs.rs:888:58
+    |
+888 |     let component_set: HashSet<usize> = component.iter().cloned().collect();
+    |                                                          ^^^^^^ help: try: `copied`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cloned_instead_of_copied
+
+warning: adding items after statements is confusing, since items exist from the start of the scope
+   --> src/offset_reconnect_arcs.rs:925:5
+    |
+925 | /     fn dfs_find_cycles(
+926 | |         current: usize,
+927 | |         start: usize,
+928 | |         adj_list: &HashMap<usize, Vec<usize>>,
+...   |
+965 | |         visited.remove(&current);
+966 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
+
+warning: `offroad` (lib) generated 122 warnings (run `cargo clippy --fix --lib -p offroad` to apply 75 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s

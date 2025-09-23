@@ -348,7 +348,7 @@ pub fn remove_bridge_arcs(arcs: &mut Arcline) {
             // Ends match
             if arc0.a.close_enough(arc1.a, EPS_BRIDGE)
                 && arc0.b.close_enough(arc1.b, EPS_BRIDGE)
-                && (arc0.is_arc() && arc1.is_arc() || arc0.is_seg() && arc1.is_seg())
+                && (arc0.is_arc() && arc1.is_arc() || arc0.is_line() && arc1.is_line())
             {
                 // Radii match
                 if arc0.is_arc() && arc1.is_arc() && !close_enough(arc0.r, arc1.r, EPS_BRIDGE) {
@@ -369,7 +369,7 @@ pub fn remove_bridge_arcs(arcs: &mut Arcline) {
 
             if arc0.a.close_enough(arc1.b, EPS_BRIDGE)
                 && arc0.b.close_enough(arc1.a, EPS_BRIDGE)
-                && (arc0.is_arc() && arc1.is_arc() || arc0.is_seg() && arc1.is_seg())
+                && (arc0.is_arc() && arc1.is_arc() || arc0.is_line() && arc1.is_line())
             {
                 // Radii match
                 if arc0.is_arc() && arc1.is_arc() && !close_enough(arc0.r, arc1.r, EPS_BRIDGE) {

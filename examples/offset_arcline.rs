@@ -1,10 +1,10 @@
-use geom::prelude::*;
+use togo::prelude::*;
 use offroad::{offset::offset_arcline_to_arcline, prelude::OffsetCfg};
 
 fn main() {
     // Configuration for offsetting
     let mut cfg = OffsetCfg::default();
-    let mut svg = SVG::new(300.0, 300.0, "/tmp/arcline.svg");
+    let mut svg = SVG::new(300.0, 300.0, Some("/tmp/arcline.svg"));
     cfg.svg = Some(&mut svg);
     // Show original arcline in SVG output
     cfg.svg_orig = true;

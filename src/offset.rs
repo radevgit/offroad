@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![deny(unused_results)]
 
-use geom::prelude::*;
+use togo::prelude::*;
 
 use crate::{
     offset_connect_raw::offset_connect_raw,
@@ -71,7 +71,7 @@ impl<'a> Default for OffsetCfg<'a> {
 /// # Examples
 ///
 /// ```rust
-/// use geom::prelude::*;
+/// use togo::prelude::*;
 /// use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
 ///
 /// let mut cfg = OffsetCfg::default();
@@ -160,7 +160,7 @@ pub fn offset_polyline_to_polyline(
 /// # Examples
 ///
 /// ```rust
-/// use geom::prelude::*;
+/// use togo::prelude::*;
 /// use offroad::prelude::{OffsetCfg, offset_arcline_to_arcline};
 ///
 /// let mut cfg = OffsetCfg::default();
@@ -267,7 +267,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
     for (i, arc) in arcs.iter().enumerate() {
         let (start_point, end_point, bulge) = if i == 0 {
             // First arc: use original orientation
-            if arc.is_line() {
+            if arc.is_seg() {
                 (arc.a, arc.b, 0.0)
             } else {
                 let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
@@ -282,7 +282,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
 
             if use_forward {
                 // Use arc in forward direction (a -> b)
-                if arc.is_line() {
+                if arc.is_seg() {
                     (arc.a, arc.b, 0.0)
                 } else {
                     let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
@@ -290,7 +290,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
                 }
             } else {
                 // Use arc in reverse direction (b -> a)
-                if arc.is_line() {
+                if arc.is_seg() {
                     (arc.b, arc.a, 0.0)
                 } else {
                     // For reversed arc, we need to negate the bulge
@@ -429,7 +429,7 @@ fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg)
         && cfg.svg_split
     {
         svg.arcline(&offset_split, "violet");
-        svg.offset_segments_single_points(&offset_split, "violet");
+        // svg.offset_segments_single_points(&offset_split, "violet"); // Method not available in togo
     }
 
     let offset_prune = offset_prune_invalid(&poly_raws, &mut offset_split, off);
@@ -438,7 +438,7 @@ fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg)
         && cfg.svg_prune
     {
         svg.arcline(&offset_prune, "violet");
-        svg.offset_segments_single_points(&offset_prune, "violet");
+        // svg.offset_segments_single_points(&offset_prune, "violet"); // Method not available in togo
     }
     offset_prune
 }
@@ -448,7 +448,7 @@ fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg)
 pub fn svg_offset_raws(svg: &mut SVG, offset_raws: &Vec<Vec<OffsetRaw>>, color: &str) {
     for raw in offset_raws {
         for seg in raw {
-            if seg.arc.is_line() {
+            if seg.arc.is_seg() {
                 let segment = segment(seg.arc.a, seg.arc.b);
                 svg.segment(&segment, color);
             } else {
@@ -2103,7 +2103,7 @@ fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
 #[cfg(test)]
 mod test_offset {
 
-    // use geom::prelude::*;
+    // use togo::prelude::*;
 
 
     const ZERO: f64 = 0f64;
