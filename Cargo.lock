@@ -9,15 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "862ed96ca487e809f1c8e5a8447f6ee2cf102f846893800b20cebdf541fc6bbd"
 
 [[package]]
-name = "basegeom"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6275c348c61dfc2c342d3fb57f64dcd290f4f1791d27b8e309f4ba79d58bc944"
-dependencies = [
- "robust",
-]
-
-[[package]]
 name = "bitflags"
 version = "2.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -122,12 +113,12 @@ checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
 
 [[package]]
 name = "offroad"
-version = "0.0.6"
+version = "0.1.0"
 dependencies = [
- "basegeom",
  "divan",
  "rand",
  "robust",
+ "togo",
 ]
 
 [[package]]
@@ -236,6 +227,15 @@ checksum = "45c6481c4829e4cc63825e62c49186a34538b7b2750b73b266581ffb612fb5ed"
 dependencies = [
  "rustix",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "togo"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55a1bbe839542fb86da337ee61d5c6c76b852cf5a2ab2d2f723b44bb41ac4f5f"
+dependencies = [
+ "robust",
 ]
 
 [[package]]

@@ -5,7 +5,7 @@
 //! # Examples
 //!
 //! ```rust
-//! use geom::prelude::*;
+//! use togo::prelude::*;
 //! use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
 //!
 //! // Create a simple L-shaped polyline
@@ -48,6 +48,9 @@ mod offset_prune_invalid;
 #[doc(hidden)]
 // resulting soup of arcs is ordered and reconnected
 mod offset_reconnect_arcs;
+
+// Graph algorithms for connected components and cycle finding
+pub mod graph;
 
 
 // Re-export main offsetting functions

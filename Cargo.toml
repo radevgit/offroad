@@ -1,19 +1,21 @@
 [package]
 name = "offroad"
-version = "0.0.6"
+version = "0.1.0"
 description = "2D offsetting for arc polylines/polygons."
 rust-version = "1.88"
 edition = "2024"
 categories = ["algorithms", "data-structures", "graphics", "mathematics"]
 keywords = ["offset", "arc", "polyline", "cnc", "polygon"]
 license = "MIT"
+homepage = "https://github.com/radevgit/offroad"
 repository = "https://github.com/radevgit/offroad"
+documentation = "https://docs.rs/offroad"
 readme = "README.md"
 
 
 
 [dependencies]
-geom = { package = "basegeom", version = "0.2.4" }
+togo = "0.4.0"
 robust = "1.2.0"
 
 [lib]
@@ -22,6 +24,12 @@ crate-type = ["lib"]
 [dev-dependencies]
 rand = "0.9.2"
 divan = "0.1.21"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
 
 [[bench]]
 name = "bench_offset_multiple"

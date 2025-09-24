@@ -2,7 +2,7 @@
 
 use robust::{Coord, orient2d};
 
-use geom::prelude::*;
+use togo::prelude::*;
 
 use crate::offset_raw::OffsetRaw;
 
@@ -142,7 +142,7 @@ fn arc_connect_new(
     }
     // We only create new arc if the arcs to be connected form convex angle.
     // In concave case, we do not need connection because it will be removed as invalid latter
-    (seg, arc_check(&seg, EPS_CONNECT_RAW), convex)
+    (seg, seg.is_valid(EPS_CONNECT_RAW), convex)
 }
 
 #[cfg(test)]
@@ -400,8 +400,8 @@ mod test_offset_connect_raw_single {
         let arc2 = arc_circle_parametrization(point(3.0, 0.0), point(5.0, 0.0), -0.3);
 
         // Verify arcs are valid
-        assert!(arc_check(&arc1, 1e-10));
-        assert!(arc_check(&arc2, 1e-10));
+        assert!(arc1.is_valid(1e-10));
+        assert!(arc2.is_valid(1e-10));
 
         let raw1 = OffsetRaw::new(arc1, point(1.0, 0.5), 1.0);
         let raw2 = OffsetRaw::new(arc2, point(4.0, 0.5), 1.0);
@@ -550,8 +550,8 @@ mod test_offset_connect_raw_single {
         let arc2 = arc_circle_parametrization(point(4.0, 2.0), point(6.0, 0.0), -0.5);
 
         // Verify arcs are geometrically valid
-        assert!(arc_check(&arc1, 1e-10));
-        assert!(arc_check(&arc2, 1e-10));
+        assert!(arc1.is_valid(1e-10));
+        assert!(arc2.is_valid(1e-10));
 
         let raw1 = OffsetRaw::new(arc1, point(1.0, 1.0), 1.0);
         let raw2 = OffsetRaw::new(arc2, point(5.0, 1.0), 1.0);
@@ -605,8 +605,8 @@ mod test_offset_connect_raw_single {
         let arc2 = arc_circle_parametrization(point(2.0, 0.0), point(3.0, 0.0), 0.5);
         
         // Verify arcs are geometrically valid
-        assert!(arc_check(&arc1, 1e-10));
-        assert!(arc_check(&arc2, 1e-10));
+        assert!(arc1.is_valid(1e-10));
+        assert!(arc2.is_valid(1e-10));
         
         let g_combinations = vec![
             (1.0, 1.0),   // both positive

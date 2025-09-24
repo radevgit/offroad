@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-use geom::prelude::*;
+use togo::prelude::*;
 
 #[doc(hidden)]
 /// This is used in offsetting operations (offroad package).

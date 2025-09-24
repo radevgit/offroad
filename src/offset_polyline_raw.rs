@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use geom::prelude::*;
+use togo::prelude::*;
 
 use crate::offset_raw::OffsetRaw;
 
@@ -24,7 +24,7 @@ fn offset_polyline_raw_single(pline: &Vec<OffsetRaw>, off: f64) -> Vec<OffsetRaw
 }
 
 pub(crate) fn offset_segment(seg: &Arc, orig: Point, g: f64, off: f64) -> OffsetRaw {
-    if seg.is_line() {
+    if seg.is_seg() {
         line_offset(seg, orig, off)
     } else {
         arc_offset(seg, orig, g, off)
@@ -36,7 +36,7 @@ pub(crate) fn offset_segment(seg: &Arc, orig: Point, g: f64, off: f64) -> Offset
 fn line_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
     // line segment
     let perp = seg.b - seg.a;
-    let (perp, _) = point(perp.y, -perp.x).normalize();
+    let (perp, _) = point(perp.y, -perp.x).normalize(false);
     let offset_vec = perp * off;
     let mut arc = arcseg(seg.a + offset_vec, seg.b + offset_vec);
     arc.id(seg.id);
@@ -53,15 +53,15 @@ const EPS_COLLAPSED: f64 = 1E-10; // TODO: what should be the exact value.
 fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
     // Arc is always CCW
     //let seg = arc_circle_parametrization(seg.a, seg.b, bulge);
-    let (v0_to_center, _) = (seg.a - seg.c).normalize();
-    let (v1_to_center, _) = (seg.b - seg.c).normalize();
+    let (v0_to_center, _) = (seg.a - seg.c).normalize(false);
+    let (v1_to_center, _) = (seg.b - seg.c).normalize(false);
 
     let off = if bulge < 0.0 { -offset } else { offset };
     let offset_radius = seg.r + off;
     let a = seg.a + v0_to_center * off;
     let b = seg.b + v1_to_center * off;
-    if arc_is_collapsed_radius(offset_radius, EPS_COLLAPSED)
-        || arc_is_collapsed_ends(a, b, EPS_COLLAPSED)
+    if offset_radius < EPS_COLLAPSED || offset_radius.is_nan()
+        || a.close_enough(b, EPS_COLLAPSED)
     {
         // Collapsed arc is now line
         let mut arc = arcseg(b, a);
@@ -96,7 +96,7 @@ pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     for i in 0..pline.len() - 1 {
         let bulge = pline[i].b;
         let seg = arc_circle_parametrization(pline[i].p, pline[i + 1].p, bulge);
-        let check = arc_check(&seg, EPS_COLLAPSED);
+        let check = seg.is_valid(EPS_COLLAPSED);
         if !check {
             continue;
         }
@@ -111,7 +111,7 @@ pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     // last segment
     let bulge = pline.last().unwrap().b;
     let seg = arc_circle_parametrization(pline.last().unwrap().p, pline[0].p, bulge);
-    let check = arc_check(&seg, EPS_COLLAPSED);
+    let check = seg.is_valid(EPS_COLLAPSED);
     if check {
         let orig = if bulge < ZERO { seg.a } else { seg.b };
         let off = OffsetRaw {
@@ -139,7 +139,7 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
  
     for i in 0..arcs.len() - 1 {
         let seg = arcs[i];
-        let check = arc_check(&seg, EPS_COLLAPSED);
+        let check = seg.is_valid(EPS_COLLAPSED);
         if !check {
             continue;
         }
@@ -154,7 +154,7 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
     }
     // last segment
     let seg = arcs.last().unwrap();
-    let check = arc_check(&seg, EPS_COLLAPSED);
+    let check = seg.is_valid(EPS_COLLAPSED);
     if check {
         let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
         let orig = if bulge < ZERO { seg.a } else { seg.b };
@@ -173,7 +173,7 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
 
 #[cfg(test)]
 mod test_offset_polyline_raw {
-    use geom::prelude::*;
+    use togo::prelude::*;
 
     use crate::offset_raw::offsetraw;
 

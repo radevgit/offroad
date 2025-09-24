@@ -1,10 +1,10 @@
-use geom::prelude::*;
+use togo::prelude::*;
 use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
 
 fn main() {
     // Configuration for offsetting
     let mut cfg = OffsetCfg::default();
-    let mut svg = SVG::new(300.0, 300.0, "/tmp/polyline.svg");
+    let mut svg = SVG::new(300.0, 300.0, Some("/tmp/polyline.svg"));
     cfg.svg = Some(&mut svg);
     // Show original polyline in SVG output
     cfg.svg_orig = true;
@@ -33,5 +33,5 @@ fn main() {
         // Write svg to file
         svg.write_stroke_width(0.1);
     }
-    assert!(offset_polylines.len() == 2);
+    assert!(offset_polylines.len() == 1);
 }

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![deny(unused_results)]
 
-use geom::prelude::*;
+use togo::prelude::*;
 
 use crate::offset_raw::OffsetRaw;
 
@@ -14,7 +14,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
         .flatten()
         .map(|offset_raw| offset_raw.arc.clone())
         .chain(connect.iter().flatten().cloned())
-        .filter(|arc| arc_check(arc, EPSILON))
+        .filter(|arc| arc.is_valid(EPSILON))
         .collect();
 
     let mut parts_final = Vec::new();
@@ -46,13 +46,13 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
 
                 let part1 = parts[j].clone();
 
-                let (parts_new, _) = if part0.is_line() && part1.is_line() {
+                let (parts_new, _) = if part0.is_seg() && part1.is_seg() {
                     split_line_line(&part0, &part1)
                 } else if part0.is_arc() && part1.is_arc() {
                     split_arc_arc(&part0, &part1)
-                } else if part0.is_line() && part1.is_arc() {
+                } else if part0.is_seg() && part1.is_arc() {
                     split_segment_arc(&part0, &part1)
-                } else if part0.is_arc() && part1.is_line() {
+                } else if part0.is_arc() && part1.is_seg() {
                     split_segment_arc(&part1, &part0)
                 } else {
                     (Vec::new(), 0)
@@ -288,7 +288,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 
 // Split two lines at intersection point
 pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
-    debug_assert!(line0.is_line());
+    debug_assert!(line0.is_seg());
     debug_assert!(arc1.is_arc());
     let mut res = Vec::new();
     let segment = segment(line0.a, line0.b);
@@ -348,7 +348,7 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 // Check if the line-arc segments have 0.0 length
 fn check_and_push(res: &mut Vec<Arc>, seg: &Arc) {
     let eps = 1e-10;
-    if arc_check(seg, eps) {
+    if seg.is_valid(eps) {
         res.push(seg.clone())
     }
 }
@@ -358,7 +358,7 @@ mod test_offset_split_arcs {
 
     use std::vec;
 
-    use geom::prelude::*;
+    use togo::prelude::*;
     use super::*;
 
     fn show(arc0: &Arc, arc1: &Arc, arcs: &Vec<Arc>, svg: &mut SVG) {
