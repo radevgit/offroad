@@ -7,7 +7,9 @@ edition = "2024"
 categories = ["algorithms", "data-structures", "graphics", "mathematics"]
 keywords = ["offset", "arc", "polyline", "cnc", "polygon"]
 license = "MIT"
+homepage = "https://github.com/radevgit/offroad"
 repository = "https://github.com/radevgit/offroad"
+documentation = "https://docs.rs/offroad"
 readme = "README.md"
 
 

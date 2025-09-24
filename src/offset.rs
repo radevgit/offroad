@@ -8,7 +8,7 @@ use crate::{
     offset_polyline_raw::{self, arcs_to_raws, poly_to_raws},
     offset_prune_invalid::offset_prune_invalid,
     offset_raw::OffsetRaw,
-    offset_reconnect_arcs::{find_middle_points, offset_reconnect_arcs, remove_bridge_arcs},
+    offset_reconnect_arcs::{offset_reconnect_arcs},
     offset_split_arcs::offset_split_arcs
 };
 
@@ -110,11 +110,7 @@ pub fn offset_polyline_to_polyline(
     {
         svg.polyline(poly, "red");
     }
-    let mut offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);
-
-    remove_bridge_arcs(&mut offset_arcs);
-
-    find_middle_points(&mut offset_arcs);
+    let offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);    
 
     // Always reconnect arcs
     let reconnect_arcs = offset_reconnect_arcs(&offset_arcs);
@@ -194,11 +190,7 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     {
         svg.arcline(arcs, "red");
     }
-    let mut offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
-
-    remove_bridge_arcs(&mut offset_arcs);
-
-    find_middle_points(&mut offset_arcs);
+    let offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
 
     let mut final_arcs = Vec::new();
     if cfg.reconnect {

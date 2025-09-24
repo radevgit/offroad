@@ -329,9 +329,8 @@ pub fn find_non_intersecting_cycles(arcs: &[Arc]) -> Vec<Vec<Arc>> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use togo::prelude::*;
+    mod test_find_cycles_basic {
+        use super::*;
     
     #[test]
     fn test_empty_input() {
@@ -555,7 +554,6 @@ mod tests {
     mod integration_tests {
         use super::*;
         use crate::graph::merge_ends::merge_close_endpoints;
-        use togo::prelude::*;
 
         #[test]
         fn test_integration_square_with_close_endpoints() {

@@ -4,7 +4,7 @@
 use togo::prelude::*;
 
 /// Tolerance for merging close endpoints (separate from togo's EPS_COLLAPSED)
-const MERGE_TOLERANCE: f64 = 1e-8;
+pub const MERGE_TOLERANCE: f64 = 1e-8;
 
 /// Represents a group of close endpoints that should be merged
 #[derive(Debug, Clone)]
@@ -144,6 +144,11 @@ fn merge_to_centroids(arcs: &mut [Arc], groups: &[EndpointGroup]) {
             }
         }
     }
+}
+
+/// Convenience function that uses the default MERGE_TOLERANCE
+pub fn merge_close_endpoints_default(arcs: &mut Vec<Arc>) {
+    merge_close_endpoints(arcs, MERGE_TOLERANCE);
 }
 
 /// Remove arcs that are too small after merging
