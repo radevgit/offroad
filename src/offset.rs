@@ -113,7 +113,7 @@ pub fn offset_polyline_to_polyline(
     let offset_arcs = offset_polyline_to_polyline_impl(poly, off, cfg);    
 
     // Always reconnect arcs
-    let reconnect_arcs = offset_reconnect_arcs(&offset_arcs);
+    let reconnect_arcs = offset_reconnect_arcs(offset_arcs);
     // println!(
     //     "DEBUG: offset_reconnect_arcs returned {} components",
     //     reconnect_arcs.len()
@@ -194,7 +194,7 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
 
     let mut final_arcs = Vec::new();
     if cfg.reconnect {
-        final_arcs = offset_reconnect_arcs(&offset_arcs);
+        final_arcs = offset_reconnect_arcs(offset_arcs);
         println!(
             "offset_reconnect_arcs returned {} components",
             final_arcs.len()
