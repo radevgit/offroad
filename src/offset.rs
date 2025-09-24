@@ -72,7 +72,7 @@ impl<'a> Default for OffsetCfg<'a> {
 ///
 /// ```rust
 /// use togo::prelude::*;
-/// use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
+/// use offroad::prelude::*;
 ///
 /// let mut cfg = OffsetCfg::default();
 /// let poly = vec![
@@ -157,7 +157,7 @@ pub fn offset_polyline_to_polyline(
 ///
 /// ```rust
 /// use togo::prelude::*;
-/// use offroad::prelude::{OffsetCfg, offset_arcline_to_arcline};
+/// use offroad::prelude::*;
 ///
 /// let mut cfg = OffsetCfg::default();
 ///

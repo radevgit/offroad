@@ -6,7 +6,7 @@
 //!
 //! ```rust
 //! use togo::prelude::*;
-//! use offroad::prelude::{OffsetCfg, offset_polyline_to_polyline};
+//! use offroad::prelude::*;
 //!
 //! // Create a simple L-shaped polyline
 //! let poly = vec![
@@ -49,6 +49,7 @@ mod offset_prune_invalid;
 // resulting soup of arcs is ordered and reconnected
 mod offset_reconnect_arcs;
 
+#[doc(hidden)]
 // Graph algorithms for connected components and cycle finding
 pub mod graph;
 
