@@ -1,5 +1,7 @@
 # Offroad
-![Build](https://github.com/radevgit/offroad/actions/workflows/rust.yml/badge.svg)
+[![Crates.io](https://img.shields.io/crates/v/offroad.svg?color=blue)](https://crates.io/crates/offroad)
+[![Documentation](https://docs.rs/offroad/badge.svg)](https://docs.rs/offroad)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Adding the library to your project
 
