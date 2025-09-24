@@ -20,7 +20,7 @@ offroad = "0.1.0"
 
 ```rust
 use togo::prelude::*;
-use offroad::{offset::offset_arcline_to_arcline, prelude::OffsetCfg};
+use offroad::prelude::*;
 
 fn main() {
     // Configuration for offsetting
