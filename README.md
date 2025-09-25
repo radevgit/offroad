@@ -9,7 +9,7 @@ To use the Offroad library in your project, add the following to your `Cargo.tom
 
 ```toml
 [dependencies]
-offroad = "0.1.1"
+offroad = "0.1.2"
 ```
 
 ## 2D offsetting for arc polylines/polygons
@@ -48,7 +48,7 @@ fn main() {
         println!("Arcline {}: {} vertices", i, arcline.len());
     }
 
-    if let Some(svg) = cfg.svg.as_deref_mut() {
+    if let Some(svg) = cfg.svg.as_mut() {
         // Write svg to file
         svg.write_stroke_width(0.1);
     }

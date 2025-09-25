@@ -29,7 +29,7 @@ fn main() {
         println!("Polyline {}: {} vertices", i, polyline.len());
     }
 
-    if let Some(svg) = cfg.svg.as_deref_mut() {
+    if let Some(svg) = cfg.svg.as_mut() {
         // Write svg to file
         svg.write_stroke_width(0.1);
     }

@@ -1,6 +1,6 @@
 [package]
 name = "offroad"
-version = "0.1.1"
+version = "0.1.2"
 description = "2D offsetting for arc polylines/polygons."
 rust-version = "1.88"
 edition = "2024"
@@ -15,7 +15,7 @@ readme = "README.md"
 
 
 [dependencies]
-togo = "0.4.0"
+togo = "0.4.1"
 robust = "1.2.0"
 
 [lib]
@@ -23,7 +23,6 @@ crate-type = ["lib"]
 
 [dev-dependencies]
 rand = "0.9.2"
-divan = "0.1.21"
 
 [profile.release]
 lto = true

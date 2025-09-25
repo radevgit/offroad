@@ -105,7 +105,7 @@ pub fn offset_polyline_to_polyline(
     off: f64,
     cfg: &mut OffsetCfg,
 ) -> Vec<Polyline> {
-    if let Some(svg) = cfg.svg.as_deref_mut()
+    if let Some(svg) = cfg.svg.as_mut()
         && cfg.svg_orig
     {
         svg.polyline(poly, "red");
@@ -124,7 +124,7 @@ pub fn offset_polyline_to_polyline(
 
     let final_poly = arcs_to_polylines(&reconnect_arcs);
 
-    if let Some(svg) = cfg.svg.as_deref_mut() {
+    if let Some(svg) = cfg.svg.as_mut() {
         if cfg.svg_final {
             svg.polylines(&final_poly, "violet");
         }
@@ -185,7 +185,7 @@ pub fn offset_polyline_to_polyline(
 /// 5. Reconnect valid segments into continuous arc-paths
 ///
 pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) -> Vec<Arcline> {
-    if let Some(svg) = cfg.svg.as_deref_mut()
+    if let Some(svg) = cfg.svg.as_mut()
         && cfg.svg_orig
     {
         svg.arcline(arcs, "red");
@@ -206,7 +206,7 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
         final_arcs.push(offset_arcs);
     }
 
-    if let Some(svg) = cfg.svg.as_deref_mut() {
+    if let Some(svg) = cfg.svg.as_mut() {
         if cfg.svg_final {
             svg.arclines(&final_arcs, "violet");
         }
@@ -403,21 +403,21 @@ pub fn offset_polyline_multiple(
 
 fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
     let offset_raw = offset_polyline_raw::offset_polyline_raw(&poly_raws, off);
-    if let Some(svg) = cfg.svg.as_deref_mut()
+    if let Some(svg) = cfg.svg.as_mut()
         && cfg.svg_raw
     {
         svg_offset_raws(svg, &offset_raw, "blue");
     }
 
     let offset_connect = offset_connect_raw(&offset_raw, off);
-    if let Some(svg) = cfg.svg.as_deref_mut()
+    if let Some(svg) = cfg.svg.as_mut()
         && cfg.svg_connect
     {
         svg.arclines(&offset_connect, "violet");
     }
 
     let mut offset_split = offset_split_arcs(&offset_raw, &offset_connect);
-    if let Some(svg) = cfg.svg.as_deref_mut()
+    if let Some(svg) = cfg.svg.as_mut()
         && cfg.svg_split
     {
         svg.arcline(&offset_split, "violet");
@@ -426,7 +426,7 @@ fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg)
 
     let offset_prune = offset_prune_invalid(&poly_raws, &mut offset_split, off);
 
-    if let Some(svg) = cfg.svg.as_deref_mut()
+    if let Some(svg) = cfg.svg.as_mut()
         && cfg.svg_prune
     {
         svg.arcline(&offset_prune, "violet");

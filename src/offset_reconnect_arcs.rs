@@ -40,12 +40,7 @@ pub fn offset_reconnect_arcs(arcs: Arcline) -> Vec<Arcline> {
         }
     }
     
-    // If no cycles were found (e.g., all arcs were filtered out), return the processed arcs as fallback
-    if result.is_empty() {
-        vec![arc_vec]
-    } else {
-        result
-    }
+    result
 }
 
 #[cfg(test)]
@@ -56,22 +51,21 @@ mod integration_tests {
     fn test_offset_reconnect_integration() {
         // Create a simple arcline with disconnected endpoints that should be merged
         let arcs = vec![
-            // Create a nearly-closed triangle with small gaps
+            // Create a nearly-closed triangle with small gaps (within merge tolerance)
             arcseg(Point::new(0.0, 0.0), Point::new(10.0, 0.0)),
-            arcseg(Point::new(10.0, 0.00001), Point::new(5.0, 8.66)), // tiny gap
-            arcseg(Point::new(5.0, 8.66), Point::new(-0.00001, 0.0)), // tiny gap
+            arcseg(Point::new(10.0, 1e-9), Point::new(5.0, 8.66)), // tiny gap < 1e-8
+            arcseg(Point::new(5.0, 8.66), Point::new(-1e-9, 0.0)), // tiny gap < 1e-8
         ];
 
         // Run the reconnection algorithm
         let result = offset_reconnect_arcs(arcs);
 
         // Should find 1 cycle (the merged triangle)
-        assert!(result.len() >= 1, "Should find at least one cycle");
+        assert_eq!(result.len(), 1, "Should find exactly one cycle");
         
         // The first result should have 3 arcs (the connected triangle)
-        if let Some(first_cycle) = result.first() {
-            assert_eq!(first_cycle.len(), 3, "Triangle should have 3 segments");
-        }
+        let first_cycle = result.first().unwrap();
+        assert_eq!(first_cycle.len(), 3, "Triangle should have 3 segments");
 
         println!("Integration test passed: found {} cycles", result.len());
     }
@@ -88,8 +82,12 @@ mod integration_tests {
 
         let result = offset_reconnect_arcs(arcs);
 
-        // Should successfully process mixed arc/segment geometry
-        assert!(result.len() >= 1, "Should find at least one cycle with mixed geometry");
+        // Should find exactly 1 cycle (the square)
+        assert_eq!(result.len(), 1, "Should find exactly one cycle");
+        
+        // The square should have 4 arcs
+        let first_cycle = result.first().unwrap();
+        assert_eq!(first_cycle.len(), 4, "Square should have 4 segments");
         
         println!("Mixed geometry test passed: found {} cycles", result.len());
     }
@@ -100,30 +98,29 @@ mod integration_tests {
         let center = Point::new(0.0, 0.0);
         let radius = 5.0;
         
-        // Create a circle made of 4 quarter-circle arcs with small gaps
+        // Create a circle made of 4 quarter-circle arcs with small gaps (within merge tolerance)
         let arcs = vec![
             // Quarter arc from (5,0) to (0,5) - center at (0,0), radius 5
             arc(Point::new(5.0, 0.0), Point::new(0.0, 5.0), center, radius),
-            // Gap + Quarter arc from (0,5.0001) to (-5,0) 
-            arc(Point::new(0.0, 5.0001), Point::new(-5.0, 0.0), center, radius),
-            // Gap + Quarter arc from (-5.0001,0) to (0,-5)
-            arc(Point::new(-5.0001, 0.0), Point::new(0.0, -5.0), center, radius),
-            // Gap + Quarter arc from (0,-4.9999) to (5,0) - close the circle with small gap
-            arc(Point::new(0.0, -4.9999), Point::new(5.0, 0.0), center, radius),
+            // Gap + Quarter arc from (0,5.000000001) to (-5,0) 
+            arc(Point::new(0.0, 5.0 + 1e-9), Point::new(-5.0, 0.0), center, radius),
+            // Gap + Quarter arc from (-5.000000001,0) to (0,-5)
+            arc(Point::new(-5.0 - 1e-9, 0.0), Point::new(0.0, -5.0), center, radius),
+            // Gap + Quarter arc from (0,-4.999999999) to (5,0) - close the circle with small gap
+            arc(Point::new(0.0, -5.0 + 1e-9), Point::new(5.0, 0.0), center, radius),
         ];
 
         let result = offset_reconnect_arcs(arcs);
 
-        // Should find 1 cycle after merging the close endpoints
-        assert!(result.len() >= 1, "Should find at least one cycle with curved arcs");
+        // Should find exactly 1 cycle (the circle)
+        assert_eq!(result.len(), 1, "Should find exactly one cycle");
         
-        if let Some(first_cycle) = result.first() {
-            assert_eq!(first_cycle.len(), 4, "Circle should have 4 quarter-arc segments");
-            
-            // Verify we actually have curved arcs, not line segments
-            let has_curved_arcs = first_cycle.iter().any(|arc| arc.r != f64::INFINITY);
-            assert!(has_curved_arcs, "Should contain actual curved arcs, not just line segments");
-        }
+        let first_cycle = result.first().unwrap();
+        assert_eq!(first_cycle.len(), 4, "Circle should have 4 quarter-arc segments");
+        
+        // Verify we actually have curved arcs, not line segments
+        let has_curved_arcs = first_cycle.iter().any(|arc| arc.r != f64::INFINITY);
+        assert!(has_curved_arcs, "Should contain actual curved arcs, not just line segments");
 
         println!("Curved arcs test passed: found {} cycles with actual curved geometry", result.len());
     }
@@ -136,29 +133,29 @@ mod integration_tests {
             arcseg(Point::new(0.0, 0.0), Point::new(3.0, 0.0)),
             // Add a curved arc - quarter circle from (3,0) to (6,3) with center at (6,0)
             arc(Point::new(3.0, 0.0), Point::new(6.0, 3.0), Point::new(6.0, 0.0), 3.0),
-            // Another line segment with small gap
-            arcseg(Point::new(6.0001, 3.0), Point::new(6.0, 6.0)),
+            // Another line segment with small gap (within merge tolerance)
+            arcseg(Point::new(6.0 + 1e-9, 3.0), Point::new(6.0, 6.0)),
             // Another curved arc - quarter circle from (6,6) to (3,9) with center at (6,9)
             arc(Point::new(6.0, 6.0), Point::new(3.0, 9.0), Point::new(6.0, 9.0), 3.0),
             // Close with line segments
             arcseg(Point::new(3.0, 9.0), Point::new(0.0, 9.0)),
-            arcseg(Point::new(-0.0001, 9.0), Point::new(0.0, 0.0)), // small gap to test merging
+            arcseg(Point::new(-1e-9, 9.0), Point::new(0.0, 0.0)), // small gap to test merging
         ];
 
         let result = offset_reconnect_arcs(arcs);
 
-        assert!(result.len() >= 1, "Should find at least one cycle with mixed geometry");
+        // Should find exactly 1 cycle (the mixed shape)
+        assert_eq!(result.len(), 1, "Should find exactly one cycle");
         
-        if let Some(first_cycle) = result.first() {
-            assert_eq!(first_cycle.len(), 6, "Mixed shape should have 6 segments");
-            
-            // Verify we have both curved arcs and line segments
-            let curved_count = first_cycle.iter().filter(|arc| arc.r != f64::INFINITY).count();
-            let line_count = first_cycle.iter().filter(|arc| arc.r == f64::INFINITY).count();
-            
-            assert!(curved_count >= 2, "Should have at least 2 curved arcs");
-            assert!(line_count >= 4, "Should have at least 4 line segments");
-        }
+        let first_cycle = result.first().unwrap();
+        assert_eq!(first_cycle.len(), 6, "Mixed shape should have 6 segments");
+        
+        // Verify we have both curved arcs and line segments
+        let curved_count = first_cycle.iter().filter(|arc| arc.r != f64::INFINITY).count();
+        let line_count = first_cycle.iter().filter(|arc| arc.r == f64::INFINITY).count();
+        
+        assert!(curved_count >= 2, "Should have at least 2 curved arcs");
+        assert!(line_count >= 4, "Should have at least 4 line segments");
 
         println!("Mixed arcs/segments test passed: found {} cycles", result.len());
     }

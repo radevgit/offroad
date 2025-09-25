@@ -24,7 +24,7 @@ fn main() {
     let _offset_polylines = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
     //let _offset_polylines = offset_polyline_to_polyline(&poly, 16.0, &mut cfg);
 
-    if let Some(svg) = cfg.svg.as_deref_mut(){
+    if let Some(svg) = cfg.svg.as_mut(){
         // Write svg to file
         svg.write_stroke_width(0.1);
     }
