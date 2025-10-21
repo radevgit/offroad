@@ -95,7 +95,7 @@ pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     //let last = pline.len() - 1;
     for i in 0..pline.len() - 1 {
         let bulge = pline[i].b;
-        let seg = arc_circle_parametrization(pline[i].p, pline[i + 1].p, bulge);
+        let seg = arc_from_bulge(pline[i].p, pline[i + 1].p, bulge);
         let check = seg.is_valid(EPS_COLLAPSED);
         if !check {
             continue;
@@ -110,7 +110,7 @@ pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     }
     // last segment
     let bulge = pline.last().unwrap().b;
-    let seg = arc_circle_parametrization(pline.last().unwrap().p, pline[0].p, bulge);
+    let seg = arc_from_bulge(pline.last().unwrap().p, pline[0].p, bulge);
     let check = seg.is_valid(EPS_COLLAPSED);
     if check {
         let orig = if bulge < ZERO { seg.a } else { seg.b };
@@ -143,7 +143,7 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
         if !check {
             continue;
         }
-        let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
+        let bulge = bulge_from_arc(seg.a, seg.b, seg.c, seg.r);
         let orig = if bulge < ZERO { seg.a } else { seg.b };
         let off = OffsetRaw {
             arc: seg,
@@ -156,7 +156,7 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
     let seg = arcs.last().unwrap();
     let check = seg.is_valid(EPS_COLLAPSED);
     if check {
-        let bulge = arc_bulge_from_points(seg.a, seg.b, seg.c, seg.r);
+        let bulge = bulge_from_arc(seg.a, seg.b, seg.c, seg.r);
         let orig = if bulge < ZERO { seg.a } else { seg.b };
         let off = OffsetRaw {
             arc: *seg,
@@ -199,7 +199,7 @@ mod test_offset_polyline_raw {
 
     #[test]
     fn test_new() {
-        let arc = arc_circle_parametrization(point(1.0, 2.0), point(3.0, 4.0), 3.3);
+        let arc = arc_from_bulge(point(1.0, 2.0), point(3.0, 4.0), 3.3);
         let o0 = offsetraw(arc, point(5.0, 6.0), 3.3);
         let o1 = offsetraw(arc, point(5.0, 6.0), 3.3);
         assert_eq!(o0, o1);
@@ -207,7 +207,7 @@ mod test_offset_polyline_raw {
 
     #[test]
     fn test_display_01() {
-        let arc = arc_circle_parametrization(point(0.0, 0.0), point(2.0, 2.0), 1.0);
+        let arc = arc_from_bulge(point(0.0, 0.0), point(2.0, 2.0), 1.0);
         let o0 = offsetraw(arc, point(5.0, 6.0), 3.3);
         assert_eq!(
             "[[[0.00000000000000000000, 0.00000000000000000000], [2.00000000000000000000, 2.00000000000000000000], [1.00000000000000000000, 1.00000000000000000000], 1.41421356237309514547], [5.00000000000000000000, 6.00000000000000000000], 3.3]",
@@ -217,7 +217,7 @@ mod test_offset_polyline_raw {
 
     #[test]
     fn test_display_02() {
-        let arc = arc_circle_parametrization(point(1.0, 2.0), point(3.0, 4.0), 3.3);
+        let arc = arc_from_bulge(point(1.0, 2.0), point(3.0, 4.0), 3.3);
         let o0 = offsetraw(arc, point(5.0, 6.0), 3.3);
         assert_eq!(
             "[[[1.00000000000000000000, 2.00000000000000000000], [3.00000000000000000000, 4.00000000000000000000], [3.49848484848484808651, 1.50151515151515169144], 2.54772716009334887488], [5.00000000000000000000, 6.00000000000000000000], 3.3]",
@@ -297,8 +297,8 @@ mod test_offset_polyline_raw {
 
     #[test]
     #[ignore = "svg output"]
-    fn test_arc_circle_parametrization_plinearc_svg() {
-        let arc0 = arc_circle_parametrization(
+    fn test_arc_from_bulge_plinearc_svg() {
+        let arc0 = arc_from_bulge(
             point(-52.0, 250.0),
             point(-23.429621235520095, 204.88318696736243),
             -0.6068148963145962,

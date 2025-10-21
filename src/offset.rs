@@ -262,7 +262,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
             if arc.is_seg() {
                 (arc.a, arc.b, 0.0)
             } else {
-                let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+                let bulge = bulge_from_arc(arc.a, arc.b, arc.c, arc.r);
                 (arc.a, arc.b, bulge)
             }
         } else {
@@ -277,7 +277,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
                 if arc.is_seg() {
                     (arc.a, arc.b, 0.0)
                 } else {
-                    let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+                    let bulge = bulge_from_arc(arc.a, arc.b, arc.c, arc.r);
                     (arc.a, arc.b, bulge)
                 }
             } else {
@@ -286,7 +286,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
                     (arc.b, arc.a, 0.0)
                 } else {
                     // For reversed arc, we need to negate the bulge
-                    let forward_bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+                    let forward_bulge = bulge_from_arc(arc.a, arc.b, arc.c, arc.r);
                     (arc.b, arc.a, -forward_bulge)
                 }
             }
@@ -310,7 +310,7 @@ mod test_arcs_to_polylines {
             // First arc: from (0,0) to (1,0) - line segment
             arcseg(point(0.0, 0.0), point(1.0, 0.0)),
             // Second arc: from (1,0) to (0,1) - quarter circle
-            arc_circle_parametrization(point(1.0, 0.0), point(0.0, 1.0), 1.0),
+            arc_from_bulge(point(1.0, 0.0), point(0.0, 1.0), 1.0),
             // Third arc: from (0,1) to (0,0) - line segment (completing the loop)
             arcseg(point(0.0, 1.0), point(0.0, 0.0)),
         ];
@@ -342,7 +342,7 @@ mod test_arcs_to_polylines {
             arcseg(point(0.0, 0.0), point(1.0, 0.0)),
             // Second arc: reversed orientation (from (0,1) to (1,0) instead of (1,0) to (0,1))
             // This should be detected and corrected
-            arc_circle_parametrization(point(0.0, 1.0), point(1.0, 0.0), 1.0),
+            arc_from_bulge(point(0.0, 1.0), point(1.0, 0.0), 1.0),
         ];
 
         // Convert to polyline
@@ -2035,12 +2035,12 @@ fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
     let mut arcs = Vec::with_capacity(pline.len() + 1);
     let last = pline.len() - 1;
     for i in 0..last {
-        let arc = arc_circle_parametrization(pline[i].p, pline[i + 1].p, pline[i].b);
+        let arc = arc_from_bulge(pline[i].p, pline[i + 1].p, pline[i].b);
         arcs.push(arc);
     }
     // last segment
     let arc =
-        arc_circle_parametrization(pline.last().unwrap().p, pline[0].p, pline.last().unwrap().b);
+        arc_from_bulge(pline.last().unwrap().p, pline[0].p, pline.last().unwrap().b);
     arcs.push(arc);
     arcs
 }
