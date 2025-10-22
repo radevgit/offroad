@@ -34,9 +34,9 @@ fn main() {
     // Show final offset arclines in SVG output
     cfg.svg_final = true;
 
-    let arc0 = arc_circle_parametrization(point(40.0, 100.0), point(140.0, 200.0), 0.0);
-    let arc1 = arc_circle_parametrization(point(140.0, 200.0), point(240.0, 100.0), 0.5);
-    let arc2 = arc_circle_parametrization(point(240.0, 100.0), point(40.0, 100.0), 1.3);
+    let arc0 = arc_from_bulge(point(40.0, 100.0), point(140.0, 200.0), 0.0);
+    let arc1 = arc_from_bulge(point(140.0, 200.0), point(240.0, 100.0), 0.5);
+    let arc2 = arc_from_bulge(point(240.0, 100.0), point(40.0, 100.0), 1.3);
     let arcs_orig = vec![arc0, arc1, arc2];
 
     // External offsetting

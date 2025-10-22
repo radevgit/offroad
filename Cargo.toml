@@ -1,7 +1,7 @@
 [package]
 name = "offroad"
-version = "0.2.0"
-description = "2D offsetting for arc polylines/polygons."
+version = "0.2.1"
+description = "2D offsetting for arc polylines and polygons"
 rust-version = "1.88"
 edition = "2024"
 categories = ["algorithms", "data-structures", "graphics", "mathematics"]
