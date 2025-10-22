@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.2.2] - 2025-10-22
+- aabb implementation
+
 ## [0.2.0] - 2025-10-21
 - update with the new Togo version
 
