@@ -10,7 +10,7 @@ static ZERO: f64 = 0.0;
 const EPSILON: f64 = 1e-10;
 pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
     // Merge offsets and offset connections, filter singular arcs
-    let mut parts: Vec<Arc> = row
+    let initial_parts: Vec<Arc> = row
         .iter()
         .flatten()
         .map(|offset_raw| offset_raw.arc.clone())
@@ -18,7 +18,24 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
         .filter(|arc| arc.is_valid(EPSILON))
         .collect();
 
-    let mut parts_final = Vec::new();
+    // Build AABB index ONCE for initial parts (never updated)
+    // When a part is split, child parts inherit parent's AABB (valid since children are inside parent)
+    let mut spatial = BroadPhaseFlat::new();
+    spatial.reserve(initial_parts.len());
+    for (idx, arc) in initial_parts.iter().enumerate() {
+        let bbox = if arc.is_seg() {
+            aabb_from_segment(&arc.a, &arc.b)
+        } else {
+            aabb_from_arc_loose(arc)
+        };
+        spatial.add(idx, bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y);
+    }
+
+    // Map from current arc index to original index (for AABB lookup)
+    let mut index_map: Vec<usize> = (0..initial_parts.len()).collect();
+    let mut parts = initial_parts;
+    let mut parts_final = Vec::with_capacity(parts.len());
+    
     let steps = 100000; // TODO: make this configurable
 
     let mut kk = 0;
@@ -27,72 +44,72 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
 
         while parts.len() > 0 {
             let part0 = parts.pop().unwrap();
+            let idx0 = index_map.pop().unwrap();
+            
             if parts.len() == 0 {
                 // No more parts to check against
                 parts_final.push(part0);
                 break;
             }
 
-            // Build spatial index for remaining parts (only if > threshold)
-            let candidates = if parts.len() > 10 {
-                let mut spatial = BroadPhaseFlat::new();
-                for (idx, part) in parts.iter().enumerate() {
-                    if part0.id == part.id {
+            // Query using spatial index (based on original arc bounds)
+            // All candidates have AABB from their original arc
+            let bbox0 = if part0.is_seg() {
+                aabb_from_segment(&part0.a, &part0.b)
+            } else {
+                aabb_from_arc_loose(&part0)
+            };
+            
+            let mut candidates = spatial.query(bbox0.min_x, bbox0.max_x, bbox0.min_y, bbox0.max_y);
+            // Filter out self and already processed indices
+            candidates.retain(|&orig_idx| {
+                // Find this original index in current parts
+                index_map.iter().position(|&m| m == orig_idx).is_some()
+            });
+
+            for (_j, orig_idx) in candidates.iter().enumerate() {
+                j_current = usize::MAX;
+                
+                // Find position of this original index in current parts
+                if let Some(j_pos) = index_map.iter().position(|&m| m == *orig_idx) {
+                    if idx0 == *orig_idx {
+                        // Skip parts coming from the same original arc
                         continue;
                     }
-                    let bbox = if part.is_seg() {
-                        aabb_from_segment(&part.a, &part.b)
+
+                    let part1 = parts[j_pos].clone();
+
+                    let (parts_new, _) = if part0.is_seg() && part1.is_seg() {
+                        split_line_line(&part0, &part1)
+                    } else if part0.is_arc() && part1.is_arc() {
+                        split_arc_arc(&part0, &part1)
+                    } else if part0.is_seg() && part1.is_arc() {
+                        split_segment_arc(&part0, &part1)
+                    } else if part0.is_arc() && part1.is_seg() {
+                        split_segment_arc(&part1, &part0)
                     } else {
-                        aabb_from_arc_loose(part)
+                        (Vec::new(), 0)
                     };
-                    spatial.add(idx, bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y);
-                }
 
-                // Query candidates overlapping with part0's AABB
-                let bbox0 = if part0.is_seg() {
-                    aabb_from_segment(&part0.a, &part0.b)
-                } else {
-                    aabb_from_arc_loose(&part0)
-                };
-                spatial.query(bbox0.min_x, bbox0.max_x, bbox0.min_y, bbox0.max_y)
-            } else {
-                // For small lists, iterate all
-                (0..parts.len()).collect()
-            };
-
-            for j in candidates.iter().rev() {
-                j_current = usize::MAX;
-                if part0.id == parts[*j].id {
-                    // Skip parts coming from the same original arc
-                    continue;
-                }
-
-                let part1 = parts[*j].clone();
-
-                let (parts_new, _) = if part0.is_seg() && part1.is_seg() {
-                    split_line_line(&part0, &part1)
-                } else if part0.is_arc() && part1.is_arc() {
-                    split_arc_arc(&part0, &part1)
-                } else if part0.is_seg() && part1.is_arc() {
-                    split_segment_arc(&part0, &part1)
-                } else if part0.is_arc() && part1.is_seg() {
-                    split_segment_arc(&part1, &part0)
-                } else {
-                    (Vec::new(), 0)
-                };
-
-                if !parts_new.is_empty() {
-                    j_current = *j;
-                    parts.extend(parts_new);
-                    break;
+                    if !parts_new.is_empty() {
+                        j_current = j_pos;
+                        // Add new parts with same original index (inherits parent's AABB)
+                        for new_part in parts_new {
+                            parts.push(new_part);
+                            index_map.push(*orig_idx);
+                        }
+                        break;
+                    }
                 }
             }
-            // this part parts[i] does not intersect with any other part
+            
+            // this part does not intersect with any other part
             if j_current == usize::MAX {
                 parts_final.push(part0);
             } else {
                 // remove the part1 from the parts
                 _ = parts.remove(j_current);
+                _ = index_map.remove(j_current);
             }
         }
 

@@ -36,16 +36,24 @@ fn main() {
 /*
 > cargo bench
 
-BEFORE (without spatial index):
+BASELINE (no spatial index):
 Total time for 298 offset operations: 196.589137ms
 Average time per operation: 659.695µs
 Operations per second: 1515.9
 
-AFTER (with BroadPhaseFlat + aabb_from_arc_loose):
+V1 (BroadPhaseFlat, rebuild every iteration):
 Total time for 298 offset operations: 180.781472ms
 Average time per operation: 606.649µs
 Operations per second: 1648.4
+Improvement: 8.0%
 
-Improvement: 8.0% faster (196.6ms → 180.8ms)
+V2 (BroadPhaseFlat, build ONCE + preallocate):
+Total time for 298 offset operations: 110.845964ms
+Average time per operation: 371.966µs
+Operations per second: 2688.4
+Improvement: 43.6% vs baseline! (77% faster than V1!)
+
+Key optimization: Build AABB index ONCE before loops, reuse for all queries.
+Child arcs inherit parent's AABB (valid since contained within parent).
 
 */

@@ -130,6 +130,11 @@ impl BroadPhaseFlat {
         BroadPhaseFlat { items: Vec::new() }
     }
 
+    /// Preallocate space for expected number of items
+    pub fn reserve(&mut self, capacity: usize) {
+        self.items.reserve(capacity);
+    }
+
     /// Add item with AABB (minx, maxx, miny, maxy)
     pub fn add(&mut self, id: usize, min_x: f64, max_x: f64, min_y: f64, max_y: f64) {
         self.items.push((id, AABB::new(min_x, max_x, min_y, max_y)));
