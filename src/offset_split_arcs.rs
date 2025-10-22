@@ -42,7 +42,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
     for k in 0..steps {
         let mut j_current = usize::MAX;
 
-        while parts.len() > 0 {
+        while !parts.is_empty() {
             let part0 = parts.pop().unwrap();
             let idx0 = index_map.pop().unwrap();
             

@@ -12,7 +12,6 @@ pub fn offset_prune_invalid(
     offsets: &mut Vec<Arc>,
     off: f64,
 ) -> Vec<Arc> {
-    let mut valid = Vec::new();
     let polyarcs: Vec<Arc> = polyraws
         .iter()
         .flatten()
@@ -20,8 +19,9 @@ pub fn offset_prune_invalid(
         .filter(|arc| arc.is_valid(PRUNE_EPSILON))
         .collect();
 
-    // Build spatial index for polyline arcs
+    // Build spatial index ONCE with all polyarcs (indexed 0..polyarcs.len())
     let mut spatial = BroadPhaseFlat::new();
+    spatial.reserve(polyarcs.len());
     for (idx, arc) in polyarcs.iter().enumerate() {
         let bbox = if arc.is_seg() {
             aabb_from_segment(&arc.a, &arc.b)
@@ -31,15 +31,16 @@ pub fn offset_prune_invalid(
         spatial.add(idx, bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y);
     }
 
-    while offsets.len() > 0 {
-        let offset = offsets.pop().unwrap();
+    let mut valid = Vec::with_capacity(offsets.len());
+
+    for offset in offsets.drain(..) {
         let offset_bbox = if offset.is_seg() {
             aabb_from_segment(&offset.a, &offset.b)
         } else {
             aabb_from_arc_loose(&offset)
         };
 
-        // Query for overlapping candidates
+        // Query spatial index for overlapping candidates
         let candidates = spatial.query(offset_bbox.min_x, offset_bbox.max_x, 
                                        offset_bbox.min_y, offset_bbox.max_y);
 
@@ -60,6 +61,7 @@ pub fn offset_prune_invalid(
             valid.push(offset);
         }
     }
+
     valid
 }
 

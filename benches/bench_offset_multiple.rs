@@ -48,12 +48,18 @@ Operations per second: 1648.4
 Improvement: 8.0%
 
 V2 (BroadPhaseFlat, build ONCE + preallocate):
-Total time for 298 offset operations: 110.845964ms
-Average time per operation: 371.966µs
-Operations per second: 2688.4
-Improvement: 43.6% vs baseline! (77% faster than V1!)
+- offset_split_arcs: Build AABB index ONCE before loops, child arcs inherit parent AABB
+- offset_prune_invalid: Build AABB index ONCE with all polyarcs, query for each offset
 
-Key optimization: Build AABB index ONCE before loops, reuse for all queries.
-Child arcs inherit parent's AABB (valid since contained within parent).
+Total time for 298 offset operations: 112.730806ms
+Average time per operation: 378.291µs
+Operations per second: 2643.5
+Improvement: 42.7% vs baseline! (77% faster than V1!)
+
+Key optimizations:
+1. Build spatial index ONCE, never rebuild
+2. Preallocate vectors to avoid reallocation
+3. Reuse AABB bounds - child arcs inherit parent's AABB
+4. Index polyarcs once, query efficiently for each offset
 
 */
