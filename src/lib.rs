@@ -53,6 +53,9 @@ mod offset_reconnect_arcs;
 // Graph algorithms for connected components and cycle finding
 pub mod graph;
 
+#[doc(hidden)]
+// Spatial acceleration structures (AABB, broad-phase)
+pub mod spatial;
 
 // Re-export main offsetting functions
 // For public API
