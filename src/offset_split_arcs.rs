@@ -4,6 +4,7 @@
 use togo::prelude::*;
 
 use crate::offset_raw::OffsetRaw;
+use crate::spatial::spatial::{aabb_from_arc_loose, aabb_from_segment, BroadPhaseFlat};
 
 static ZERO: f64 = 0.0;
 const EPSILON: f64 = 1e-10;
@@ -18,9 +19,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
         .collect();
 
     let mut parts_final = Vec::new();
-    //let mut parts_final = Vec::new();
     let steps = 100000; // TODO: make this configurable
-    //let mut splits_count = 0;
 
     let mut kk = 0;
     for k in 0..steps {
@@ -33,18 +32,42 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
                 parts_final.push(part0);
                 break;
             }
-            for j in (0..parts.len()).rev() {
+
+            // Build spatial index for remaining parts (only if > threshold)
+            let candidates = if parts.len() > 10 {
+                let mut spatial = BroadPhaseFlat::new();
+                for (idx, part) in parts.iter().enumerate() {
+                    if part0.id == part.id {
+                        continue;
+                    }
+                    let bbox = if part.is_seg() {
+                        aabb_from_segment(&part.a, &part.b)
+                    } else {
+                        aabb_from_arc_loose(part)
+                    };
+                    spatial.add(idx, bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y);
+                }
+
+                // Query candidates overlapping with part0's AABB
+                let bbox0 = if part0.is_seg() {
+                    aabb_from_segment(&part0.a, &part0.b)
+                } else {
+                    aabb_from_arc_loose(&part0)
+                };
+                spatial.query(bbox0.min_x, bbox0.max_x, bbox0.min_y, bbox0.max_y)
+            } else {
+                // For small lists, iterate all
+                (0..parts.len()).collect()
+            };
+
+            for j in candidates.iter().rev() {
                 j_current = usize::MAX;
-                if part0.id == parts[j].id {
-                    // Skip parts comming from the same original arc
+                if part0.id == parts[*j].id {
+                    // Skip parts coming from the same original arc
                     continue;
                 }
-                // if part0.id == parts[j].id || part0.id == parts[j].id + ID_PADDING {
-                //     // Skip parts comming from the same original arc
-                //     continue;
-                // }
 
-                let part1 = parts[j].clone();
+                let part1 = parts[*j].clone();
 
                 let (parts_new, _) = if part0.is_seg() && part1.is_seg() {
                     split_line_line(&part0, &part1)
@@ -59,7 +82,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
                 };
 
                 if !parts_new.is_empty() {
-                    j_current = j;
+                    j_current = *j;
                     parts.extend(parts_new);
                     break;
                 }

@@ -36,8 +36,16 @@ fn main() {
 /*
 > cargo bench
 
+BEFORE (without spatial index):
 Total time for 298 offset operations: 196.589137ms
 Average time per operation: 659.695µs
 Operations per second: 1515.9
+
+AFTER (with BroadPhaseFlat + aabb_from_arc_loose):
+Total time for 298 offset operations: 180.781472ms
+Average time per operation: 606.649µs
+Operations per second: 1648.4
+
+Improvement: 8.0% faster (196.6ms → 180.8ms)
 
 */
