@@ -47,7 +47,7 @@ fn line_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
     };
 }
 
-const EPS_COLLAPSED: f64 = 1E-10; // TODO: what should be the exact value.
+pub const EPS_COLLAPSED: f64 = 1E-10; // TODO: what should be the exact value.
 // Offsets arc on right side
 // #00028
 fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {

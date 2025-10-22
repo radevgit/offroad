@@ -4,9 +4,9 @@ use togo::prelude::*;
 
 use crate::offset_raw::OffsetRaw;
 use crate::spatial::spatial::{aabb_from_arc_loose, aabb_from_segment, BroadPhaseFlat};
+use crate::offset_polyline_raw::EPS_COLLAPSED;
 
 // Prune arcs that are close to any of the arcs in the polyline.
-const PRUNE_EPSILON: f64 = 1e-8;
 pub fn offset_prune_invalid(
     polyraws: &Vec<Vec<OffsetRaw>>,
     offsets: &mut Vec<Arc>,
@@ -16,7 +16,7 @@ pub fn offset_prune_invalid(
         .iter()
         .flatten()
         .map(|offset_raw| offset_raw.arc.clone())
-        .filter(|arc| arc.is_valid(PRUNE_EPSILON))
+        .filter(|arc| arc.is_valid(EPS_COLLAPSED))
         .collect();
 
     // Build spatial index ONCE with all polyarcs (indexed 0..polyarcs.len())
@@ -51,7 +51,7 @@ pub fn offset_prune_invalid(
                 continue; // skip self offsets
             }
             let dist = distance_element_element(&p, &offset);
-            if dist < off - PRUNE_EPSILON {
+            if dist < off - EPS_COLLAPSED {
                 found_close = true;
                 break;
             }

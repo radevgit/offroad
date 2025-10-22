@@ -168,9 +168,9 @@ pub struct BroadPhaseGrid {
 }
 
 impl BroadPhaseGrid {
-    /// Create grid with specified cell size
+    /// Creates a new BroadPhaseGrid with specified cell size
     pub fn new(cell_size: f64) -> Self {
-        assert!(cell_size > 0.0, "cell_size must be positive");
+        debug_assert!(cell_size > 0.0, "cell_size must be positive");
         BroadPhaseGrid {
             cell_size,
             grid: std::collections::HashMap::new(),

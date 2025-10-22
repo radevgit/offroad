@@ -5,9 +5,9 @@ use togo::prelude::*;
 
 use crate::offset_raw::OffsetRaw;
 use crate::spatial::spatial::{aabb_from_arc_loose, aabb_from_segment, BroadPhaseFlat};
+use crate::offset_polyline_raw::EPS_COLLAPSED;
 
 static ZERO: f64 = 0.0;
-const EPSILON: f64 = 1e-10;
 pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
     // Merge offsets and offset connections, filter singular arcs
     let initial_parts: Vec<Arc> = row
@@ -15,7 +15,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
         .flatten()
         .map(|offset_raw| offset_raw.arc.clone())
         .chain(connect.iter().flatten().cloned())
-        .filter(|arc| arc.is_valid(EPSILON))
+        .filter(|arc| arc.is_valid(EPS_COLLAPSED))
         .collect();
 
     // Build AABB index ONCE for initial parts (never updated)
@@ -387,8 +387,7 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 
 // Check if the line-arc segments have 0.0 length
 fn check_and_push(res: &mut Vec<Arc>, seg: &Arc) {
-    let eps = 1e-10;
-    if seg.is_valid(eps) {
+    if seg.is_valid(EPS_COLLAPSED) {
         res.push(seg.clone())
     }
 }
