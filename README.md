@@ -9,7 +9,7 @@ To use the Offroad library in your project, add the following to your `Cargo.tom
 
 ```toml
 [dependencies]
-offroad = "0.1.2"
+offroad = "0.3"
 ```
 
 ## 2D offsetting for arc polylines/polygons

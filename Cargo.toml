@@ -16,7 +16,7 @@ readme = "README.md"
 
 [dependencies]
 togo = "0.5"
-robust = "1.2.0"
+robust = "1.2"
 
 [lib]
 crate-type = ["lib"]
