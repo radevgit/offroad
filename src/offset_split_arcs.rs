@@ -10,13 +10,17 @@ use crate::offset_polyline_raw::EPS_COLLAPSED;
 static ZERO: f64 = 0.0;
 pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
     // Merge offsets and offset connections, filter singular arcs
-    let initial_parts: Vec<Arc> = row
-        .iter()
-        .flatten()
-        .map(|offset_raw| offset_raw.arc.clone())
-        .chain(connect.iter().flatten().cloned())
-        .filter(|arc| arc.is_valid(EPS_COLLAPSED))
-        .collect();
+    let mut initial_parts = Vec::new();
+    for offset_raw in row.iter().flatten() {
+        if offset_raw.arc.is_valid(EPS_COLLAPSED) {
+            initial_parts.push(offset_raw.arc);
+        }
+    }
+    for arc in connect.iter().flatten().copied() {
+        if arc.is_valid(EPS_COLLAPSED) {
+            initial_parts.push(arc);
+        }
+    }
 
     // Build AABB index ONCE for initial parts (never updated)
     // When a part is split, child parts inherit parent's AABB (valid since children are inside parent)
@@ -77,7 +81,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
                         continue;
                     }
 
-                    let part1 = parts[j_pos].clone();
+                    let part1 = parts[j_pos];
 
                     let (parts_new, _) = if part0.is_seg() && part1.is_seg() {
                         split_line_line(&part0, &part1)
@@ -388,7 +392,7 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 // Check if the line-arc segments have 0.0 length
 fn check_and_push(res: &mut Vec<Arc>, seg: &Arc) {
     if seg.is_valid(EPS_COLLAPSED) {
-        res.push(seg.clone())
+        res.push(*seg)
     }
 }
 
