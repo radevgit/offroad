@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="106" height="109">
+  <title>Mixed Curved Arcs and Line Segments</title>
+  <style>line { stroke: black; } circle { fill: red; } text { font-size: 12px; } .label { fill: blue; } </style>
+  <line x1="50" y1="59" x2="53" y2="59" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="53" y1="59" x2="56" y2="56" stroke="#FF6B6B" stroke-width="2" stroke-dasharray="5,5"/>
+  <line x1="56" y1="56" x2="56" y2="53" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="56" y1="53" x2="53" y2="50" stroke="#FF6B6B" stroke-width="2" stroke-dasharray="5,5"/>
+  <line x1="53" y1="50" x2="50" y2="50" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="50" y1="50" x2="50" y2="59" stroke="#FF6B6B" stroke-width="2"/>
+  <circle cx="50" cy="59" r="3" fill="red"/>
+  <circle cx="53" cy="59" r="3" fill="red"/>
+  <circle cx="53" cy="59" r="3" fill="red"/>
+  <circle cx="56" cy="56" r="3" fill="red"/>
+  <circle cx="56" cy="56" r="3" fill="red"/>
+  <circle cx="56" cy="53" r="3" fill="red"/>
+  <circle cx="56" cy="53" r="3" fill="red"/>
+  <circle cx="53" cy="50" r="3" fill="red"/>
+  <circle cx="53" cy="50" r="3" fill="red"/>
+  <circle cx="50" cy="50" r="3" fill="red"/>
+  <circle cx="50" cy="50" r="3" fill="red"/>
+  <circle cx="50" cy="59" r="3" fill="red"/>
+</svg>

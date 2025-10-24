@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="101" height="101">
+  <title>Figure-Eight Pattern</title>
+  <style>line { stroke: black; } circle { fill: red; } text { font-size: 12px; } .label { fill: blue; } </style>
+  <line x1="50" y1="51" x2="50" y2="50" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="51" y1="50" x2="50" y2="50" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="51" y1="51" x2="51" y2="50" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="50" y1="51" x2="51" y2="51" stroke="#FF6B6B" stroke-width="2"/>
+  <circle cx="50" cy="51" r="3" fill="red"/>
+  <circle cx="50" cy="50" r="3" fill="red"/>
+  <circle cx="51" cy="50" r="3" fill="red"/>
+  <circle cx="50" cy="50" r="3" fill="red"/>
+  <circle cx="51" cy="51" r="3" fill="red"/>
+  <circle cx="51" cy="50" r="3" fill="red"/>
+  <circle cx="50" cy="51" r="3" fill="red"/>
+  <circle cx="51" cy="51" r="3" fill="red"/>
+</svg>

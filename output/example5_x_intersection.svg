@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="102" height="102">
+  <title>X-Intersection Pattern</title>
+  <style>line { stroke: black; } circle { fill: red; } text { font-size: 12px; } .label { fill: blue; } </style>
+  <line x1="50" y1="52" x2="52" y2="52" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="52" y1="52" x2="52" y2="50" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="52" y1="50" x2="50" y2="50" stroke="#FF6B6B" stroke-width="2"/>
+  <line x1="50" y1="50" x2="50" y2="52" stroke="#FF6B6B" stroke-width="2"/>
+  <circle cx="50" cy="52" r="3" fill="red"/>
+  <circle cx="52" cy="52" r="3" fill="red"/>
+  <circle cx="52" cy="52" r="3" fill="red"/>
+  <circle cx="52" cy="50" r="3" fill="red"/>
+  <circle cx="52" cy="50" r="3" fill="red"/>
+  <circle cx="50" cy="50" r="3" fill="red"/>
+  <circle cx="50" cy="50" r="3" fill="red"/>
+  <circle cx="50" cy="52" r="3" fill="red"/>
+</svg>
