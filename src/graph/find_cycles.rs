@@ -448,15 +448,15 @@ pub fn find_non_intersecting_cycles(arcs: &[Arc]) -> Vec<Vec<Arc>> {
     #[test]
     fn test_double_edges() {
         // Two arcs between the same points (like two semicircles of a circle)
-        // Use arc_circle_parametrization to create proper arcs
+        // Use arc_from_bulge to create proper arcs
         let p1 = point(0.0, 0.0);
         let p2 = point(2.0, 0.0);
         let bulge1 = 1.0;  // Semicircle bulge
         let bulge2 = 1.0; // Another semicircle bulge (same direction, forms full circle)
         
         let arcs = vec![
-            arc_circle_parametrization(p1, p2, bulge1),
-            arc_circle_parametrization(p2, p1, bulge2),
+            arc_from_bulge(p1, p2, bulge1),
+            arc_from_bulge(p2, p1, bulge2),
         ];
         
         let result = find_non_intersecting_cycles(&arcs);
@@ -494,7 +494,7 @@ pub fn find_non_intersecting_cycles(arcs: &[Arc]) -> Vec<Vec<Arc>> {
         // Combine line segments and curved arcs in a cycle
         let arcs = vec![
             arcseg(point(0.0, 0.0), point(1.0, 0.0)),  // Line segment
-            arc_circle_parametrization(point(1.0, 0.0), point(0.0, 1.0), 0.5), // Curved arc
+            arc_from_bulge(point(1.0, 0.0), point(0.0, 1.0), 0.5), // Curved arc
             arcseg(point(0.0, 1.0), point(0.0, 0.0)),  // Line segment
         ];
         

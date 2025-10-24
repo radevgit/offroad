@@ -262,7 +262,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
             if arc.is_seg() {
                 (arc.a, arc.b, 0.0)
             } else {
-                let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+                let bulge = bulge_from_arc(arc.a, arc.b, arc.c, arc.r);
                 (arc.a, arc.b, bulge)
             }
         } else {
@@ -277,7 +277,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
                 if arc.is_seg() {
                     (arc.a, arc.b, 0.0)
                 } else {
-                    let bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+                    let bulge = bulge_from_arc(arc.a, arc.b, arc.c, arc.r);
                     (arc.a, arc.b, bulge)
                 }
             } else {
@@ -286,7 +286,7 @@ pub fn arcs_to_polylines_single(arcs: &Vec<Arc>) -> Polyline {
                     (arc.b, arc.a, 0.0)
                 } else {
                     // For reversed arc, we need to negate the bulge
-                    let forward_bulge = arc_bulge_from_points(arc.a, arc.b, arc.c, arc.r);
+                    let forward_bulge = bulge_from_arc(arc.a, arc.b, arc.c, arc.r);
                     (arc.b, arc.a, -forward_bulge)
                 }
             }
@@ -310,7 +310,7 @@ mod test_arcs_to_polylines {
             // First arc: from (0,0) to (1,0) - line segment
             arcseg(point(0.0, 0.0), point(1.0, 0.0)),
             // Second arc: from (1,0) to (0,1) - quarter circle
-            arc_circle_parametrization(point(1.0, 0.0), point(0.0, 1.0), 1.0),
+            arc_from_bulge(point(1.0, 0.0), point(0.0, 1.0), 1.0),
             // Third arc: from (0,1) to (0,0) - line segment (completing the loop)
             arcseg(point(0.0, 1.0), point(0.0, 0.0)),
         ];
@@ -342,7 +342,7 @@ mod test_arcs_to_polylines {
             arcseg(point(0.0, 0.0), point(1.0, 0.0)),
             // Second arc: reversed orientation (from (0,1) to (1,0) instead of (1,0) to (0,1))
             // This should be detected and corrected
-            arc_circle_parametrization(point(0.0, 1.0), point(1.0, 0.0), 1.0),
+            arc_from_bulge(point(0.0, 1.0), point(1.0, 0.0), 1.0),
         ];
 
         // Convert to polyline
@@ -518,7 +518,7 @@ pub fn offsetsegment(arc: Arc, is_arc: bool) -> OffsetSegment {
 
 //     #[test]
 //     fn test_new() {
-//         let arc = arc_circle_parametrization(point(1.0, 2.0), point(3.0, 4.0), 3.3);
+//         let arc = arc_from_bulge(point(1.0, 2.0), point(3.0, 4.0), 3.3);
 //         let o0 = OffsetRaw::new(arc, point(5.0, 6.0), 3.3);
 //         let o1 = offsetraw(arc, point(5.0, 6.0), 3.3);
 //         assert_eq!(o0, o1);
@@ -526,7 +526,7 @@ pub fn offsetsegment(arc: Arc, is_arc: bool) -> OffsetSegment {
 
 //     #[test]
 //     fn test_display() {
-//         let arc = arc_circle_parametrization(point(1.0, 2.0), point(3.0, 4.0), 3.3);
+//         let arc = arc_from_bulge(point(1.0, 2.0), point(3.0, 4.0), 3.3);
 //         let o0 = OffsetRaw::new(arc, point(5.0, 6.0), 3.3);
 //         assert_eq!("[[[1.00000000000000000000, 2.00000000000000000000], [3.00000000000000000000, 4.00000000000000000000], [3.49848484848484808651, 1.50151515151515169144], 2.54772716009334887488], [5.00000000000000000000, 6.00000000000000000000], 3.3]", format!("{}", o0));
 //     }
@@ -556,7 +556,7 @@ const ZERO: f64 = 0f64;
 // fn arc_offset(v0: PVertex, v1: PVertex, offset: f64) -> OffsetRaw {
 //     let bulge = v0.g;
 //     // arc is always CCW
-//     let param = arc_circle_parametrization(v0.p, v1.p, bulge);
+//     let param = arc_from_bulge(v0.p, v1.p, bulge);
 //     let v0_to_center = v0.p - param.c;
 //     let v0_to_center = v0_to_center.normalize();
 //     let v1_to_center = v1.p - param.c;
@@ -1308,7 +1308,7 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 //     #[ignore = "Generate coordinate for tests"]
 //     fn test_connect_offset_segments4() {
 //         // Calculates parametric point in the arc
-//         let arc = arc_circle_parametrization(point(50.0, 150.0), point(-20.0, 150.0), 1.0);
+//         let arc = arc_from_bulge(point(50.0, 150.0), point(-20.0, 150.0), 1.0);
 //         let offset = arc_offset(pvertex(arc.a, 1.0), pvertex(arc.b, 1.0), 32.0);
 
 //         let theta = 125_f64.to_radians();
@@ -1440,12 +1440,12 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 //     fn test_circle_with_two_close_lines() {
 //         let mut svg = svg(300.0, 350.0);
 //         let bul = 1.6;
-//         let arc0 = arc_circle_parametrization(point(100.0, 100.0), point(100.0, 160.0), bul);
-//         let arc1 = arc_circle_parametrization(point(90.0, 130.0), point(150.0, 190.0), 0f64);
-//         let arc2 = arc_circle_parametrization(point(94.0, 130.0), point(154.0, 190.0), 0f64);
+//         let arc0 = arc_from_bulge(point(100.0, 100.0), point(100.0, 160.0), bul);
+//         let arc1 = arc_from_bulge(point(90.0, 130.0), point(150.0, 190.0), 0f64);
+//         let arc2 = arc_from_bulge(point(94.0, 130.0), point(154.0, 190.0), 0f64);
 //         let mut offsets = vec![arc0, arc1, arc2];
 //         svg.offset_segments(&offsets, "red");
-//         let arc = arc_circle_parametrization(point(100.0, 100.0), point(100.0, 160.0), bul);
+//         let arc = arc_from_bulge(point(100.0, 100.0), point(100.0, 160.0), bul);
 //         svg.circle(&circle(arc.c, 0.5), "red");
 
 //         offset_resolve_self_intersect(&mut offsets);
@@ -1459,11 +1459,11 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 //     fn test_two_circles_one_point() {
 //         let mut svg = svg(300.0, 350.0);
 //         let bul = -1.6;
-//         let arc0 = arc_circle_parametrization(point(100.0, 100.0), point(200.0, 100.0), bul);
-//         let arc1 = arc_circle_parametrization(point(100.0, 100.0), point(200.0, 100.0), bul);
+//         let arc0 = arc_from_bulge(point(100.0, 100.0), point(200.0, 100.0), bul);
+//         let arc1 = arc_from_bulge(point(100.0, 100.0), point(200.0, 100.0), bul);
 //         let mut offsets = vec![arc0, arc1];
 //         svg.offset_segments(&offsets, "red");
-//         //let arc = arc_circle_parametrization(point(100.0, 100.0), point(100.0, 160.0), bul);
+//         //let arc = arc_from_bulge(point(100.0, 100.0), point(100.0, 160.0), bul);
 //         offset_resolve_self_intersect(&mut offsets);
 //         svg.offset_segments(&offsets, "black");
 //         svg.write();
@@ -1506,8 +1506,8 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 //         let p01 = point(100.0, 200.0);
 //         let p10 = point(200.0, 100.0);
 //         let p11 = point(200.0, 200.0);
-//         let arc0 = arc_circle_parametrization(p00, p01, 1.5);
-//         let arc1 = arc_circle_parametrization(p10, p11, -1.5);
+//         let arc0 = arc_from_bulge(p00, p01, 1.5);
+//         let arc1 = arc_from_bulge(p10, p11, -1.5);
 
 //         let mut offset = vec![arc0, arc1];
 //         svg.offset_segments(&offset, "red");
@@ -1523,10 +1523,10 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 //     let mut oarc: Vec<OffsetSegment> = Vec::with_capacity(pline.len());
 //     let last = pline.len() - 2;
 //     for i in 0..=last {
-//         let offseg = arc_circle_parametrization(pline[i].p, pline[i + 1].p, pline[i].g);
+//         let offseg = arc_from_bulge(pline[i].p, pline[i + 1].p, pline[i].g);
 //         oarc.push(offseg);
 //     }
-//     let offseg = arc_circle_parametrization(
+//     let offseg = arc_from_bulge(
 //         pline.last().unwrap().p,
 //         pline.first().unwrap().p,
 //         pline.last().unwrap().g,
@@ -2035,12 +2035,12 @@ fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
     let mut arcs = Vec::with_capacity(pline.len() + 1);
     let last = pline.len() - 1;
     for i in 0..last {
-        let arc = arc_circle_parametrization(pline[i].p, pline[i + 1].p, pline[i].b);
+        let arc = arc_from_bulge(pline[i].p, pline[i + 1].p, pline[i].b);
         arcs.push(arc);
     }
     // last segment
     let arc =
-        arc_circle_parametrization(pline.last().unwrap().p, pline[0].p, pline.last().unwrap().b);
+        arc_from_bulge(pline.last().unwrap().p, pline[0].p, pline.last().unwrap().b);
     arcs.push(arc);
     arcs
 }
@@ -2057,7 +2057,7 @@ fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
 //     let mut offs = Vec::with_capacity(pline.len() + 1);
 //     //let last = pline.len() - 1;
 //     for i in 0..pline.len() - 1 {
-//         let arc = arc_circle_parametrization(pline[i].p, pline[i + 1].p, pline[i].g);
+//         let arc = arc_from_bulge(pline[i].p, pline[i + 1].p, pline[i].g);
 //         let orig = if pline[i].g < ZERO {pline[i].p} else {pline[i + 1].p};
 //         let off = OffsetRaw {
 //             arc,
@@ -2067,7 +2067,7 @@ fn polyline_to_arcs_single(pline: &Polyline) -> Vec<Arc> {
 //         offs.push(off);
 //     }
 //     // last segment
-//     let arc = arc_circle_parametrization(pline.last().unwrap().p, pline[0].p, pline.last().unwrap().g);
+//     let arc = arc_from_bulge(pline.last().unwrap().p, pline[0].p, pline.last().unwrap().g);
 //     let orig = if pline.last().unwrap().g < ZERO {
 //         pline.last().unwrap().p
 //     } else {

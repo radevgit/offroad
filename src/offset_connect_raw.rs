@@ -396,8 +396,8 @@ mod test_offset_connect_raw_single {
     #[test]
     fn test_arc_segments() {
         // Test with actual arc segments (not just lines) using valid parametrization
-        let arc1 = arc_circle_parametrization(point(0.0, 0.0), point(2.0, 0.0), 0.3);
-        let arc2 = arc_circle_parametrization(point(3.0, 0.0), point(5.0, 0.0), -0.3);
+        let arc1 = arc_from_bulge(point(0.0, 0.0), point(2.0, 0.0), 0.3);
+        let arc2 = arc_from_bulge(point(3.0, 0.0), point(5.0, 0.0), -0.3);
 
         // Verify arcs are valid
         assert!(arc1.is_valid(1e-10));
@@ -546,8 +546,8 @@ mod test_offset_connect_raw_single {
     #[test] 
     fn test_realistic_curved_segments_with_gaps() {
         // Test with actual arc segments using valid parametrization
-        let arc1 = arc_circle_parametrization(point(0.0, 0.0), point(2.0, 2.0), 0.5);
-        let arc2 = arc_circle_parametrization(point(4.0, 2.0), point(6.0, 0.0), -0.5);
+        let arc1 = arc_from_bulge(point(0.0, 0.0), point(2.0, 2.0), 0.5);
+        let arc2 = arc_from_bulge(point(4.0, 2.0), point(6.0, 0.0), -0.5);
 
         // Verify arcs are geometrically valid
         assert!(arc1.is_valid(1e-10));
@@ -601,8 +601,8 @@ mod test_offset_connect_raw_single {
     #[test]
     fn test_all_g_value_combinations() {
         // Test various g values with curved arcs (not line segments)
-        let arc1 = arc_circle_parametrization(point(0.0, 0.0), point(1.0, 0.0), 0.5);
-        let arc2 = arc_circle_parametrization(point(2.0, 0.0), point(3.0, 0.0), 0.5);
+        let arc1 = arc_from_bulge(point(0.0, 0.0), point(1.0, 0.0), 0.5);
+        let arc2 = arc_from_bulge(point(2.0, 0.0), point(3.0, 0.0), 0.5);
         
         // Verify arcs are geometrically valid
         assert!(arc1.is_valid(1e-10));
