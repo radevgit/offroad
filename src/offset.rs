@@ -196,13 +196,6 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     let mut final_arcs = Vec::new();
     if cfg.reconnect {
         final_arcs = offset_reconnect_arcs(offset_arcs);
-        println!(
-            "offset_reconnect_arcs returned {} components",
-            final_arcs.len()
-        );
-        for (i, component) in final_arcs.iter().enumerate() {
-            println!("  Component {}: {} arcs", i, component.len());
-        }
     } else {
         final_arcs.push(offset_arcs);
     }
