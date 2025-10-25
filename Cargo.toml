@@ -15,7 +15,7 @@ readme = "README.md"
 
 
 [dependencies]
-togo = "0.5"
+togo = { path = "../togo" }
 robust = "1.2"
 
 [lib]

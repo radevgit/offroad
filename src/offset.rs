@@ -190,6 +190,7 @@ pub fn offset_arcline_to_arcline(arcs: &Arcline, off: f64, cfg: &mut OffsetCfg) 
     {
         svg.arcline(arcs, "red");
     }
+
     let offset_arcs = offset_arcline_to_arcline_impl(arcs, off, cfg);
 
     let mut final_arcs = Vec::new();
@@ -1588,107 +1589,7 @@ pub fn check_if_segments_intersect(off0: OffsetSegment, off1: OffsetSegment) -> 
 
 /// Test polyline for offseting.
 /// Has a mix of positive and negative offsets.
-pub fn pline_01() -> Vec<Polyline> {
-    let pline = vec![
-        pvertex(point(100.0, 100.0), 1.5),
-        pvertex(point(100.0, 160.0), ZERO),
-        pvertex(point(120.0, 200.0), ZERO),
-        pvertex(point(128.0, 192.0), ZERO),
-        pvertex(point(128.0, 205.0), ZERO),
-        pvertex(point(136.0, 197.0), ZERO),
-        pvertex(point(136.0, 245.0), -1.0), // zero radius after offset
-        pvertex(point(131.0, 250.0), ZERO),
-        pvertex(point(110.0, 250.0), -1.0), // zero radius after offset
-        pvertex(point(78.0, 250.0), ZERO),
-        pvertex(point(50.0, 250.0), -1.0), // zero radius after offset
-        pvertex(point(38.0, 250.0), ZERO),
-        pvertex(point(0.001, 250.0), 100000.0), // almost circle
-        pvertex(point(0.0, 250.0), ZERO),
-        pvertex(point(-52.0, 250.0), ZERO),
-        //pvertex(point(-52.0, 150.0), -1.0),
-        pvertex(
-            point(-23.429621235520095, 204.88318696736243),
-            -0.6068148963145962,
-        ),
-        pvertex(point(82.0, 150.0), 0f64),
-        pvertex(point(50.0, 150.0), 1.0),
-        pvertex(point(-20.0, 150.0), ZERO),
-        pvertex(point(0.0, 100.0), ZERO),
-    ];
-    let pline2 = polyline_scale(&pline, 1.0);
-    let plines = vec![pline2.clone()];
-    return plines;
-}
 
-
-/// Test polyline for offseting.
-pub fn pline_02() -> Polyline {
-    let pline = vec![
-        pvertex(point(50.0, 50.0), ZERO),
-        pvertex(point(200.0, 50.0), ZERO),
-        pvertex(point(180.0, 55.0), ZERO),
-        pvertex(point(160.0, 65.0), ZERO),
-        pvertex(point(140.0, 80.0), ZERO),
-        pvertex(point(120.0, 100.0), ZERO),
-        pvertex(point(100.0, 125.0), ZERO),
-        pvertex(point(120.0, 150.0), ZERO),
-        pvertex(point(140.0, 170.0), ZERO),
-        pvertex(point(160.0, 185.0), ZERO),
-        pvertex(point(180.0, 195.0), ZERO),
-        pvertex(point(200.0, 200.0), ZERO),
-        pvertex(point(-50.0, 200.0), ZERO),
-        pvertex(point(-30.0, 195.0), ZERO),
-        pvertex(point(-10.0, 185.0), ZERO),
-        pvertex(point(10.0, 170.0), ZERO),
-        pvertex(point(30.0, 150.0), ZERO),
-        pvertex(point(50.0, 125.0), ZERO),
-        pvertex(point(30.0, 100.0), ZERO),
-        pvertex(point(10.0, 80.0), ZERO),
-        pvertex(point(-10.0, 65.0), ZERO),
-        pvertex(point(-30.0, 55.0), ZERO),
-        pvertex(point(-50.0, 50.0), ZERO),
-        pvertex(point(50.0, 50.0), ZERO),
-    ];
-    // let pline2 = polyline_scale(&pline, 1.0);
-    // let plines = vec![pline2.clone()];
-    return pline;
-}
-
-/// Test polyline for offseting.
-pub fn pline_03() -> Vec<Polyline> {
-    let pline = vec![
-        pvertex(point(0.0, 0.0), ZERO),
-        pvertex(point(200.0, 0.0), ZERO),
-        pvertex(point(200.0, 100.0), ZERO),
-        pvertex(point(100.0, 100.0), ZERO),
-        pvertex(point(100.0, 200.0), ZERO),
-        pvertex(point(0.0, 200.0), ZERO),
-    ];
-    let pline2 = polyline_scale(&pline, 1.0);
-    let plines = vec![pline2.clone()];
-    return plines;
-}
-
-/// Test polyline for offseting.
-pub fn pline_04() -> Vec<Polyline> {
-    let outer = vec![
-        pvertex(point(50.0, 50.0), 0.2),
-        pvertex(point(100.0, 50.0), -0.5),
-        pvertex(point(100.0, 100.0), 0.2),
-        pvertex(point(50.0, 100.0), -0.5),
-    ];
-    let inner = vec![
-        pvertex(point(75.0, 60.0), ZERO),
-        pvertex(point(80.0, 75.0), ZERO),
-        pvertex(point(75.0, 80.0), ZERO),
-        pvertex(point(70.0, 75.0), ZERO),
-    ];
-    let inner = polyline_reverse(&inner);
-    let mut plines = Vec::new();
-    plines.push(outer);
-    plines.push(inner);
-    return plines;
-}
 
 // #[cfg(test)]
 // mod test_remove_invalid_offsets {

@@ -53,12 +53,15 @@ mod offset_reconnect_arcs;
 // Graph algorithms for connected components and cycle finding
 pub mod graph;
 
+// Test polyline definitions
+pub mod poly;
+
 
 // Re-export main offsetting functions
 // For public API
 pub mod prelude {
     pub use crate::offset::{offset_polyline_to_polyline, offset_arcline_to_arcline, OffsetCfg};
-    pub use crate::offset::{pline_01, pline_02, pline_03, pline_04};
+    pub use crate::poly::{pline_01, pline_02, pline_03, pline_04, pline_500};
 }
 // For internal use
 // pub use crate::offset_polyline_raw::{offset_polyline_raw, poly_to_raws};
