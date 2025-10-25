@@ -116,9 +116,7 @@ dependencies = [
 
 [[package]]
 name = "togo"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1cfd3d5d66a6deba7d3714d3a27b4a2f6e756f8347c1bee122ea322a8389c39"
+version = "0.6.0"
 dependencies = [
  "robust",
 ]

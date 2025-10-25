@@ -20,7 +20,7 @@ fn main() {
     //let poly = polyline_translate(&arcs_orig, point(40.0, 100.0));
 
     // Internal offsetting
-    //let poly = polyline_reverse(&poly);
+    //let arcs_orig = polyline_reverse(&arcs_orig);
     let offset_arclines = offset_arcline_to_arcline(&arcs_orig, 15.0, &mut cfg);
 
     println!("Input arcline has {} vertices", arcs_orig.len());

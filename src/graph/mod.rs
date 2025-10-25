@@ -11,6 +11,9 @@ pub mod find_cycles;
 #[cfg(test)]
 mod find_cycles_tangent_tests_simple;
 
+#[cfg(test)]
+mod cycle_detection_comprehensive_tests;
+
 // Re-export main functions
 pub use merge_ends::merge_close_endpoints;
 pub use find_cycles::find_non_intersecting_cycles;
