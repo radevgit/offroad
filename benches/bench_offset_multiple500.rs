@@ -40,10 +40,10 @@ Total time for 198 offset operations: 14.44784818s
 Average time per operation: 72.96893ms
 Operations per second: 13.7
 
-SPATIAL INDEX (USE_BRUTE_FORCE = false):
-Total time for 198 offset operations: 6.224936148s
-Average time per operation: 31.439071ms
-Operations per second: 31.8
+SPATIAL INDEX (USE_BRUTE_FORCE = false) - polyarcs only:
+Total time for 198 offset operations: 5.527450981s
+Average time per operation: 27.916419ms
+Operations per second: 35.8
 
-SPEEDUP: 2.32x faster with spatial index
+SPEEDUP: 2.61x faster with spatial index
 */

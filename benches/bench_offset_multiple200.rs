@@ -35,16 +35,15 @@ fn main() {
 /*
 > cargo bench --bench bench_offset_multiple200
 
-Base
 BRUTE-FORCE (USE_BRUTE_FORCE = true):
 Total time for 198 offset operations: 3.431741022s
 Average time per operation: 17.332025ms
 Operations per second: 57.7
 
-SPATIAL INDEX (USE_BRUTE_FORCE = false):
-Total time for 198 offset operations: 1.314992506s
-Average time per operation: 6.641376ms
-Operations per second: 150.6
+SPATIAL INDEX (USE_BRUTE_FORCE = false) - polyarcs only:
+Total time for 198 offset operations: 1.236930339s
+Average time per operation: 6.247122ms
+Operations per second: 160.1
 
-SPEEDUP: 2.61x faster with spatial index
+SPEEDUP: 2.77x faster with spatial index
 */

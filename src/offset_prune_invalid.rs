@@ -36,20 +36,13 @@ fn offset_prune_invalid_spatial(
         .filter(|arc| arc.is_valid(PRUNE_EPSILON))
         .collect();
 
-    // Build spatial index containing both polyarcs and offsets
-    let polyarc_count = polyarcs.len();
-    let mut spatial_index = HilbertRTree::with_capacity(polyarc_count + offsets.len());
+    // Build spatial index containing only polyarcs (with expansion for search radius)
+    let mut spatial_index = HilbertRTree::with_capacity(polyarcs.len());
     
     // Add polyarcs to index with offset + epsilon expansion (done once)
     let search_radius = off + PRUNE_EPSILON;
     for arc in polyarcs.iter() {
         let (min_x, max_x, min_y, max_y) = arc_bounds_expanded(arc, search_radius);
-        spatial_index.add(min_x, max_x, min_y, max_y);
-    }
-    
-    // Add offsets to index
-    for arc in offsets.iter() {
-        let (min_x, max_x, min_y, max_y) = arc_bounds(arc);
         spatial_index.add(min_x, max_x, min_y, max_y);
     }
     
@@ -59,7 +52,7 @@ fn offset_prune_invalid_spatial(
         let offset = offsets.pop().unwrap();
         valid.push(offset.clone());
 
-        // Query nearby arcs using spatial index
+        // Query nearby polyarcs using spatial index
         let (offset_min_x, offset_max_x, offset_min_y, offset_max_y) =
             arc_bounds(&offset);
         let mut nearby_indices = Vec::new();
@@ -73,16 +66,14 @@ fn offset_prune_invalid_spatial(
 
         // Check only nearby polyarcs for actual distance
         for idx in nearby_indices {
-            if idx < polyarc_count {
-                let p = &polyarcs[idx];
-                if p.id == offset.id {
-                    continue; // skip self offsets
-                }
-                let dist = distance_element_element(p, &offset);
-                if dist < off - PRUNE_EPSILON {
-                    valid.pop();
-                    break;
-                }
+            let p = &polyarcs[idx];
+            if p.id == offset.id {
+                continue; // skip self offsets
+            }
+            let dist = distance_element_element(p, &offset);
+            if dist < off - PRUNE_EPSILON {
+                valid.pop();
+                break;
             }
         }
     }

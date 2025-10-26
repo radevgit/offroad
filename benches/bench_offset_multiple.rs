@@ -36,8 +36,14 @@ fn main() {
 /*
 > cargo bench
 
+Base:
 Total time for 298 offset operations: 196.589137ms
 Average time per operation: 659.695µs
 Operations per second: 1515.9
+
+Spatial index:
+Total time for 298 offset operations: 190.66736ms
+Average time per operation: 639.823µs
+Operations per second: 1562.9
 
 */
