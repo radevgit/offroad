@@ -1,6 +1,10 @@
 # Changelog
 
 ## [0.4.0] - 2025-10-25
+- fixed offset for arclines
+- added benchmarks
+
+## [0.4.0] - 2025-10-25
 - Fixed negative bulge arc offsetting bugs
 - Improved bulge sign inference from arc connectivity
 - Cyclic loop refactoring in poly_to_raws_single and arcs_to_raws_single

@@ -28,7 +28,7 @@ checksum = "2874a2af47a2325c2001a6e6fad9b16a53b802102b528163885171cf92b15976"
 
 [[package]]
 name = "offroad"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "rand",
  "robust",
@@ -116,9 +116,9 @@ dependencies = [
 
 [[package]]
 name = "togo"
-version = "0.6.2"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b6621a4c569a1126cdf46a2559078c9191ca126d1c347dc168c9effb08c709b"
+checksum = "cdf60e3cfa31d9d64b5e3b406785187137bab2e47a7ec709e8997b52dede16f8"
 dependencies = [
  "robust",
 ]

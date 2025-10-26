@@ -1,6 +1,6 @@
 [package]
 name = "offroad"
-version = "0.4.0"
+version = "0.4.1"
 description = "2D offsetting for arc polylines/polygons."
 rust-version = "1.88"
 edition = "2024"
@@ -32,6 +32,18 @@ opt-level = 3
 
 [[bench]]
 name = "bench_offset_multiple"
+harness = false
+
+[[bench]]
+name = "bench_offset_multiple200"
+harness = false
+
+[[bench]]
+name = "bench_offset_multiple500"
+harness = false
+
+[[bench]]
+name = "bench_offset_multiple1000"
 harness = false
 
 [workspace.lints]

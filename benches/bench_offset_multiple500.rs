@@ -1,14 +1,14 @@
 use std::time::Instant;
-use togo::{poly::arcline200, prelude::*};
+use togo::{poly::arcline500, prelude::*};
 use offroad::prelude::*;
 
 fn main() {
-    println!("Multi-Offset Benchmark (~200 arcs in double spiral)");
+    println!("Multi-Offset Benchmark (~500 arcs in double spiral)");
     println!("======================================================");
     
     let mut cfg = OffsetCfg::default();
     cfg.svg_orig = false;
-    let arc_orig = arcline200();
+    let arc_orig = arcline500();
     
     let start = Instant::now();
     
@@ -33,11 +33,11 @@ fn main() {
 }
 
 /*
-> cargo bench --bench bench_offset_multiple200
+> cargo bench --bench bench_offset_multiple500
 
-Total time for 198 offset operations: 3.386764598s
-Average time per operation: 17.104871ms
-Operations per second: 58.5
+Total time for 198 offset operations: 14.064167675s
+Average time per operation: 71.031149ms
+Operations per second: 14.1
 
 
 */

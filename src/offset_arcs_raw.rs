@@ -33,11 +33,11 @@ pub(crate) fn offset_segment(seg: &Arc, orig: Point, g: f64, off: f64) -> Offset
 
 // Offsets line segment on right side
 // #00028
-fn line_offset(seg: &Arc, orig: Point, off: f64) -> OffsetRaw {
+fn line_offset(seg: &Arc, orig: Point, offset: f64) -> OffsetRaw {
     // line segment
     let perp = seg.b - seg.a;
     let (perp, _) = point(perp.y, -perp.x).normalize(false);
-    let offset_vec = perp * off;
+    let offset_vec = perp * offset;
     let mut arc = arcseg(seg.a + offset_vec, seg.b + offset_vec);
     arc.id(seg.id);
     return OffsetRaw {
@@ -61,9 +61,7 @@ fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
     let offset_radius = seg.r + off;
     let a = seg.a + v0_to_center * off;
     let b = seg.b + v1_to_center * off;
-    if offset_radius < EPS_COLLAPSED || offset_radius.is_nan()
-        || a.close_enough(b, EPS_COLLAPSED)
-    {
+    if offset_radius < EPS_COLLAPSED || offset_radius.is_nan() || a.close_enough(b, EPS_COLLAPSED) {
         // Collapsed arc is now line
         let mut arc = arcseg(b, a);
         arc.id(seg.id);
@@ -75,11 +73,11 @@ fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
     } else {
         let mut arc = arc(a, b, seg.c, offset_radius);
         arc.id(seg.id);
-        return OffsetRaw {
+        OffsetRaw {
             arc: arc,
             orig: orig,
             g: bulge,
-        };
+        }
     }
 }
 
@@ -94,7 +92,7 @@ pub fn poly_to_raws(plines: &Vec<Polyline>) -> Vec<Vec<OffsetRaw>> {
 pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     let mut offs = Vec::with_capacity(pline.len());
     let n = pline.len();
-    
+
     // Cyclic loop: for each vertex i, create arc from vertex i to vertex (i+1) mod n
     for i in 0..n {
         let bulge = pline[i].b;
@@ -116,7 +114,6 @@ pub fn poly_to_raws_single(pline: &Polyline) -> Vec<OffsetRaw> {
     offs
 }
 
-
 pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
     let mut varcs: Vec<Vec<OffsetRaw>> = Vec::new();
     for arcs in arcss {
@@ -128,7 +125,7 @@ pub fn arcs_to_raws(arcss: &Vec<Arcline>) -> Vec<Vec<OffsetRaw>> {
 pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
     let mut offs = Vec::with_capacity(arcs.len());
     let n = arcs.len();
-    
+
     // Cyclic loop: for each arc i, process it (arcs are already connected in sequence)
     for i in 0..n {
         let seg = arcs[i];
@@ -136,27 +133,37 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
         if !check {
             continue;
         }
-        
+
+        if seg.is_seg() {
+            let off = OffsetRaw {
+                arc: seg,
+                orig: seg.b,
+                g: ZERO,  // Line segments have no bulge
+            };
+            offs.push(off);
+            continue;
+        }
+
         // Determine bulge sign from connectivity with next arc
         // All arcs in togo are CCW, so bulge_from_arc() always returns positive
         // We need to check the direction based on how the arc connects to the next arc
         let next_i = (i + 1) % n;
         let next_seg = arcs[next_i];
-        
+
         // try to get arc orientation by checking the connection to the next arc
         let seg_b_to_next_a = seg.b == next_seg.a;
         let seg_b_to_next_b = seg.b == next_seg.b;
-        
+
         // Determine bulge sign (just ±1, not actual magnitude)
         // to identify which endpoint connects to next arc
         let bulge = if seg_b_to_next_a || seg_b_to_next_b {
             // seg.b connects to next arc -> seg is normal (positive bulge)
-            -1.0
+            1.0
         } else {
             // seg.a connects to next arc -> seg is reversed (negative bulge)
-            1.0
+            -1.0
         };
-        
+
         let orig = if bulge < ZERO { seg.a } else { seg.b };
         let off = OffsetRaw {
             arc: seg,
@@ -168,8 +175,6 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
 
     offs
 }
-
-
 
 #[cfg(test)]
 mod test_offset_polyline_raw {
@@ -324,14 +329,18 @@ mod test_offset_polyline_raw {
         // Arc from (10, 0) to (0, 10) - quarter circle in first quadrant
         let arc = arc(point(10.0, 0.0), point(0.0, 10.0), point(0.0, 0.0), 10.0);
         let bulge = 1.0; // positive bulge
-        
+
         // Offset right by 2.0 units (positive offset)
         let offset_result = arc_offset(&arc, arc.a, bulge, 2.0);
-        
+
         // For positive bulge, offset should expand the radius: 10 + 2 = 12
         let expected_radius = 12.0;
-        assert!((offset_result.arc.r - expected_radius).abs() < 0.01,
-                "Positive bulge: expected radius {}, got {}", expected_radius, offset_result.arc.r);
+        assert!(
+            (offset_result.arc.r - expected_radius).abs() < 0.01,
+            "Positive bulge: expected radius {}, got {}",
+            expected_radius,
+            offset_result.arc.r
+        );
     }
 
     #[test]
@@ -341,33 +350,45 @@ mod test_offset_polyline_raw {
         // Arc from (10, 0) to (0, 10) - but bulge is negative
         let arc = arc(point(10.0, 0.0), point(0.0, 10.0), point(0.0, 0.0), 10.0);
         let bulge = -1.0; // negative bulge
-        
+
         // Offset right by 2.0 units (positive offset)
-        // After bug fix: offset is NOT negated for negative bulge
-        // So radius becomes: 10 + 2.0 = 12.0 (same as positive bulge)
+        // For negative bulge, the offset is negated, so the arc shrinks
+        // Radius becomes: 10 + (-2.0) = 8.0
         let offset_result = arc_offset(&arc, arc.a, bulge, 2.0);
-        
-        let expected_radius = 12.0;
-        assert!((offset_result.arc.r - expected_radius).abs() < 0.01,
-                "Negative bulge: expected radius {}, got {}", expected_radius, offset_result.arc.r);
+
+        let expected_radius = 8.0;
+        assert!(
+            (offset_result.arc.r - expected_radius).abs() < 0.01,
+            "Negative bulge: expected radius {}, got {}",
+            expected_radius,
+            offset_result.arc.r
+        );
     }
 
     #[test]
     fn test_line_offset_simple_horizontal() {
         // Simple horizontal line segment from (0,0) to (10,0)
         let seg = arcseg(point(0.0, 0.0), point(10.0, 0.0));
-        
+
         // Offset to the right by 2 units
         // For a horizontal line going right, right offset should move it downward
         let result = line_offset(&seg, point(0.0, 0.0), 2.0);
-        
+
         // Expected: line from (0, -2) to (10, -2)
         let expected_a = point(0.0, -2.0);
         let expected_b = point(10.0, -2.0);
-        assert!(result.arc.a.close_enough(expected_a, 0.01), 
-                "Expected a={:?}, got {:?}", expected_a, result.arc.a);
-        assert!(result.arc.b.close_enough(expected_b, 0.01), 
-                "Expected b={:?}, got {:?}", expected_b, result.arc.b);
+        assert!(
+            result.arc.a.close_enough(expected_a, 0.01),
+            "Expected a={:?}, got {:?}",
+            expected_a,
+            result.arc.a
+        );
+        assert!(
+            result.arc.b.close_enough(expected_b, 0.01),
+            "Expected b={:?}, got {:?}",
+            expected_b,
+            result.arc.b
+        );
     }
 
     #[test]
@@ -382,22 +403,25 @@ mod test_offset_polyline_raw {
     fn test_arc_offset_direction_consistency() {
         // This is the critical test: when offsetting with the SAME positive distance,
         // do different bulges offset in different directions?
-        
+
         // Create a simple vertical line from (5, 0) to (5, 10)
         // Positive bulge: curves right (center at x > 5)
         // Negative bulge: curves left (center at x < 5)
-        
+
         let seg = arcseg(point(5.0, 0.0), point(5.0, 10.0));
-        
+
         // For a vertical segment going up:
         // - Right offset should move to x = 7 (increasing x)
         // - Left offset should move to x = 3 (decreasing x)
-        
+
         let result_right = line_offset(&seg, point(5.0, 0.0), 2.0);
-        
+
         // For vertical line going up, right offset should move x coordinate to 7
-        assert!((result_right.arc.a.x - 7.0).abs() < 0.01, 
-                "Expected right offset to x=7, got x={}", result_right.arc.a.x);
+        assert!(
+            (result_right.arc.a.x - 7.0).abs() < 0.01,
+            "Expected right offset to x=7, got x={}",
+            result_right.arc.a.x
+        );
     }
 
     #[test]
@@ -413,24 +437,33 @@ mod test_offset_polyline_raw {
         // INSIGHT: All arcs in togo are CCW, so bulge_from_arc() always returns positive!
         // Negative bulge metadata is LOST when converting arc_from_bulge to Arc struct
         // This is why arcs_to_raws_single can never recover original bulge sign
-        
+
         let start = point(0.0, 0.0);
         let end = point(10.0, 0.0);
-        
+
         // Create arc with negative bulge
         let arc_neg = arc_from_bulge(start, end, -1.0);
         let recalc_neg = bulge_from_arc(arc_neg.a, arc_neg.b, arc_neg.c, arc_neg.r);
-        
+
         // Create arc with positive bulge
         let arc_pos = arc_from_bulge(start, end, 1.0);
         let recalc_pos = bulge_from_arc(arc_pos.a, arc_pos.b, arc_pos.c, arc_pos.r);
-        
+
         // Both recalculate to positive because all arcs in togo are CCW
-        assert!(recalc_neg > 0.0, "Recalculated bulge from negative should still be positive (all togo arcs are CCW)");
-        assert!(recalc_pos > 0.0, "Recalculated bulge from positive should be positive");
-        
+        assert!(
+            recalc_neg > 0.0,
+            "Recalculated bulge from negative should still be positive (all togo arcs are CCW)"
+        );
+        assert!(
+            recalc_pos > 0.0,
+            "Recalculated bulge from positive should be positive"
+        );
+
         // The arcs might be geometrically different, but bulge sign info is lost
-        eprintln!("Original negative bulge: -1.0, recalculated: {}", recalc_neg);
+        eprintln!(
+            "Original negative bulge: -1.0, recalculated: {}",
+            recalc_neg
+        );
         eprintln!("Original positive bulge: 1.0, recalculated: {}", recalc_pos);
         eprintln!("Arc from neg: a={:?}, b={:?}", arc_neg.a, arc_neg.b);
         eprintln!("Arc from pos: a={:?}, b={:?}", arc_pos.a, arc_pos.b);

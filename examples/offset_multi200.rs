@@ -7,16 +7,24 @@ fn main() {
     let mut svg = SVG::new(800.0, 800.0, Some("/tmp/multi200.svg"));
     cfg.svg = Some(&mut svg);
     cfg.svg_orig = true;
-    cfg.svg_raw = true;
+    cfg.svg_final = true;
 
-    let poly_orig = arcline200();
+    let arcs_orig = arcline200();
     // Translate to fit in the SVG viewport
     //let poly = polyline_translate(&poly_orig, point(250.0, 100.0));
 
     let mut offset_external = vec![];
-    for i in 1..5 {
-        let offset = offset_arcline_to_arcline(&poly_orig, (i as f64), &mut cfg);
+    for i in 1..10 {
+        let offset = offset_arcline_to_arcline(&arcs_orig, (i as f64), &mut cfg);
         offset_external.extend(offset);
+    }
+
+    let arcs_reverse = arcline_reverse(&arcs_orig);
+
+    let mut offset_internal = vec![];
+    for i in 1..10 {
+        let offset = offset_arcline_to_arcline(&arcs_reverse, (i as f64), &mut cfg);
+        offset_internal.extend(offset);
     }
 
     if let Some(svg) = cfg.svg.as_mut(){
