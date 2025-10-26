@@ -5,9 +5,9 @@ use togo::prelude::*;
 
 use crate::{
     offset_connect_raw::offset_connect_raw,
-    offset_polyline_raw::{self, arcs_to_raws, poly_to_raws},
+    offset_arcs_raw::{self, arcs_to_raws, poly_to_raws},
     offset_prune_invalid::offset_prune_invalid,
-    offset_raw::OffsetRaw,
+    offsetraw::OffsetRaw,
     offset_reconnect_arcs::{offset_reconnect_arcs},
     offset_split_arcs::offset_split_arcs
 };
@@ -396,7 +396,7 @@ pub fn offset_polyline_multiple(
 }
 
 fn offset_single(poly_raws: &Vec<Vec<OffsetRaw>>, off: f64, cfg: &mut OffsetCfg) -> Vec<Arc> {
-    let offset_raw = offset_polyline_raw::offset_polyline_raw(&poly_raws, off);
+    let offset_raw = offset_arcs_raw::offset_polyline_raw(&poly_raws, off);
     if let Some(svg) = cfg.svg.as_mut()
         && cfg.svg_raw
     {

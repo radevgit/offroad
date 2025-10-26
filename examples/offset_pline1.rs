@@ -15,8 +15,8 @@ fn main() {
 
     let _offset_polylines = offset_polyline_to_polyline(&poly, 16.0, &mut cfg);
     // Internal offsetting
-    let poly = polyline_reverse(&poly);
-    let _offset_polylines = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
+    //let poly = polyline_reverse(&poly);
+    //let _offset_polylines = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
     //let _offset_polylines = offset_polyline_to_polyline(&poly, 16.0, &mut cfg);
 
     if let Some(svg) = cfg.svg.as_mut(){

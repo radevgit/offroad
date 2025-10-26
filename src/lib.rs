@@ -32,10 +32,10 @@
 // Offsetting algorithm components
 pub mod offset;
 #[doc(hidden)]
-pub mod offset_raw;
+pub mod offsetraw;
 #[doc(hidden)]
 // raw offsetting components (lines, arcs)
-mod offset_polyline_raw;
+mod offset_arcs_raw;
 #[doc(hidden)]
 // connect raw offsets with arcs
 mod offset_connect_raw;

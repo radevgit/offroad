@@ -3,7 +3,7 @@
 
 use togo::prelude::*;
 
-use crate::offset_raw::OffsetRaw;
+use crate::offsetraw::OffsetRaw;
 
 static ZERO: f64 = 0.0;
 const EPSILON: f64 = 1e-10;

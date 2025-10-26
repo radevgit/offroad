@@ -4,7 +4,7 @@ use robust::{Coord, orient2d};
 
 use togo::prelude::*;
 
-use crate::offset_raw::OffsetRaw;
+use crate::offsetraw::OffsetRaw;
 
 const ZERO: f64 = 0f64;
 const EPS_CONNECT_RAW: f64 = 1e-8;
@@ -148,7 +148,7 @@ fn arc_connect_new(
 #[cfg(test)]
 mod test_offset_connect_raw {
     use crate::{
-        poly::pline_01, offset::svg_offset_raws, offset_polyline_raw::{offset_polyline_raw, poly_to_raws}
+        poly::pline_01, offset::svg_offset_raws, offset_arcs_raw::{offset_polyline_raw, poly_to_raws}
     };
 
     use super::*;

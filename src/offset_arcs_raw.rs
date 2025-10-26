@@ -2,7 +2,7 @@
 
 use togo::prelude::*;
 
-use crate::offset_raw::OffsetRaw;
+use crate::offsetraw::OffsetRaw;
 
 const ZERO: f64 = 0f64;
 
@@ -175,7 +175,7 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
 mod test_offset_polyline_raw {
     use togo::prelude::*;
 
-    use crate::offset_raw::offsetraw;
+    use crate::offsetraw::offsetraw;
 
     use super::*;
 
