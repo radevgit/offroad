@@ -35,9 +35,15 @@ fn main() {
 /*
 > cargo bench --bench bench_offset_multiple500
 
-Total time for 198 offset operations: 14.064167675s
-Average time per operation: 71.031149ms
-Operations per second: 14.1
+BRUTE-FORCE (USE_BRUTE_FORCE = true):
+Total time for 198 offset operations: 14.44784818s
+Average time per operation: 72.96893ms
+Operations per second: 13.7
 
+SPATIAL INDEX (USE_BRUTE_FORCE = false):
+Total time for 198 offset operations: 6.224936148s
+Average time per operation: 31.439071ms
+Operations per second: 31.8
 
+SPEEDUP: 2.32x faster with spatial index
 */

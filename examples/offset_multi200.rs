@@ -31,9 +31,4 @@ fn main() {
         // Write svg to file
         svg.write_stroke_width(0.1);
     }
-
-    // assert!(
-    //     offset_external.len() == 228,
-    //     "Wrong number of offset arclines generated. Expected 228, got {}", offset_external.len()
-    // );
 }
