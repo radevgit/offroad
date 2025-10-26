@@ -151,10 +151,10 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
         // to identify which endpoint connects to next arc
         let bulge = if seg_b_to_next_a || seg_b_to_next_b {
             // seg.b connects to next arc -> seg is normal (positive bulge)
-            1.0
+            -1.0
         } else {
             // seg.a connects to next arc -> seg is reversed (negative bulge)
-            -1.0
+            1.0
         };
         
         let orig = if bulge < ZERO { seg.a } else { seg.b };
