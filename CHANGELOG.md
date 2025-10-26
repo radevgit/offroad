@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.4.2] - 2025-10-26
+- Implement spatial index for the prune phase
+
 ## [0.4.1] - 2025-10-25
 - fixed offset for arclines
 - added benchmarks
