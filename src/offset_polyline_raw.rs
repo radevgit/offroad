@@ -56,7 +56,8 @@ fn arc_offset(seg: &Arc, orig: Point, bulge: f64, offset: f64) -> OffsetRaw {
     let (v0_to_center, _) = (seg.a - seg.c).normalize(false);
     let (v1_to_center, _) = (seg.b - seg.c).normalize(false);
 
-    let off = offset;
+    // For negative bulge (reversed arc), negate the offset to maintain "right side" direction
+    let off = if bulge < ZERO { -offset } else { offset };
     let offset_radius = seg.r + off;
     let a = seg.a + v0_to_center * off;
     let b = seg.b + v1_to_center * off;
@@ -142,25 +143,18 @@ pub fn arcs_to_raws_single(arcs: &Arcline) -> Vec<OffsetRaw> {
         let next_i = (i + 1) % n;
         let next_seg = arcs[next_i];
         
-        // Check all four possible connections:
-        // Valid arclines should connect exactly, no tolerance needed
+        // try to get arc orientation by checking the connection to the next arc
         let seg_b_to_next_a = seg.b == next_seg.a;
         let seg_b_to_next_b = seg.b == next_seg.b;
-        let seg_a_to_next_a = seg.a == next_seg.a;
-        let seg_a_to_next_b = seg.a == next_seg.b;
         
-        // Determine if current arc is normal (positive bulge) or reversed (negative bulge)
-        // based on which endpoint connects to the next arc
-        let bulge_recalc = bulge_from_arc(seg.a, seg.b, seg.c, seg.r);
+        // Determine bulge sign (just ±1, not actual magnitude)
+        // to identify which endpoint connects to next arc
         let bulge = if seg_b_to_next_a || seg_b_to_next_b {
             // seg.b connects to next arc -> seg is normal (positive bulge)
-            bulge_recalc
-        } else if seg_a_to_next_a || seg_a_to_next_b {
-            // seg.a connects to next arc -> seg is reversed (negative bulge)
-            -bulge_recalc
+            1.0
         } else {
-            // No clear connection found, default to positive
-            bulge_recalc
+            // seg.a connects to next arc -> seg is reversed (negative bulge)
+            -1.0
         };
         
         let orig = if bulge < ZERO { seg.a } else { seg.b };
