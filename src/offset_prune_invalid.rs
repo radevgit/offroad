@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use togo::prelude::*;
-use togo::spatial::HilbertRTree;
+use aabb::HilbertRTree;
 
 use crate::offsetraw::OffsetRaw;
 
