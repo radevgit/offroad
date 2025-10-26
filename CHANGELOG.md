@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.0] - 2025-10-25
+## [0.4.1] - 2025-10-25
 - fixed offset for arclines
 - added benchmarks
 
