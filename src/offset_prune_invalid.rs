@@ -43,7 +43,7 @@ fn offset_prune_invalid_spatial(
     let search_radius = off + PRUNE_EPSILON;
     for arc in polyarcs.iter() {
         let (min_x, max_x, min_y, max_y) = arc_bounds_expanded(arc, search_radius);
-        spatial_index.add(min_x, max_x, min_y, max_y);
+        spatial_index.add(min_x, min_y, max_x, max_y);
     }
     
     spatial_index.build();
@@ -58,8 +58,8 @@ fn offset_prune_invalid_spatial(
         let mut nearby_indices = Vec::new();
         spatial_index.query_intersecting(
             offset_min_x,
-            offset_max_x,
             offset_min_y,
+            offset_max_x,
             offset_max_y,
             &mut nearby_indices,
         );
