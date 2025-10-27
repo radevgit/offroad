@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.5.1] - 2025-10-27
+- Update version of **aabb**
+
 ## [0.4.5] - 2025-10-26
 - Add **aabb** to Cargo
 
