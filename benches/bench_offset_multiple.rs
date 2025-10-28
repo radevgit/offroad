@@ -34,7 +34,7 @@ fn main() {
 }
 
 /*
-> cargo bench
+> cargo bench --bench bench_offset_multiple
 
 Base:
 Total time for 298 offset operations: 196.589137ms
@@ -46,7 +46,7 @@ Total time for 298 offset operations: 190.66736ms
 Average time per operation: 639.823µs
 Operations per second: 1562.9
 
-Last AABB:
+AABB v0.3:
 Total time for 298 offset operations: 185.851519ms
 Average time per operation: 623.662µs
 Operations per second: 1603.4

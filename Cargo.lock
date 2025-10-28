@@ -4,15 +4,9 @@ version = 4
 
 [[package]]
 name = "aabb"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c70af1fce8143e10a2db943a14a0a65d6101b59b951009e93d7dda0f2b1f594f"
-
-[[package]]
-name = "aabb"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18683f9d8357a4d31f349ce98126cf082f3c2b09e78f90d716f6c33d27592ef8"
+checksum = "0a6eeb4d4b50edab9f821fbb477956d836afce5960681d018f62da89a35a1caa"
 
 [[package]]
 name = "cfg-if"
@@ -40,9 +34,9 @@ checksum = "2874a2af47a2325c2001a6e6fad9b16a53b802102b528163885171cf92b15976"
 
 [[package]]
 name = "offroad"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
- "aabb 0.4.0",
+ "aabb",
  "rand",
  "robust",
  "togo",
@@ -129,11 +123,11 @@ dependencies = [
 
 [[package]]
 name = "togo"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f005ab50eef99caf68d170d57415baa8af44c700073f2cc2d2a2f98ef49e13b"
+checksum = "dfb095a83564da255fbf7516c02c974e358a5eff774aa6d2b1c60f4695712cf6"
 dependencies = [
- "aabb 0.3.0",
+ "aabb",
  "robust",
 ]
 

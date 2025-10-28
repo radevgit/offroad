@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.5.3] - 2025-10-28
+- Update version of **aabb**
+
 ## [0.5.2] - 2025-10-28
 - Update version of **aabb**
 
