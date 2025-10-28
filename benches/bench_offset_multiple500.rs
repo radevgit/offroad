@@ -45,5 +45,9 @@ Total time for 198 offset operations: 5.527450981s
 Average time per operation: 27.916419ms
 Operations per second: 35.8
 
-SPEEDUP: 2.61x faster with spatial index
+Last AABB:
+Total time for 198 offset operations: 5.513286097s
+Average time per operation: 27.844879ms
+Operations per second: 35.9
+
 */
