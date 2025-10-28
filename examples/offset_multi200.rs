@@ -14,7 +14,7 @@ fn main() {
     //let poly = polyline_translate(&poly_orig, point(250.0, 100.0));
 
     let mut offset_external = vec![];
-    for i in 1..10 {
+    for i in 1..30 {
         let offset = offset_arcline_to_arcline(&arcs_orig, (i as f64), &mut cfg);
         offset_external.extend(offset);
     }
@@ -22,7 +22,7 @@ fn main() {
     let arcs_reverse = arcline_reverse(&arcs_orig);
 
     let mut offset_internal = vec![];
-    for i in 1..10 {
+    for i in 1..30 {
         let offset = offset_arcline_to_arcline(&arcs_reverse, (i as f64), &mut cfg);
         offset_internal.extend(offset);
     }

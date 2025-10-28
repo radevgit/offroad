@@ -15,8 +15,8 @@ fn main() {
 
     let offset_polylines = offset_polyline_to_polyline(&poly, 10.0, &mut cfg);
     // Internal offsetting
-    // let poly = polyline_reverse(&poly);
-    // let _offset_polylines = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
+    let poly = polyline_reverse(&poly);
+    let offset_polylines2 = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
     //let _offset_polylines = offset_polyline_to_polyline(&poly, 16.0, &mut cfg);
 
 
@@ -27,4 +27,9 @@ fn main() {
 
     assert_eq!(offset_polylines.len(), 1, "Expected exactly 1 offset polyline");
     assert_eq!(offset_polylines[0].len(), 27);
+    assert_eq!(offset_polylines2.len(), 4, "Expected exactly 1 offset polyline");
+    assert_eq!(offset_polylines2[0].len(), 9);
+    assert_eq!(offset_polylines2[1].len(), 3);
+    assert_eq!(offset_polylines2[2].len(), 7);
+    assert_eq!(offset_polylines2[3].len(), 8);
 }
