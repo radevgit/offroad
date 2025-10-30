@@ -16,7 +16,7 @@ readme = "README.md"
 
 [dependencies]
 togo = "0.6"
-aabb = "0.5"
+aabb = "0.6"
 robust = "1.2"
 
 [lib]
