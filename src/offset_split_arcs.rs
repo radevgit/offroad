@@ -91,11 +91,18 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
             let _ = parts.swap_remove(*i);
         }
         // Reconstruct matching_arcs with just the arcs (indices are no longer valid)
-        let matching_arcs: Vec<Arc> = matching_arcs.iter().map(|(_, arc)| arc.clone()).collect();
+        let mut matching_arcs: Vec<Arc> = matching_arcs.iter().map(|(_, arc)| arc.clone()).collect();
 
-        let mut cur = 0; // current part1
+        // If no matching_arcs found, add part0 to final
+        if matching_arcs.is_empty() {
+            parts_final.push(part0);
+            continue;
+        }
+
         // Find split parts
-        for part1 in matching_arcs.iter() {
+        let mut is_splitted = false;
+        while matching_arcs.len() > 0 {
+            let part1 = matching_arcs.pop().unwrap();
             let (parts_new, _) = if part0.is_seg() && part1.is_seg() {
                 split_line_line(&part0, &part1)
             } else if part0.is_arc() && part1.is_arc() {
@@ -111,18 +118,16 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
             // we have split
             if !parts_new.is_empty() {
                 // add back the rest arcs
-                for m in cur..matching_arcs.len() {
-                    parts.push(matching_arcs[m].clone());
-                }
+                parts.extend(matching_arcs);
                 parts.extend(parts_new);
+                is_splitted = true;
                 break;
             } else {
                 // There is no actual split with this arc, so we return it back
-                parts.push(*part1)
+                parts.push(part1.clone())
             }
-            cur += 1;
         }
-        if cur == matching_arcs.len() {
+        if !is_splitted {
             // the part0 does not intersect with any other part
             parts_final.push(part0);
         }
