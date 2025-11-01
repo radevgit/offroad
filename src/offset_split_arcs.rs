@@ -23,18 +23,6 @@ fn arc_bounds(arc: &Arc) -> (f64, f64, f64, f64) {
     }
 }
 
-/// Pack original_id (lower 32 bits) with parent_id (upper 32 bits)
-fn pack_id(original_id: usize, parent_id: u32) -> usize {
-    ((parent_id as usize) << 32) | (original_id & 0xFFFFFFFF)
-}
-
-/// Unpack to get (original_id, parent_id)
-fn unpack_id(packed: usize) -> (u32, u32) {
-    let original_id = (packed & 0xFFFFFFFF) as u32;
-    let parent_id = ((packed >> 32) & 0xFFFFFFFF) as u32;
-    (original_id, parent_id)
-}
-
 pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
     // Merge offsets and offset connections, filter singular arcs
     let mut parts: Vec<Arc> = row
@@ -50,9 +38,10 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
         .filter(|arc| arc.is_valid(EPSILON))
         .collect();
 
-    let k = 0;
+    let mut id_counter: usize = 0;
     for part in parts.iter_mut() {
-        part.id(pack_id(k, u32::MAX));
+        part.id(id_counter);
+        id_counter += 1;
     }
 
     // Build spatial index once based on ORIGINAL arc IDs
@@ -77,7 +66,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
         // Query spatial index to find the first spatially overlapping candidate
         let (xmin0, ymin0, xmax0, ymax0) = arc_bounds(&part0);
         let mut candidates = Vec::new();
-        spatial_index.query_intersecting_k(xmin0, ymin0, xmax0, ymax0, 1, &mut candidates);
+        spatial_index.query_intersecting(xmin0, ymin0, xmax0, ymax0, &mut candidates);
 
         // If no candidates found, add part0 to final
         if candidates.is_empty() {
@@ -85,13 +74,16 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
             continue;
         }
 
-        let candidate_id = candidates[0] as u32;
         let mut matching_arcs: Vec<(usize, Arc)> = Vec::new();
+        let mut used_ids: Vec<usize> = Vec::new();
         // Find arcs what have parent with candidate_id
-        for (i, arc) in parts.iter().enumerate() {
-            let (_, parent_id) = unpack_id(arc.id);
-            if parent_id == candidate_id {
-                matching_arcs.push((i, arc.clone()));
+        // and deduplicate them
+        for c_id in candidates.iter() {
+            for (i, arc) in parts.iter().enumerate() {
+                if *c_id == arc.id && !used_ids.contains(&i) {
+                    matching_arcs.push((i, arc.clone()));
+                    used_ids.push(i);
+                }
             }
         }
         // Remove matching arcs from parts in reverse order
@@ -102,7 +94,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
         let matching_arcs: Vec<Arc> = matching_arcs.iter().map(|(_, arc)| arc.clone()).collect();
 
         let mut cur = 0; // current part1
-        // Find split parts 
+        // Find split parts
         for part1 in matching_arcs.iter() {
             let (parts_new, _) = if part0.is_seg() && part1.is_seg() {
                 split_line_line(&part0, &part1)
@@ -119,7 +111,7 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
             // we have split
             if !parts_new.is_empty() {
                 // add back the rest arcs
-                for m in (cur + 1)..matching_arcs.len() {
+                for m in cur..matching_arcs.len() {
                     parts.push(matching_arcs[m].clone());
                 }
                 parts.extend(parts_new);
@@ -129,25 +121,21 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
                 parts.push(*part1)
             }
             cur += 1;
-            if cur == matching_arcs.len() {
-                // the part0 does not intersect with any other part
-                parts_final.push(part0);
-            }
         }
-
+        if cur == matching_arcs.len() {
+            // the part0 does not intersect with any other part
+            parts_final.push(part0);
+        }
     }
 
     parts_final
-
 }
 
 // Split two lines at intersection point
 pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     let mut res = Vec::new();
-    let (mut id0, parent0) = unpack_id(arc0.id);
-    let (mut id1, parent1) = unpack_id(arc1.id);
-    id0 = if parent0 == u32::MAX { id0 } else { parent0 };
-    id1 = if parent1 == u32::MAX { id1 } else { parent1 };
+    let id0 = arc0.id;
+    let id1 = arc1.id;
 
     let seg0 = segment(arc0.a, arc0.b);
     let seg1 = segment(arc1.a, arc1.b);
@@ -166,10 +154,10 @@ pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut line01 = arcseg(sp, arc0.b);
             let mut line10 = arcseg(sp, arc1.a);
             let mut line11 = arcseg(sp, arc1.b);
-            line00.id(pack_id(arc0.id, id0));
-            line01.id(pack_id(arc0.id, id0));
-            line10.id(pack_id(arc1.id, id1));
-            line11.id(pack_id(arc1.id, id1));
+            line00.id(id0);
+            line01.id(id0);
+            line10.id(id1);
+            line11.id(id1);
             check_and_push(&mut res, &line00);
             check_and_push(&mut res, &line01);
             check_and_push(&mut res, &line10);
@@ -181,9 +169,9 @@ pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut line00 = arcseg(p0, p1);
             let mut line01 = arcseg(p1, p2);
             let mut line10 = arcseg(p2, p3);
-            line00.id(pack_id(arc0.id, id0));
-            line01.id(pack_id(arc0.id, id0));
-            line10.id(pack_id(arc1.id, id1));
+            line00.id(id0);
+            line01.id(id0);
+            line10.id(id1);
             check_and_push(&mut res, &line00);
             check_and_push(&mut res, &line01);
             check_and_push(&mut res, &line10);
@@ -194,10 +182,8 @@ pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 
 pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     let mut res = Vec::new();
-    let (mut id0, parent0) = unpack_id(arc0.id);
-    let (mut id1, parent1) = unpack_id(arc1.id);
-    id0 = if parent0 == u32::MAX { id0 } else { parent0 };
-    id1 = if parent1 == u32::MAX { id1 } else { parent1 };
+    let id0 = arc0.id;
+    let id1 = arc1.id;
 
     let inter = int_arc_arc(&arc0, &arc1);
     match inter {
@@ -216,10 +202,10 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc01 = arc(p, arc0.b, arc0.c, arc0.r);
             let mut arc10 = arc(arc1.a, p, arc1.c, arc1.r);
             let mut arc11 = arc(p, arc1.b, arc1.c, arc1.r);
-            arc00.id(pack_id(arc0.id, id0));
-            arc01.id(pack_id(arc0.id, id0));
-            arc10.id(pack_id(arc1.id, id1));
-            arc11.id(pack_id(arc1.id, id1));
+            arc00.id(id0);
+            arc01.id(id0);
+            arc10.id(id1);
+            arc11.id(id1);
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
             check_and_push(&mut res, &arc10);
@@ -235,9 +221,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc00 = arc(arc0.a, p0, arc0.c, arc0.r);
             let mut arc01 = arc(p0, p1, arc0.c, arc0.r);
             let mut arc02 = arc(p1, arc0.b, arc0.c, arc0.r);
-            arc00.id(pack_id(arc0.id, id0));
-            arc01.id(pack_id(arc0.id, id0));
-            arc02.id(pack_id(arc0.id, id0));
+            arc00.id(id0);
+            arc01.id(id0);
+            arc02.id(id0);
 
             if points_order(arc1.a, p0, p1) < ZERO {
                 (p1, p0) = (p0, p1);
@@ -245,9 +231,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc10 = arc(arc1.a, p0, arc1.c, arc1.r);
             let mut arc11 = arc(p0, p1, arc1.c, arc1.r);
             let mut arc12 = arc(p1, arc1.b, arc1.c, arc1.r);
-            arc10.id(pack_id(arc1.id, id1));
-            arc11.id(pack_id(arc1.id, id1));
-            arc12.id(pack_id(arc1.id, id1));
+            arc10.id(id1);
+            arc11.id(id1);
+            arc12.id(id1);
 
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
@@ -261,9 +247,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc00 = arc(arc0.a, arc1.b, arc0.c, arc0.r);
             let mut arc01 = arc(arc1.b, arc0.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc0.b, arc0.a, arc0.c, arc0.r);
-            arc00.id(pack_id(arc0.id, id0));
-            arc01.id(pack_id(arc1.id, id1));
-            arc02.id(pack_id(arc0.id, id0));
+            arc00.id(id0);
+            arc01.id(id1);
+            arc02.id(id0);
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
             check_and_push(&mut res, &arc02);
@@ -273,9 +259,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc00 = arc(arc1.a, arc0.b, arc0.c, arc0.r);
             let mut arc01 = arc(arc0.b, arc1.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc1.b, arc1.a, arc0.c, arc0.r);
-            arc00.id(pack_id(arc1.id, id1));
-            arc01.id(pack_id(arc0.id, id0));
-            arc02.id(pack_id(arc1.id, id1));
+            arc00.id(id1);
+            arc01.id(id0);
+            arc02.id(id1);
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
             check_and_push(&mut res, &arc02);
@@ -283,7 +269,7 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
         }
         ArcArcConfig::CocircularOneArc0(_) => {
             let mut arc00 = arc(arc0.a, arc0.b, arc0.c, arc0.r);
-            arc00.id(pack_id(arc0.id, id0));
+            arc00.id(id0);
             check_and_push(&mut res, &arc00);
             (res, 1)
         }
@@ -292,9 +278,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc00 = arc(arc1.a, arc0.a, arc0.c, arc0.r);
             let mut arc01 = arc(arc0.a, arc0.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc0.b, arc1.b, arc0.c, arc0.r);
-            arc00.id(pack_id(arc1.id, id1));
-            arc01.id(pack_id(arc0.id, id0));
-            arc02.id(pack_id(arc1.id, id1));
+            arc00.id(id1);
+            arc01.id(id0);
+            arc02.id(id1);
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
             check_and_push(&mut res, &arc02);
@@ -305,9 +291,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc00 = arc(arc1.a, arc0.a, arc0.c, arc0.r);
             let mut arc01 = arc(arc0.a, arc1.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc1.b, arc0.b, arc0.c, arc0.r);
-            arc00.id(pack_id(arc1.id, id1));
-            arc01.id(pack_id(arc0.id, id0));
-            arc02.id(pack_id(arc1.id, id1));
+            arc00.id(id1);
+            arc01.id(id0);
+            arc02.id(id1);
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
             check_and_push(&mut res, &arc02);
@@ -318,9 +304,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc00 = arc(arc0.a, arc1.a, arc0.c, arc0.r);
             let mut arc01 = arc(arc1.a, arc0.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc0.b, arc1.b, arc0.c, arc0.r);
-            arc00.id(pack_id(arc0.id, id0));
-            arc01.id(pack_id(arc1.id, id1));
-            arc02.id(pack_id(arc0.id, id0));
+            arc00.id(id0);
+            arc01.id(id1);
+            arc02.id(id0);
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
             check_and_push(&mut res, &arc02);
@@ -331,9 +317,9 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc00 = arc(arc0.a, arc1.a, arc0.c, arc0.r);
             let mut arc01 = arc(arc1.a, arc1.b, arc0.c, arc0.r);
             let mut arc02 = arc(arc1.b, arc0.b, arc0.c, arc0.r);
-            arc00.id(pack_id(arc0.id, id0));
-            arc01.id(pack_id(arc1.id, id1));
-            arc02.id(pack_id(arc0.id, id0));
+            arc00.id(id0);
+            arc01.id(id1);
+            arc02.id(id0);
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
             check_and_push(&mut res, &arc02);
@@ -344,8 +330,8 @@ pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             // <A0,B1>, <A1,B0>
             let mut arc00 = arc(arc0.a, arc1.b, arc0.c, arc0.r);
             let mut arc01 = arc(arc1.a, arc0.b, arc0.c, arc0.r);
-            arc00.id(arc0.id);
-            arc01.id(arc1.id);
+            arc00.id(id0);
+            arc01.id(id1);
             check_and_push(&mut res, &arc00);
             check_and_push(&mut res, &arc01);
             (res, 2)
@@ -358,10 +344,8 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     debug_assert!(line0.is_seg());
     debug_assert!(arc1.is_arc());
     let mut res = Vec::new();
-    let (mut id0, parent0) = unpack_id(line0.id);
-    let (mut id1, parent1) = unpack_id(arc1.id);
-    id0 = if parent0 == u32::MAX { id0 } else { parent0 };
-    id1 = if parent1 == u32::MAX { id1 } else { parent1 };
+    let id0 = line0.id;
+    let id1 = arc1.id;
 
     let segment = segment(line0.a, line0.b);
     let inter = int_segment_arc(&segment, arc1);
@@ -378,10 +362,10 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut line01 = arcseg(point, line0.b);
             let mut arc10 = arc(arc1.a, point, arc1.c, arc1.r);
             let mut arc11 = arc(point, arc1.b, arc1.c, arc1.r);
-            line00.id(pack_id(line0.id, id0));
-            line01.id(pack_id(line0.id, id0));
-            arc10.id(pack_id(arc1.id, id1));
-            arc11.id(pack_id(arc1.id, id1));
+            line00.id(id0);
+            line01.id(id0);
+            arc10.id(id1);
+            arc11.id(id1);
             check_and_push(&mut res, &line00);
             check_and_push(&mut res, &line01);
             check_and_push(&mut res, &arc10);
@@ -400,12 +384,12 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
             let mut arc10 = arc(arc1.a, p0, arc1.c, arc1.r);
             let mut arc11 = arc(p0, p1, arc1.c, arc1.r);
             let mut arc12 = arc(p1, arc1.b, arc1.c, arc1.r);
-            line00.id(pack_id(line0.id, id0));
-            line01.id(pack_id(line0.id, id0));
-            line02.id(pack_id(line0.id, id0));
-            arc10.id(pack_id(arc1.id, id1));
-            arc11.id(pack_id(arc1.id, id1));
-            arc12.id(pack_id(arc1.id, id1));
+            line00.id(id0);
+            line01.id(id0);
+            line02.id(id0);
+            arc10.id(id1);
+            arc11.id(id1);
+            arc12.id(id1);
             check_and_push(&mut res, &line00);
             check_and_push(&mut res, &line01);
             check_and_push(&mut res, &line02);
