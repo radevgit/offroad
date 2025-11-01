@@ -76,6 +76,9 @@ Total time for 1980 offset operations: 8.593364565s
 Average time per operation: 4.340083ms
 Operations per second: 230.4
 __________________________________________________________
-
-
+Opt 11 - find_endpoint_groups with spatial index (29%)
+Total time for 1980 offset operations: 6.082281414s
+Average time per operation: 3.071859ms
+Operations per second: 325.5
+__________________________________________________________
 */

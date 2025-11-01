@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.5.5] - 2025-11-01
+- Opt 11 - find_endpoint_groups with spatial index (20% - 40%)
+
 ## [0.5.4] - 2025-11-01
 - Opt 10 - using aabb presplit check (29%)
 
