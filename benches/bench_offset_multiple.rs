@@ -34,7 +34,8 @@ fn main() {
 }
 
 /*
-> cargo bench --bench bench_offset_multiple
+> 
+cargo bench --bench bench_offset_multiple
 
 Base:
 Total time for 298 offset operations: 196.589137ms

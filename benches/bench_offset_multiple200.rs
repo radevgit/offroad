@@ -12,7 +12,7 @@ fn main() {
 
     let start = Instant::now();
 
-    for _ in 0..10 {
+    for _ in 0..100 {
         // Forward direction
         for i in 1..100 {
             offset_arcline_to_arcline(&arc_orig, (i as f64) / 4.0, &mut cfg);
