@@ -5,7 +5,7 @@ fn main() {
     let mut cfg = OffsetCfg::default();
     // This will create an SVG file at /tmp/pline1.svg
     let mut svg = SVG::new(800.0, 800.0, Some("/tmp/multi200.svg"));
-    cfg.svg = Some(&mut svg);
+    // cfg.svg = Some(&mut svg);
     cfg.svg_orig = true;
     cfg.svg_final = true;
 
@@ -32,3 +32,10 @@ fn main() {
         svg.write_stroke_width(0.1);
     }
 }
+
+
+/*
+samply record cargo run --release --example offset_multi200
+
+
+*/

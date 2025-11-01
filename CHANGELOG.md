@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.5.4] - 2025-11-01
+- Opt 10 - using aabb presplit check (29%)
+
 ## [0.5.3] - 2025-10-28
 - Update version of **aabb**
 

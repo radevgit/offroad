@@ -7,6 +7,61 @@ use crate::offsetraw::OffsetRaw;
 
 static ZERO: f64 = 0.0;
 const EPSILON: f64 = 1e-10;
+
+/// Get bounding circle for an arc: returns (center, radius_squared)
+/// Storing radius squared to avoid sqrt in distance calculations
+fn bounding_circle_arc(arc: &Arc) -> (Point, f64) {
+    if arc.is_seg() {
+        // For a segment, bounding circle is at midpoint with half-diagonal as radius
+        let mid = point((arc.a.x + arc.b.x) / 2.0, (arc.a.y + arc.b.y) / 2.0);
+        let dx = arc.b.x - arc.a.x;
+        let dy = arc.b.y - arc.a.y;
+        let radius_sq = (dx * dx + dy * dy) / 4.0;
+        (mid, radius_sq)
+    } else {
+        // For an arc, bounding circle is the circle it lies on
+        let radius_sq = arc.r * arc.r;
+        (arc.c, radius_sq)
+    }
+}
+
+/// Check if two bounding circles intersect or touch
+/// Both r1_sq and r2_sq are radius squared to avoid sqrt
+fn circles_intersect(c1: Point, r1_sq: f64, c2: Point, r2_sq: f64) -> bool {
+    let dx = c2.x - c1.x;
+    let dy = c2.y - c1.y;
+    let dist_sq = dx * dx + dy * dy;
+    
+    let r1 = r1_sq.sqrt();
+    let r2 = r2_sq.sqrt();
+    let sum_r = r1 + r2;
+    let sum_r_sq = sum_r * sum_r;
+    
+    dist_sq <= sum_r_sq + EPSILON
+}
+
+/// Get AABB (axis-aligned bounding box) for a segment: (min_x, max_x, min_y, max_y)
+#[inline(always)]
+fn aabb_segment(seg: &Arc) -> (f64, f64, f64, f64) {
+    debug_assert!(seg.is_seg());
+    (seg.a.x.min(seg.b.x), seg.a.x.max(seg.b.x),
+     seg.a.y.min(seg.b.y), seg.a.y.max(seg.b.y))
+}
+
+/// Get AABB (axis-aligned bounding box) for an arc: (min_x, max_x, min_y, max_y)
+#[inline(always)]
+fn aabb_arc(arc: &Arc) -> (f64, f64, f64, f64) {
+    debug_assert!(arc.is_arc());
+    (arc.c.x - arc.r, arc.c.x + arc.r,
+     arc.c.y - arc.r, arc.c.y + arc.r)
+}
+
+/// Check if two AABBs overlap
+fn aabb_overlap(min_x0: f64, max_x0: f64, min_y0: f64, max_y0: f64,
+                min_x1: f64, max_x1: f64, min_y1: f64, max_y1: f64) -> bool {
+    !(max_x0 < min_x1 || max_x1 < min_x0 || max_y0 < min_y1 || max_y1 < min_y0)
+}
+
 pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> Vec<Arc> {
     // Merge offsets and offset connections, filter singular arcs
     let mut parts: Vec<Arc> = row
@@ -87,6 +142,15 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
 // Split two lines at intersection point
 pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     let mut res = Vec::new();
+    
+    // Quick AABB check before expensive segment intersection
+    let (min_x0, max_x0, min_y0, max_y0) = aabb_segment(arc0);
+    let (min_x1, max_x1, min_y1, max_y1) = aabb_segment(arc1);
+    
+    if !aabb_overlap(min_x0, max_x0, min_y0, max_y0, min_x1, max_x1, min_y1, max_y1) {
+        return (res, 0);
+    }
+    
     let seg0 = segment(arc0.a, arc0.b);
     let seg1 = segment(arc1.a, arc1.b);
     let intersection = int_segment_segment(&seg0, &seg1);
@@ -132,6 +196,16 @@ pub fn split_line_line(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
 
 pub fn split_arc_arc(arc0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     let mut res = Vec::new();
+    
+    // Quick AABB check before expensive arc intersection
+    let (min_x0, max_x0, min_y0, max_y0) = aabb_arc(arc0);
+    let (min_x1, max_x1, min_y1, max_y1) = aabb_arc(arc1);
+    
+    // Check AABB overlap
+    if !aabb_overlap(min_x0, max_x0, min_y0, max_y0, min_x1, max_x1, min_y1, max_y1) {
+        return (res, 0);
+    }
+    
     let inter = int_arc_arc(&arc0, &arc1);
     match inter {
         ArcArcConfig::NoIntersection()
@@ -291,6 +365,16 @@ pub fn split_segment_arc(line0: &Arc, arc1: &Arc) -> (Vec<Arc>, usize) {
     debug_assert!(line0.is_seg());
     debug_assert!(arc1.is_arc());
     let mut res = Vec::new();
+    
+    // Quick AABB check before expensive segment-arc intersection
+    let (min_x0, max_x0, min_y0, max_y0) = aabb_segment(line0);
+    let (min_x1, max_x1, min_y1, max_y1) = aabb_arc(arc1);
+    
+    // Check AABB overlap
+    if !aabb_overlap(min_x0, max_x0, min_y0, max_y0, min_x1, max_x1, min_y1, max_y1) {
+        return (res, 0);
+    }
+    
     let segment = segment(line0.a, line0.b);
     let inter = int_segment_arc(&segment, arc1);
     match inter {

@@ -33,7 +33,8 @@ fn main() {
 }
 
 /*
-> cargo bench --bench bench_offset_multiple1000
+> 
+cargo bench --bench bench_offset_multiple1000
 
 BRUTE-FORCE (USE_BRUTE_FORCE = true):
 Total time for 50 offset operations: 19.007039989s
@@ -54,5 +55,11 @@ AABB v0.5:
 Total time for 50 offset operations: 4.808297775s
 Average time per operation: 96.165955ms
 Operations per second: 10.4
+_________________________________________________________
+Opt 10 - check aabb before split
+Total time for 50 offset operations: 3.936534119s
+Average time per operation: 78.730682ms
+Operations per second: 12.7
+_________________________________________________________
 
 */

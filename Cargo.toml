@@ -1,6 +1,6 @@
 [package]
 name = "offroad"
-version = "0.5.3"
+version = "0.5.4"
 description = "2D offsetting for arc polylines/polygons."
 rust-version = "1.88"
 edition = "2024"
@@ -30,6 +30,7 @@ lto = true
 codegen-units = 1
 panic = "abort"
 opt-level = 3
+#debug = 1
 
 [[bench]]
 name = "bench_offset_multiple"
