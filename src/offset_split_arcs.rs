@@ -86,9 +86,11 @@ pub fn offset_split_arcs(row: &Vec<Vec<OffsetRaw>>, connect: &Vec<Vec<Arc>>) -> 
                 }
             }
         }
-        // Remove matching arcs from parts in reverse order
-        for (i, _) in matching_arcs.iter().rev() {
-            let _ = parts.swap_remove(*i);
+        // Sort indices in reverse order before removing to avoid invalidating indices
+        let mut indices: Vec<usize> = matching_arcs.iter().map(|(i, _)| *i).collect();
+        indices.sort_by(|a, b| b.cmp(a));
+        for i in indices {
+            let _ = parts.swap_remove(i);
         }
         // Reconstruct matching_arcs with just the arcs (indices are no longer valid)
         let mut matching_arcs: Vec<Arc> = matching_arcs.iter().map(|(_, arc)| arc.clone()).collect();

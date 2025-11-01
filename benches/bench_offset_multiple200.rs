@@ -41,7 +41,8 @@ fn main() {
 }
 
 /*
-> cargo bench --bench bench_offset_multiple200
+> 
+cargo bench --bench bench_offset_multiple200
 
 BRUTE-FORCE (USE_BRUTE_FORCE = true):
 Total time for 198 offset operations: 3.431741022s

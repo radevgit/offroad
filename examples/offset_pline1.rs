@@ -28,8 +28,8 @@ fn main() {
     assert_eq!(offset_polylines.len(), 1, "Expected exactly 1 offset polyline");
     assert_eq!(offset_polylines[0].len(), 27);
     assert_eq!(offset_polylines2.len(), 4, "Expected exactly 1 offset polyline");
-    assert_eq!(offset_polylines2[0].len(), 9);
-    assert_eq!(offset_polylines2[1].len(), 3);
+    assert_eq!(offset_polylines2[0].len(), 8);
+    assert_eq!(offset_polylines2[1].len(), 9);
     assert_eq!(offset_polylines2[2].len(), 7);
-    assert_eq!(offset_polylines2[3].len(), 8);
+    assert_eq!(offset_polylines2[3].len(), 3);
 }
