@@ -63,6 +63,17 @@ fn find_endpoint_groups(arcs: &[Arc], tolerance: f64) -> Vec<EndpointGroup> {
         all_endpoints.push((arc.b, arc_idx, EndpointType::End));
     }
     
+    if all_endpoints.is_empty() {
+        return Vec::new();
+    }
+    
+    // Build spatial index of all endpoints
+    let mut spatial_index = HilbertRTree::with_capacity(all_endpoints.len());
+    for (point, _, _) in &all_endpoints {
+        spatial_index.add_point(point.x, point.y);
+    }
+    spatial_index.build();
+    
     let mut groups = Vec::new();
     let mut used = vec![false; all_endpoints.len()];
     
@@ -84,25 +95,38 @@ fn find_endpoint_groups(arcs: &[Arc], tolerance: f64) -> Vec<EndpointGroup> {
         group.arc_indices.push((arc_i, end_type_i));
         used[i] = true;
         
-        // Find all points within tolerance of any point in the current group
-        let mut changed = true;
-        while changed {
-            changed = false;
-            for j in 0..all_endpoints.len() {
-                if used[j] {
+        // Find all points within tolerance using spatial index (iterative expansion)
+        let mut queue = vec![point_i];
+        
+        while !queue.is_empty() {
+            let current_point = queue.pop().unwrap();
+            
+            // Query spatial index for points within tolerance of current_point
+            let mut nearby_indices = Vec::new();
+            spatial_index.query_circle(
+                current_point.x,
+                current_point.y,
+                tolerance,
+                &mut nearby_indices,
+            );
+            
+            // Process each nearby point
+            for idx in nearby_indices {
+                if used[idx] {
                     continue;
                 }
                 
-                let (point_j, arc_j, end_type_j) = all_endpoints[j];
-                
-                // Check if point_j is close to any point in the current group
-                for &group_point in &group.points {
-                    if (point_j - group_point).norm() <= tolerance {
+                // Get the actual point data from spatial index
+                if let Some((x, y)) = spatial_index.get_point(idx) {
+                    let point_j = Point::new(x, y);
+                    let (_, arc_j, end_type_j) = all_endpoints[idx];
+                    
+                    // Verify actual distance (spatial index may be approximate)
+                    if (point_j - current_point).norm() <= tolerance {
                         group.points.push(point_j);
                         group.arc_indices.push((arc_j, end_type_j));
-                        used[j] = true;
-                        changed = true;
-                        break;
+                        used[idx] = true;
+                        queue.push(point_j); // Add to queue for further expansion
                     }
                 }
             }

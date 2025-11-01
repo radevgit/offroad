@@ -61,5 +61,11 @@ Total time for 50 offset operations: 3.936534119s
 Average time per operation: 78.730682ms
 Operations per second: 12.7
 _________________________________________________________
+Opt 11 - find_endpoint_groups with spatial index (40%)
+Total time for 50 offset operations: 2.359176736s
+Average time per operation: 47.183534ms
+Operations per second: 21.2
+_________________________________________________________
+
 
 */
