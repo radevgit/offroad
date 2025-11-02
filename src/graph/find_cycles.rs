@@ -14,7 +14,8 @@
 //! 4. Return non-intersecting cycles as separate arc sequences
 
 use togo::prelude::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use aabb::HilbertRTree;
 
 /// Tolerance for considering vertices as the same point
 const VERTEX_TOLERANCE: f64 = 1e-8;
@@ -45,6 +46,9 @@ struct CycleGraph {
     adjacency: HashMap<VertexId, Vec<usize>>,
     /// All edges in the graph
     edges: Vec<GraphEdge>,
+    /// Spatial index for fast vertex lookup
+    #[allow(dead_code)]
+    vertex_spatial_index: Option<HilbertRTree>,
 }
 
 impl CycleGraph {
@@ -54,19 +58,14 @@ impl CycleGraph {
             vertices: Vec::new(),
             adjacency: HashMap::new(),
             edges: Vec::new(),
+            vertex_spatial_index: None,
         }
     }
     
-    /// Add or find vertex for a given point, merging close points
-    fn add_vertex(&mut self, point: Point) -> VertexId {
-        // Check if point is close to existing vertex
-        for (i, existing_point) in self.vertices.iter().enumerate() {
-            if (point - *existing_point).norm() < VERTEX_TOLERANCE {
-                return VertexId(i);
-            }
-        }
-        
-        // Add new vertex
+    /// Add vertex without merging - just collect all endpoints
+    /// Merging happens later in build_graph using spatial index
+    fn add_vertex_raw(&mut self, point: Point) -> VertexId {
+        // Always add, no filtering - merging done post-build
         let vertex_id = VertexId(self.vertices.len());
         self.vertices.push(point);
         self.adjacency.insert(vertex_id, Vec::new());
@@ -75,8 +74,8 @@ impl CycleGraph {
     
     /// Add an edge to the graph
     fn add_edge(&mut self, arc: Arc) {
-        let from = self.add_vertex(arc.a);
-        let to = self.add_vertex(arc.b);
+        let from = self.add_vertex_raw(arc.a);
+        let to = self.add_vertex_raw(arc.b);
         
         let edge = GraphEdge {
             arc,
@@ -104,14 +103,95 @@ impl CycleGraph {
 }
 
 /// Build graph from input arcs
+/// Build graph from input arcs with optional spatial-indexed vertex merging.
+/// Merging is done here to handle cases where find_non_intersecting_cycles is called
+/// without prior merge_close_endpoints, but the overhead is minimal when vertices are
+/// already merged (most vertices map to themselves).
 fn build_graph(arcs: &[Arc]) -> CycleGraph {
     let mut graph = CycleGraph::new();
     
+    // Pass 1: Add all arcs and collect vertices
     for arc in arcs {
         graph.add_edge(*arc);
     }
     
-    graph
+    if graph.vertices.is_empty() {
+        return graph;
+    }
+    
+    // Pass 2: Build spatial index of all vertices
+    let mut spatial_index = HilbertRTree::with_capacity(graph.vertices.len());
+    for point in &graph.vertices {
+        spatial_index.add_point(point.x, point.y);
+    }
+    spatial_index.build();
+    
+    // Pass 3: Find and merge close vertices using spatial queries
+    let mut vertex_mapping: HashMap<usize, usize> = HashMap::new(); // old_id -> new_id
+    let mut merged_vertices: Vec<Point> = Vec::with_capacity(graph.vertices.len());
+    let mut used = vec![false; graph.vertices.len()];
+    let mut nearby_indices: Vec<usize> = Vec::with_capacity(graph.vertices.len() / 8);  // Preallocate reusable buffer
+    
+    for i in 0..graph.vertices.len() {
+        if used[i] {
+            continue;
+        }
+        
+        let point_i = graph.vertices[i];
+        
+        // Find all nearby vertices using spatial index
+        nearby_indices.clear();
+        spatial_index.query_circle(point_i.x, point_i.y, VERTEX_TOLERANCE, &mut nearby_indices);
+        
+        // Keep the first one, merge others into it
+        let new_vertex_id = merged_vertices.len();
+        merged_vertices.push(point_i);
+        vertex_mapping.insert(i, new_vertex_id);
+        used[i] = true;
+        
+        // Merge nearby vertices (already filtered by query_circle, no need to check distance again)
+        for &nearby_idx in &nearby_indices {
+            if nearby_idx != i && !used[nearby_idx] {
+                vertex_mapping.insert(nearby_idx, new_vertex_id);
+                used[nearby_idx] = true;
+            }
+        }
+    }
+    
+    // Pass 4: Rebuild graph with merged vertices
+    let mut new_graph = CycleGraph::new();
+    new_graph.vertices = merged_vertices;
+    new_graph.edges.reserve(graph.edges.len());
+    
+    // Initialize adjacency lists for new vertices
+    for i in 0..new_graph.vertices.len() {
+        new_graph.adjacency.insert(VertexId(i), Vec::new());
+    }
+    
+    // Remap edges to use new vertex IDs
+    for edge in &graph.edges {
+        let old_from = edge.from.0;
+        let old_to = edge.to.0;
+        
+        // Look up merged vertex IDs - most vertices map to themselves if not merged
+        let new_from_id = *vertex_mapping.get(&old_from).unwrap_or(&old_from);
+        let new_to_id = *vertex_mapping.get(&old_to).unwrap_or(&old_to);
+        let new_from = VertexId(new_from_id);
+        let new_to = VertexId(new_to_id);
+        
+        let remapped_edge = GraphEdge {
+            arc: edge.arc,
+            from: new_from,
+            to: new_to,
+            id: new_graph.edges.len(),
+        };
+        
+        new_graph.adjacency.get_mut(&new_from).unwrap().push(remapped_edge.id);
+        new_graph.adjacency.get_mut(&new_to).unwrap().push(remapped_edge.id);
+        new_graph.edges.push(remapped_edge);
+    }
+    
+    new_graph
 }
 
 /// Find the next edge to follow from current vertex, avoiding the edge we came from
@@ -120,17 +200,18 @@ fn find_next_edge(
     graph: &CycleGraph, 
     current_vertex: VertexId, 
     came_from_edge: Option<usize>,
-    used_edges: &HashSet<usize>
+    used_edges: &[bool],
+    cycle_edges: &[usize]
 ) -> Option<usize> {
     let adjacent_edges = graph.get_adjacent_edges(current_vertex);
     
-    // Filter out the edge we came from and already used edges
-    let available_edges: Vec<usize> = adjacent_edges.iter()
-        .copied()
-        .filter(|&edge_id| {
-            Some(edge_id) != came_from_edge && !used_edges.contains(&edge_id)
-        })
-        .collect();
+    // Filter out the edge we came from, already used edges, and edges in current cycle
+    let mut available_edges: Vec<usize> = Vec::with_capacity(adjacent_edges.len());
+    for &edge_id in adjacent_edges {
+        if Some(edge_id) != came_from_edge && !used_edges[edge_id] && !cycle_edges.contains(&edge_id) {
+            available_edges.push(edge_id);
+        }
+    }
     
     if available_edges.is_empty() {
         return None;
@@ -165,7 +246,7 @@ fn choose_rightmost_edge(
     let incoming_direction = get_arc_direction_at_vertex(&incoming_edge.arc, vertex_pos, true);
     
     // Calculate angles for all available outgoing edges
-    let mut edge_angles: Vec<(usize, f64)> = Vec::new();
+    let mut edge_angles: Vec<(usize, f64)> = Vec::with_capacity(available_edges.len());
     
     for &edge_id in available_edges {
         let edge = &graph.edges[edge_id];
@@ -251,9 +332,9 @@ fn get_arc_direction_at_vertex(arc: &Arc, vertex_pos: Point, incoming: bool) -> 
 fn find_cycle_from_edge(
     graph: &CycleGraph, 
     start_edge_id: usize,
-    used_edges: &mut HashSet<usize>
+    used_edges: &mut Vec<bool>
 ) -> Option<Vec<Arc>> {
-    if used_edges.contains(&start_edge_id) {
+    if used_edges[start_edge_id] {
         return None;
     }
     
@@ -270,7 +351,7 @@ fn find_cycle_from_edge(
         if current_vertex == start_vertex {
             // Mark all edges in this cycle as used
             for edge_id in &cycle_edges {
-                used_edges.insert(*edge_id);
+                used_edges[*edge_id] = true;
             }
             
             // Convert edge IDs to arcs
@@ -281,14 +362,8 @@ fn find_cycle_from_edge(
             return Some(cycle_arcs);
         }
         
-        // Create a temporary set of edges to avoid in this search (current path + permanently used)
-        let mut temp_used: HashSet<usize> = used_edges.clone();
-        for &edge_id in &cycle_edges {
-            temp_used.insert(edge_id);
-        }
-        
-        // Find next edge to follow
-        if let Some(next_edge_id) = find_next_edge(graph, current_vertex, Some(current_edge_id), &temp_used) {
+        // Find next edge to follow (create temporary tracking on the fly)
+        if let Some(next_edge_id) = find_next_edge(graph, current_vertex, Some(current_edge_id), used_edges, &cycle_edges) {
             let next_edge = &graph.edges[next_edge_id];
             
             // Determine which vertex to move to
@@ -316,7 +391,7 @@ pub fn find_non_intersecting_cycles(arcs: &[Arc]) -> Vec<Vec<Arc>> {
     let graph = build_graph(arcs);
     
     let mut cycles = Vec::new();
-    let mut used_edges = HashSet::new();
+    let mut used_edges = vec![false; graph.edges.len()];  // Use Vec<bool> instead of HashSet
     
     // Try to find cycles starting from each edge
     for edge_id in 0..graph.edges.len() {

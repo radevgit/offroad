@@ -2238,4 +2238,30 @@ mod test_offset {
 
         // svg.write();
     }
+
+    #[test]
+    fn test_offset_pline1_polyline() {
+        use crate::prelude::{offset_polyline_to_polyline, pline_01, OffsetCfg};
+        use togo::prelude::*;
+        
+        let mut cfg = OffsetCfg::default();
+
+        let poly_orig = pline_01()[0].clone();
+        // Translate to fit in test viewport
+        let poly = polyline_translate(&poly_orig, point(100.0, -50.0));
+
+        // Test external offset
+        let offset_polylines = offset_polyline_to_polyline(&poly, 16.0 - 1e-9, &mut cfg);
+        assert_eq!(offset_polylines.len(), 1, "Expected exactly 1 offset polyline for external offset");
+        assert_eq!(offset_polylines[0].len(), 23, "External offset should have 23 vertices");
+
+        // Test internal offset
+        let poly_reversed = polyline_reverse(&poly);
+        let offset_polylines2 = offset_polyline_to_polyline(&poly_reversed, 15.5600615, &mut cfg);
+        assert_eq!(offset_polylines2.len(), 4, "Expected exactly 4 offset polylines for internal offset");
+        assert_eq!(offset_polylines2[0].len(), 9, "First internal offset should have 9 vertices");
+        assert_eq!(offset_polylines2[1].len(), 3, "Second internal offset should have 3 vertices");
+        assert_eq!(offset_polylines2[2].len(), 7, "Third internal offset should have 7 vertices");
+        assert_eq!(offset_polylines2[3].len(), 8, "Fourth internal offset should have 8 vertices");
+    }
 }

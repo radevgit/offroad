@@ -81,4 +81,9 @@ Total time for 1980 offset operations: 6.082281414s
 Average time per operation: 3.071859ms
 Operations per second: 325.5
 __________________________________________________________
+Opt 12 - build_graph() with spatial index  (34%)
+Total time for 1980 offset operations: 4.004032514s
+Average time per operation: 2.022238ms
+Operations per second: 494.5
+__________________________________________________________
 */

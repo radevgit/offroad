@@ -13,7 +13,7 @@ fn main() {
     // Translate to fit in the SVG viewport
     let poly = polyline_translate(&poly_orig, point(100.0, -50.0));
 
-    let offset_polylines = offset_polyline_to_polyline(&poly, 10.0, &mut cfg);
+    let offset_polylines = offset_polyline_to_polyline(&poly, 16.0-1e-9, &mut cfg);
     // Internal offsetting
     let poly = polyline_reverse(&poly);
     let offset_polylines2 = offset_polyline_to_polyline(&poly, 15.5600615, &mut cfg);
@@ -26,7 +26,7 @@ fn main() {
     }
 
     assert_eq!(offset_polylines.len(), 1, "Expected exactly 1 offset polyline");
-    assert_eq!(offset_polylines[0].len(), 27);
+    assert_eq!(offset_polylines[0].len(), 23);
     assert_eq!(offset_polylines2.len(), 4, "Expected exactly 1 offset polyline");
     assert_eq!(offset_polylines2[0].len(), 9);
     assert_eq!(offset_polylines2[1].len(), 3);

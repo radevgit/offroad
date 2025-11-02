@@ -66,5 +66,9 @@ Total time for 198 offset operations: 2.298718087s
 Average time per operation: 11.609687ms
 Operations per second: 86.1
 _______________________________________________________________
-
+Opt 12 - build_graph() with spatial index (30%)
+Total time for 198 offset operations: 1.655199977s
+Average time per operation: 8.359595ms
+Operations per second: 119.6
+_______________________________________________________________
 */
