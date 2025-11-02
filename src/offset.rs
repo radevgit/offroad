@@ -2264,4 +2264,46 @@ mod test_offset {
         assert_eq!(offset_polylines2[2].len(), 7, "Third internal offset should have 7 vertices");
         assert_eq!(offset_polylines2[3].len(), 8, "Fourth internal offset should have 8 vertices");
     }
+
+    #[test]
+    fn test_offset_multi_polyline() {
+        use crate::prelude::{offset_polyline_to_polyline, pline_01, OffsetCfg};
+        use togo::prelude::*;
+        
+        let mut cfg = OffsetCfg::default();
+        cfg.svg_orig = false;
+        cfg.svg_final = false;
+
+        let poly_orig = pline_01()[0].clone();
+        // Translate to fit in test viewport
+        let poly = polyline_translate(&poly_orig, point(250.0, 100.0));
+
+        // Test external offsets: 99 iterations with varying offset distances (0.5, 1.0, 1.5, ..., 49.5)
+        let mut offset_external = vec![];
+        for i in 1..100 {
+            let offset = offset_polyline_to_polyline(&poly, (i as f64) / 2.0, &mut cfg);
+            offset_external.extend(offset);
+        }
+        assert_eq!(
+            offset_external.len(),
+            99,
+            "Expected 99 external offset polylines (one per iteration), got {}",
+            offset_external.len()
+        );
+
+        // Test internal offsets: 99 iterations on reversed polyline
+        // At larger offsets, reversed polyline self-intersects and splits into multiple segments
+        let poly_reversed = polyline_reverse(&poly);
+        let mut offset_internal = vec![];
+        for i in 1..100 {
+            let offset = offset_polyline_to_polyline(&poly_reversed, (i as f64) / 2.0, &mut cfg);
+            offset_internal.extend(offset);
+        }
+        assert_eq!(
+            offset_internal.len(),
+            181,
+            "Expected 181 internal offset polylines (split due to self-intersection), got {}",
+            offset_internal.len()
+        );
+    }
 }

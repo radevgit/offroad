@@ -13,18 +13,18 @@ fn main() {
     // Translate to fit in the SVG viewport
     let poly = polyline_translate(&poly_orig, point(250.0, 100.0));
 
-    let mut offset_internal = vec![];
+    let mut offset_external = vec![];
     for i in 1..100 {
-        let offset = offset_polyline_to_polyline(&poly, (i as f64), &mut cfg);
-        offset_internal.extend(offset);
+        let offset = offset_polyline_to_polyline(&poly, (i as f64)/2.0, &mut cfg);
+        offset_external.extend(offset);
     }
 
     let poly = polyline_reverse(&poly);
     
-    let mut offset_external = vec![];
+    let mut offset_internal = vec![];
     for i in 1..100 {
-        let offset = offset_polyline_to_polyline(&poly, (i as f64), &mut cfg);
-        offset_external.extend(offset);
+        let offset = offset_polyline_to_polyline(&poly, (i as f64)/2.0, &mut cfg);
+        offset_internal.extend(offset);
     }
 
     if let Some(svg) = cfg.svg.as_mut(){
@@ -33,11 +33,13 @@ fn main() {
     }
 
     assert!(
-        offset_internal.len() == 99,
-        "Wrong number of offset arclines generated"
+        offset_external.len() == 99,
+        "Wrong number of external offset arclines generated: expected 99, got {}",
+        offset_external.len()
     );
     assert!(
-        offset_external.len() == 90,
-        "Wrong number of offset arclines generated"
+        offset_internal.len() == 181,
+        "Wrong number of internal offset arclines generated: expected 181, got {}",
+        offset_internal.len()
     );
 }
