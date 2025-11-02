@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.5.6] - 2025-11-02
+- Opt 12- build_graph() with spatial index (34%-54%)
+
 ## [0.5.5] - 2025-11-01
 - Opt 11 - find_endpoint_groups with spatial index (20% - 40%)
 
